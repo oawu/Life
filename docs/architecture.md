@@ -16,6 +16,16 @@
 
 ---
 
+## API 網址
+
+| 環境 | 網址 |
+|------|------|
+| 本地 | `http://local-api-life.iwi.tw` |
+| 線上測試 | `https://beta-api-life.iwi.tw` |
+| 線上正式 | `https://api-life.iwi.tw` |
+
+---
+
 ## 資料模型
 
 ### User（用戶）

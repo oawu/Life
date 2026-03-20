@@ -3,11 +3,11 @@ import Foundation
 enum Environment {
   static var apiBaseURL: String {
     #if LOCAL
-    return "http://localhost:7200"
+    return "http://local-api-life.iwi.tw"
     #elseif BETA
-    return "https://beta.iwi.tw"
+    return "https://beta-api-life.iwi.tw"
     #else
-    return "https://iwi.tw"
+    return "https://api-life.iwi.tw"
     #endif
   }
 
