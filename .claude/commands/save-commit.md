@@ -37,6 +37,8 @@
 | PHP 新規則 | .claude/rules/php-conventions.md |
 | 後端架構變更 | docs/backend/overview.md + CLAUDE.md |
 | Worker 架構/模組變更 | docs/worker/overview.md |
+| iOS 新增/修改頁面或元件 | CLAUDE.md（已完成功能） |
+| iOS 架構性變更 | CLAUDE.md + docs/architecture.md |
 
 ### 第二階段：Git Commit
 

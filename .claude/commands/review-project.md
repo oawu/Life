@@ -77,6 +77,10 @@ find backend/Migration -name "*.php" | xargs wc -l 2>/dev/null | tail -1
 find worker/src -name "*.js" | xargs wc -l 2>/dev/null | tail -1
 find worker/src -name "*.js" | wc -l
 
+# iOS 統計
+find ios/Life -name "*.swift" | xargs wc -l 2>/dev/null | tail -1
+find ios/Life -name "*.swift" | wc -l
+
 # 前後端最大檔案 Top 5（複雜度指標）
 echo "=== 前端 JS Top 5 ==="
 find frontend/src/js -name "*.js" | xargs wc -l 2>/dev/null | sort -rn | head -6
@@ -134,7 +138,8 @@ find frontend/src/tmpl -name "*.el3" | xargs wc -l 2>/dev/null | tail -1
 | JS   | xx     | x,xxx  |
 | SCSS | xx     | x,xxx  |
 | el3  | xx     | x,xxx  |
-| PHP  | xx     | x,xxx  |
+| PHP   | xx     | x,xxx  |
+| Swift | xx     | x,xxx  |
 ```
 
 #### 前後端程式碼分析

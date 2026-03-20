@@ -22,6 +22,7 @@
 - `backend/Migration/*.php` — 資料表結構
 - `frontend/src/model/*.js` — 前端頁面資源清單
 - `worker/src/routes/main.js` — Worker HTTP 路由
+- `ios/Life/**/*.swift` — iOS App 原始碼（Views、Models、Services）
 
 ### 2. 比對文件與原始碼
 
