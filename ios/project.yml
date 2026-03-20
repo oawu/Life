@@ -1,0 +1,127 @@
+name: Life
+options:
+  bundleIdPrefix: tw.iwi
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+
+configs:
+  Local: debug
+  Beta: release
+  Prod: release
+
+targets:
+  Life:
+    type: application
+    platform: iOS
+    sources: Life
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        SWIFT_EMIT_LOC_STRINGS: true
+      configs:
+        Local:
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta
+          PRODUCT_NAME: "Life β"
+        Beta:
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta
+          PRODUCT_NAME: "Life β"
+        Prod:
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life
+          PRODUCT_NAME: Life
+    configFiles:
+      Local: Config/Local.xcconfig
+      Beta: Config/Beta.xcconfig
+      Prod: Config/Prod.xcconfig
+    dependencies:
+      - target: LifeWidget
+
+  LifeWatch:
+    type: application
+    platform: watchOS
+    sources: LifeWatch
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+      configs:
+        Local:
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta.watch
+          PRODUCT_NAME: "Life β Watch"
+          INFOPLIST_KEY_WKCompanionAppBundleIdentifier: tw.iwi.life.beta
+        Beta:
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta.watch
+          PRODUCT_NAME: "Life β Watch"
+          INFOPLIST_KEY_WKCompanionAppBundleIdentifier: tw.iwi.life.beta
+        Prod:
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.watch
+          PRODUCT_NAME: Life Watch
+          INFOPLIST_KEY_WKCompanionAppBundleIdentifier: tw.iwi.life
+
+  LifeWidget:
+    type: app-extension
+    platform: iOS
+    sources: LifeWidget
+    info:
+      path: LifeWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Life Widget
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+      configs:
+        Local:
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta.widget
+          INFOPLIST_KEY_CFBundleDisplayName: "Life β Widget"
+        Beta:
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta.widget
+          INFOPLIST_KEY_CFBundleDisplayName: "Life β Widget"
+        Prod:
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.widget
+          INFOPLIST_KEY_CFBundleDisplayName: Life Widget
+
+schemes:
+  Life Dev:
+    build:
+      targets:
+        Life: all
+        LifeWatch: all
+        LifeWidget: all
+    run:
+      config: Local
+    profile:
+      config: Local
+    analyze:
+      config: Local
+
+  Life Beta:
+    build:
+      targets:
+        Life: all
+        LifeWatch: all
+        LifeWidget: all
+    run:
+      config: Local
+    archive:
+      config: Beta
+
+  Life Prod:
+    build:
+      targets:
+        Life: all
+        LifeWatch: all
+        LifeWidget: all
+    run:
+      config: Local
+    archive:
+      config: Prod

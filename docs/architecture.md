@@ -11,6 +11,7 @@
 | 後端框架 | Maple 9 | PHP 7.4，MVC + Active Record ORM |
 | Worker | Node.js 18+ | pm2 常駐服務 |
 | 資料庫 | MySQL | InnoDB, utf8mb4 |
+| iOS App | SwiftUI | iOS 17+, watchOS 10+, XcodeGen |
 | 容器 | Docker | 本機開發環境 |
 
 ---

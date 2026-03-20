@@ -39,6 +39,12 @@ life/
 │   ├── Migration/     # 資料庫遷移
 │   ├── Public/        # Web 入口 + 靜態檔案
 │   └── System/        # 框架核心（勿修改）
+├── ios/               # iOS App（XcodeGen + SwiftUI）
+│   ├── Life/          # 主 App（iPhone / iPad）
+│   ├── LifeWatch/     # watchOS App
+│   ├── LifeWidget/    # Widget Extension
+│   ├── Config/        # 環境設定（Local / Beta / Prod）
+│   └── project.yml    # XcodeGen 設定（產生 .xcodeproj）
 ├── worker/            # Node.js Worker 常駐服務（pm2）
 │   └── src/           # Job 調度、處理器、服務模組
 ├── work/              # 工作目錄（暫存）

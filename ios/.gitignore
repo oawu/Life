@@ -1,0 +1,17 @@
+# Xcode project（由 xcodegen 從 project.yml 產生）
+*.xcodeproj/
+
+# 使用者偏好
+xcuserdata/
+*.xcuserstate
+
+# Build 產出
+build/
+DerivedData/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# 系統檔案
+.DS_Store
