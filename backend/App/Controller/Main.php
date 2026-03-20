@@ -1,0 +1,11 @@
+<?php
+
+namespace App\Controller;
+
+use \View;
+
+class Main {
+  public function index(): View {
+    return View::create('Main');
+  }
+}
