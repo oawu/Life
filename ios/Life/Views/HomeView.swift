@@ -2,44 +2,27 @@ import SwiftUI
 
 struct HomeView: View {
   var authManager: AuthManager
+  @Bindable var expenseStore: ExpenseStore
 
   var body: some View {
-    NavigationStack {
-      VStack(spacing: 24) {
-        Spacer()
-
-        // 用戶資訊
-        VStack(spacing: 12) {
-          Image(systemName: "person.circle.fill")
-            .font(.system(size: 80))
-            .foregroundStyle(.secondary)
-
-          if let user = authManager.currentUser {
-            Text(user.name.isEmpty ? "未命名" : user.name)
-              .font(.title2)
-              .fontWeight(.semibold)
-
-            Text(user.email)
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-          }
-        }
-
-        Spacer()
+    TabView {
+      NavigationStack {
+        ExpenseListView(store: expenseStore)
       }
-      .frame(maxWidth: .infinity)
-      .navigationTitle("Life")
-      .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          Button("登出") {
-            authManager.signOut()
-          }
-        }
+      .tabItem {
+        Label("開銷", systemImage: "yensign.circle.fill")
+      }
+
+      NavigationStack {
+        ProfileView(authManager: authManager)
+      }
+      .tabItem {
+        Label("個人", systemImage: "person.fill")
       }
     }
   }
 }
 
 #Preview {
-  HomeView(authManager: AuthManager())
+  HomeView(authManager: AuthManager(), expenseStore: ExpenseStore())
 }

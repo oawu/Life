@@ -28,6 +28,7 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         UILaunchScreen: {}
+        NSLocationWhenInUseUsageDescription: "用於記錄開銷的發生地點"
         NSAppTransportSecurity:
           NSExceptionDomains:
             local-api-life.iwi.tw:
