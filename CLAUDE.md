@@ -91,7 +91,7 @@ life/
 
 ### iOS `Environment` 命名衝突
 
-iOS App 中 `Environment.swift` 已重命名為 `AppEnvironment`，避免與 SwiftUI 的 `@Environment` 屬性包裝器衝突。引用環境設定時使用 `AppEnvironment.apiBaseURL` 等。
+iOS App 中 `Environment.swift` 內的 `enum Environment` 已重命名為 `enum AppEnvironment`，避免與 SwiftUI 的 `@Environment` 屬性包裝器衝突。引用環境設定時使用 `AppEnvironment.apiBaseURL` 等。
 
 ### CSS class 命名偏好
 
