@@ -32,7 +32,9 @@ struct CalculatorView: View {
         .minimumScaleFactor(0.5)
       }
       .padding(.horizontal, 16)
-      .padding(.vertical, 12)
+      .padding(.top, 8)
+
+      Divider()
 
       // 鍵盤
       LazyVGrid(columns: columns, spacing: 8) {
@@ -44,12 +46,13 @@ struct CalculatorView: View {
           }
         }
       }
+      .padding(.top, 4)
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 12)
     .background(
       RoundedRectangle(cornerRadius: 16)
-        .fill(Color(.systemBackground))
+        .fill(Color(.secondarySystemGroupedBackground))
         .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
     )
     .padding(.horizontal, 12)
@@ -128,7 +131,7 @@ private struct CalculatorButton: View {
 
   private var backgroundColor: Color {
     switch key.style {
-    case .digit:  return Color(.secondarySystemBackground)
+    case .digit:  return Color(.quaternarySystemFill)
     case .op:     return .orange
     case .equal:  return .blue
     case .clear:  return Color(.systemRed).opacity(0.15)
