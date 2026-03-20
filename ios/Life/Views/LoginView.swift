@@ -5,7 +5,7 @@ struct LoginView: View {
   var authManager: AuthManager
 
   @State private var showDevLogin = false
-  @State private var devEmail = ""
+  @State private var devEmail = "oawu.tw@gmail.com"
 
   var body: some View {
     VStack(spacing: 0) {
