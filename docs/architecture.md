@@ -17,7 +17,19 @@
 
 ## 資料模型
 
-（待建立 Migration 後補齊）
+### User（用戶）
+
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| id | int unsigned AI | 主鍵 |
+| name | varchar(190) | 名稱 |
+| email | varchar(190) | Email |
+| avatar | text | 頭像 URL |
+| googleId | varchar(190), UNIQUE | Google 登入 ID |
+| appleId | varchar(190), UNIQUE | Apple 登入 ID |
+| status | enum(active, disabled) | 狀態 |
+| updateAt | datetime | 更新時間 |
+| createAt | datetime | 新增時間 |
 
 ---
 

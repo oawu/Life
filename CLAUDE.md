@@ -64,7 +64,9 @@ life/
 
 ### 資料模型
 
-（待建立 Migration 後補齊）
+| Model | 表名 | 說明 |
+|-------|------|------|
+| User | User | 用戶（支援 Google / Apple 登入） |
 
 ### Lib 工具
 
