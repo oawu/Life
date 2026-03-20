@@ -17,86 +17,12 @@ struct AddExpenseView: View {
 
   var body: some View {
     ScrollView(showsIndicators: false) {
-      VStack(spacing: 0) {
+      VStack(spacing: 32) {
         CalculatorView(engine: engine)
 
         CategoryGridView(categories: store.categories, selected: $selectedCategory)
-              .padding(.top, 32)
-              
-        // 備註
-        VStack(alignment: .leading, spacing: 8) {
-          Label("備註", systemImage: "pencil")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
 
-          TextField("輸入備註", text: $memo)
-            .textFieldStyle(.roundedBorder)
-        }
-        .padding(.horizontal, 16)
-
-        // 時間
-        VStack(alignment: .leading, spacing: 8) {
-          Label("時間", systemImage: "clock")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-
-          DatePicker("", selection: $date, displayedComponents: [.date, .hourAndMinute])
-            .labelsHidden()
-        }
-        .padding(.horizontal, 16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-
-        // 地點
-        VStack(alignment: .leading, spacing: 8) {
-          Label("地點", systemImage: "location")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-
-          if let address = locationService.currentAddress {
-            HStack {
-              Text(address)
-                .font(.subheadline)
-
-              Spacer()
-
-              Button {
-                locationService.clear()
-              } label: {
-                Image(systemName: "xmark.circle.fill")
-                  .foregroundStyle(.secondary)
-              }
-            }
-            .padding(12)
-            .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-          } else if locationService.isLoading {
-            HStack {
-              ProgressView()
-              Text("定位中…")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity)
-            .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-          } else {
-            Button {
-              locationService.requestLocation()
-            } label: {
-              HStack {
-                Image(systemName: "location.fill")
-                Text("取得目前位置")
-              }
-              .font(.subheadline)
-              .padding(12)
-              .frame(maxWidth: .infinity)
-              .background(Color(.systemBackground))
-              .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-          }
-        }
-        .padding(.horizontal, 16)
+        ExpenseDetailFields(memo: $memo, date: $date, locationService: locationService)
       }
       .padding(.vertical, 16)
     }
