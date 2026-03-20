@@ -36,7 +36,7 @@ struct CategoryGridView: View {
         .scrollTargetLayout()
       }
       .scrollTargetBehavior(.viewAligned)
-      .padding(.top, 12)
+      .padding(.top, 10)
 
       if pageCount > 1 {
         HStack(spacing: 6) {
@@ -84,6 +84,7 @@ struct CategoryGridView: View {
       }
     }
     .padding(.horizontal, 12)
+    .padding(.vertical, 2)
   }
 }
 

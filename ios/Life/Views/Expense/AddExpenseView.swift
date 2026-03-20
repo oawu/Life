@@ -23,14 +23,6 @@ struct AddExpenseView: View {
         CategoryGridView(categories: store.categories, selected: $selectedCategory)
               .padding(.top, 32)
               
-        // 分類提示
-        if engine.currentValue > 0 && selectedCategory == nil {
-          Text("請選擇分類")
-            .font(.caption)
-            .foregroundStyle(.orange)
-            .transition(.opacity)
-        }
-
         // 備註
         VStack(alignment: .leading, spacing: 8) {
           Label("備註", systemImage: "pencil")
@@ -75,7 +67,7 @@ struct AddExpenseView: View {
               }
             }
             .padding(12)
-            .background(Color(.secondarySystemBackground))
+            .background(Color(.systemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 8))
           } else if locationService.isLoading {
             HStack {
@@ -86,7 +78,7 @@ struct AddExpenseView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity)
-            .background(Color(.secondarySystemBackground))
+            .background(Color(.systemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 8))
           } else {
             Button {
@@ -99,7 +91,7 @@ struct AddExpenseView: View {
               .font(.subheadline)
               .padding(12)
               .frame(maxWidth: .infinity)
-              .background(Color(.secondarySystemBackground))
+              .background(Color(.systemBackground))
               .clipShape(RoundedRectangle(cornerRadius: 8))
             }
           }
