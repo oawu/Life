@@ -7,6 +7,7 @@ final class LocationService: NSObject {
   var latitude: Double?
   var longitude: Double?
   var authorizationStatus: CLAuthorizationStatus = .notDetermined
+  var isLoading: Bool = false
 
   private let locationManager = CLLocationManager()
   private let geocoder = CLGeocoder()
@@ -23,6 +24,7 @@ final class LocationService: NSObject {
     case .notDetermined:
       locationManager.requestWhenInUseAuthorization()
     case .authorizedWhenInUse, .authorizedAlways:
+      isLoading = true
       locationManager.requestLocation()
     default:
       break
@@ -33,6 +35,7 @@ final class LocationService: NSObject {
     currentAddress = nil
     latitude = nil
     longitude = nil
+    isLoading = false
   }
 }
 
@@ -48,7 +51,12 @@ extension LocationService: CLLocationManagerDelegate {
     longitude = location.coordinate.longitude
 
     geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
-      guard let self = self, error == nil, let placemark = placemarks?.first else {
+      guard let self = self else {
+        return
+      }
+
+      guard error == nil, let placemark = placemarks?.first else {
+        self.isLoading = false
         return
       }
 
@@ -61,17 +69,19 @@ extension LocationService: CLLocationManagerDelegate {
       ].compactMap { $0 }
 
       self.currentAddress = components.joined()
+      self.isLoading = false
     }
   }
 
   func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-    // 定位失敗，靜默處理
+    isLoading = false
   }
 
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
     authorizationStatus = manager.authorizationStatus
 
     if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+      isLoading = true
       locationManager.requestLocation()
     }
   }

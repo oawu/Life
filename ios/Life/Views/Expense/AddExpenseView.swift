@@ -9,6 +9,7 @@ struct AddExpenseView: View {
   @State private var date: Date = Date()
   @State private var locationService = LocationService()
   @State private var showExpenseList = false
+  @State private var showSaveConfirmation = false
 
   private var canSave: Bool {
     engine.currentValue > 0 && selectedCategory != nil
@@ -20,6 +21,14 @@ struct AddExpenseView: View {
         CalculatorView(engine: engine)
 
         CategoryGridView(categories: store.categories, selected: $selectedCategory)
+
+        // 分類提示
+        if engine.currentValue > 0 && selectedCategory == nil {
+          Text("請選擇分類")
+            .font(.caption)
+            .foregroundStyle(.orange)
+            .transition(.opacity)
+        }
 
         // 備註
         VStack(alignment: .leading, spacing: 8) {
@@ -67,6 +76,17 @@ struct AddExpenseView: View {
             .padding(12)
             .background(Color(.secondarySystemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 8))
+          } else if locationService.isLoading {
+            HStack {
+              ProgressView()
+              Text("定位中…")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
           } else {
             Button {
               locationService.requestLocation()
@@ -87,12 +107,15 @@ struct AddExpenseView: View {
       }
       .padding(.vertical, 16)
     }
+    .scrollDismissesKeyboard(.interactively)
     .navigationTitle("新增開銷")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem(placement: .topBarLeading) {
-        Button("紀錄") {
+        Button {
           showExpenseList = true
+        } label: {
+          Label("紀錄", systemImage: "list.bullet")
         }
       }
       ToolbarItem(placement: .topBarTrailing) {
@@ -105,6 +128,23 @@ struct AddExpenseView: View {
     }
     .navigationDestination(isPresented: $showExpenseList) {
       ExpenseListView(store: store)
+    }
+    .overlay {
+      if showSaveConfirmation {
+        VStack(spacing: 8) {
+          Image(systemName: "checkmark.circle.fill")
+            .font(.system(size: 48))
+            .foregroundStyle(.green)
+
+          Text("已儲存")
+            .font(.subheadline)
+            .fontWeight(.medium)
+        }
+        .padding(24)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .transition(.scale.combined(with: .opacity))
+      }
     }
   }
 
@@ -126,7 +166,17 @@ struct AddExpenseView: View {
     )
 
     UINotificationFeedbackGenerator().notificationOccurred(.success)
-    resetForm()
+
+    withAnimation(.easeInOut(duration: 0.2)) {
+      showSaveConfirmation = true
+      resetForm()
+    }
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+      withAnimation {
+        showSaveConfirmation = false
+      }
+    }
   }
 
   private func resetForm() {

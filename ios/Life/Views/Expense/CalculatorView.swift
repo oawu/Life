@@ -11,9 +11,10 @@ struct CalculatorView: View {
       HStack {
         Spacer()
         Text(engine.displayText + " 元")
-          .font(.system(size: 32, weight: .medium, design: .rounded))
+          .font(.system(size: 40, weight: .semibold, design: .rounded))
           .lineLimit(1)
           .minimumScaleFactor(0.5)
+          .contentTransition(.numericText())
       }
       .padding(.horizontal, 16)
       .padding(.vertical, 12)
