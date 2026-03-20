@@ -5,24 +5,26 @@ use \Router\Group;
 Router::cli()->func(fn() => 'Hello!');
 Router::get()->controller(\App\Controller\Main::class);
 Router::post()->controller(\App\Controller\Main::class);
-// Router::put()->controller(\App\Controller\Main::class);
 
-// Group::create('api')
-//   ->middleware(App\Middleware\Cors::class)
-//   ->corsOptionsResponse('ok!')
-//   ->routers(static function() {
-//
-//     Router::get('users')->controller(\App\Controller\Api\User::class);
-//     Router::get('user/add')->controller(\App\Controller\Api\User::class . '@add');
-//     Router::post('user')->controller(\App\Controller\Api\User::class . '@create');
-//     Router::get('user/{{ id: int(0) }}/edit')->controller(\App\Controller\Api\User::class . '@edit');
-//     Router::put('user/{{ id: int(0) }}')->controller(\App\Controller\Api\User::class . '@update');
-//     Router::get('user/{{ id: int(0) }}')->controller(\App\Controller\Api\User::class . '@show');
-//     Router::delete('user/{{ id: int(0) }}')->controller(\App\Controller\Api\User::class . '@delete');
-//   });
+Group::create('api')
+  ->middleware(
+    \App\Middleware\Api::class,
+    \App\Middleware\Cors::class
+  )
+  ->cors('ok!')
+  ->routers(static function() {
 
-// int(0), int(0, 10)
-// int, int8, int16, int32, int64
-// uint, uint8, uint16, uint32, uint64
-// float, double, num, number
-// str, string
+    // 公開路由
+    Router::post('auth/apple/callback')
+      ->controller(\App\Controller\Api\Auth::class . '@appleCallback')
+      ->title('Apple Sign In 回調');
+
+    // 需認證路由
+    Group::create()
+      ->middleware(\App\Middleware\Auth::class)
+      ->routers(static function() {
+        Router::get('auth/me')
+          ->controller(\App\Controller\Api\Auth::class . '@me')
+          ->title('取得當前用戶');
+      });
+  });
