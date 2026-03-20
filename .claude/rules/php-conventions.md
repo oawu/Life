@@ -12,6 +12,24 @@ docker exec php zsh -c "cd ~/Workspace/32_Life/backend && <command>"
 
 **重要：** 容器內使用 **zsh**，不要用 bash。
 
+## Migration 檔案命名
+
+Migration 檔案命名必須遵守 CLI 指令（`php Maple.php create -I`）產生的格式：`{3位版本號}-{type} {name} {action} {column}.php`，禁止自創命名：
+
+```bash
+# CLI 指令與對應檔名
+php Maple.php create -I create User              → 001-create User.php
+php Maple.php create -I alter User add token      → 002-alter User add token.php
+php Maple.php create -I alter User drop avatar    → 003-alter User drop avatar.php
+
+# ✗ 錯誤：自創命名
+002-UserAddToken.php
+002-add-token-to-user.php
+
+# ✓ 正確：遵守 CLI 格式
+002-alter User add token.php
+```
+
 ## 框架：Maple 9
 
 - MVC 架構

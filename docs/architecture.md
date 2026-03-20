@@ -39,6 +39,7 @@
 | googleId | varchar(190), UNIQUE | Google 登入 ID |
 | appleId | varchar(190), UNIQUE | Apple 登入 ID |
 | status | enum(active, disabled) | 狀態 |
+| token | varchar(512) | JWT Token（伺服端比對用） |
 | updateAt | datetime | 更新時間 |
 | createAt | datetime | 新增時間 |
 

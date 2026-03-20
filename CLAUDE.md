@@ -62,7 +62,7 @@ life/
 
 ## 已完成功能
 
-（待開發後補齊）
+- Apple Sign In 登入（後端 API + iOS App）
 
 ---
 
@@ -76,15 +76,17 @@ life/
 
 ### Lib 工具
 
-（待開發後補齊）
+| Lib | 說明 |
+|-----|------|
+| Jwt | JWT 簽發與驗證（HS256 / RS256） |
 
 ---
 
 ## 開發注意事項
 
-### 瀏覽器測試登入（isDev）
+### 測試登入（isDev）
 
-（待設定 Auth 後補齊）
+非 Production 環境下，API `POST /api/auth/apple/callback` 支援 `isDev: true` 參數，以 email 模擬登入（跳過 Apple token 驗證）。iOS App 在 LOCAL 環境會顯示「開發者登入」按鈕。
 
 ### CSS class 命名偏好
 
