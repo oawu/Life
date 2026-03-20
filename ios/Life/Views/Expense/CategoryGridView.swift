@@ -4,40 +4,86 @@ struct CategoryGridView: View {
   let categories: [ExpenseCategory]
   @Binding var selected: ExpenseCategory?
 
+  @State private var currentPage = 0
+
   private let columnsPerPage = 4
   private let rowsPerPage = 2
   private var itemsPerPage: Int { columnsPerPage * rowsPerPage }
+  private var pageCount: Int { (categories.count + itemsPerPage - 1) / itemsPerPage }
 
-  private var pages: [[ExpenseCategory]] {
-    stride(from: 0, to: categories.count, by: itemsPerPage).map {
-      Array(categories[$0..<min($0 + itemsPerPage, categories.count)])
+  var body: some View {
+    VStack(spacing: 0) {
+      HStack {
+        Text("分類")
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+
+        Spacer()
+
+        Button("設定") {}
+          .font(.subheadline)
+      }
+      .padding(.horizontal, 20)
+
+      ScrollView(.horizontal, showsIndicators: false) {
+        LazyHStack(spacing: 0) {
+          ForEach(0..<pageCount, id: \.self) { pageIndex in
+            categoryGrid(for: pageIndex)
+              .containerRelativeFrame(.horizontal)
+              .onAppear { currentPage = pageIndex }
+          }
+        }
+        .scrollTargetLayout()
+      }
+      .scrollTargetBehavior(.viewAligned)
+      .padding(.top, 12)
+
+      if pageCount > 1 {
+        HStack(spacing: 6) {
+          ForEach(0..<pageCount, id: \.self) { index in
+            Circle()
+              .fill(index == currentPage ? Color(.secondaryLabel) : Color(.quaternaryLabel))
+              .frame(width: 7, height: 7)
+          }
+        }
+        .padding(.top, 12)
+        .padding(.bottom, 4)
+      }
     }
   }
 
-  var body: some View {
-    VStack(spacing: 8) {
-      TabView {
-        ForEach(Array(pages.enumerated()), id: \.offset) { _, page in
-          LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: columnsPerPage),
-            spacing: 8
-          ) {
-            ForEach(page) { category in
-              CategoryCell(category: category, isSelected: selected?.id == category.id)
-                .onTapGesture {
-                  withAnimation(.easeInOut(duration: 0.15)) {
-                    selected = category
-                  }
-                  UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                }
+  @ViewBuilder
+  private func categoryGrid(for pageIndex: Int) -> some View {
+    let start = pageIndex * itemsPerPage
+    let end = min(start + itemsPerPage, categories.count)
+    let pageCategories = Array(categories[start..<end])
+
+    let placeholderCount = itemsPerPage - pageCategories.count
+
+    LazyVGrid(
+      columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: columnsPerPage),
+      spacing: 8
+    ) {
+      ForEach(pageCategories) { category in
+        CategoryCell(category: category, isSelected: selected?.id == category.id)
+          .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.15)) {
+              selected = category
             }
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
           }
-          .padding(.horizontal, 16)
-        }
       }
-      .tabViewStyle(.page(indexDisplayMode: .always))
-      .frame(height: 200)
+
+      ForEach(0..<placeholderCount, id: \.self) { _ in
+        VStack(spacing: 0) {
+          Color.clear.frame(width: 44, height: 44)
+          Text(" ").font(.caption).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+      }
     }
+    .padding(.horizontal, 12)
   }
 }
 
@@ -48,16 +94,11 @@ private struct CategoryCell: View {
   let isSelected: Bool
 
   var body: some View {
-    VStack(spacing: 6) {
-      ZStack {
-        RoundedRectangle(cornerRadius: 12)
-          .fill(category.color.opacity(0.15))
-          .frame(width: 44, height: 44)
-
-        Image(systemName: category.icon)
-          .font(.system(size: 20))
-          .foregroundStyle(category.color)
-      }
+    VStack(spacing: 0) {
+      Image(systemName: category.icon)
+        .font(.system(size: 24))
+        .foregroundStyle(category.color)
+        .frame(width: 44, height: 44)
 
       Text(category.name)
         .font(.caption)
@@ -65,14 +106,21 @@ private struct CategoryCell: View {
         .lineLimit(1)
     }
     .frame(maxWidth: .infinity)
-    .padding(.vertical, 8)
+    .padding(.vertical, 12)
     .background(
       RoundedRectangle(cornerRadius: 12)
-        .fill(Color(.secondarySystemBackground))
+        .fill(Color(.quaternarySystemFill))
     )
     .overlay(
       RoundedRectangle(cornerRadius: 12)
         .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
     )
   }
+}
+
+#Preview {
+  CategoryGridView(
+    categories: ExpenseCategory.defaults,
+    selected: .constant(ExpenseCategory.defaults[1])
+  )
 }
