@@ -3,10 +3,15 @@ import SwiftUI
 struct ExpenseListView: View {
   @Bindable var store: ExpenseStore
 
-  private var groupedExpenses: [(date: String, expenses: [Expense], total: Double)] {
+  private static let dateFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy/MM/dd (E)"
     formatter.locale = Locale(identifier: "zh_TW")
+    return formatter
+  }()
+
+  private var groupedExpenses: [(date: String, expenses: [Expense], total: Double)] {
+    let formatter = Self.dateFormatter
 
     let calendar = Calendar.current
 
@@ -69,7 +74,7 @@ struct ExpenseListView: View {
           HStack {
             Text(group.date)
             Spacer()
-            Text("$\(Int(group.total))")
+            Text("$\(Int(group.total.rounded(.up)))")
               .fontWeight(.medium)
           }
         }
@@ -120,7 +125,7 @@ private struct ExpenseRow: View {
       Spacer()
 
       // 金額
-      Text("$\(Int(expense.amount))")
+      Text("$\(Int(expense.amount.rounded(.up)))")
         .font(.subheadline)
         .fontWeight(.medium)
         .monospacedDigit()
