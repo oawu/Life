@@ -526,7 +526,7 @@ $array = $user->toArray(true);
   ->setHostname('127.0.0.1')
   ->setUsername('root')
   ->setPassword('password')
-  ->setDatabase('pix'));
+  ->setDatabase('life'));
 ```
 
 支援多組資料庫（讀寫分離）：
