@@ -41,9 +41,9 @@
 ### 第二階段：Git Commit
 
 1. 執行 `git status` 和 `git diff` 查看變更
-2. 分析變更內容，判斷是否為多項獨立功能混雜
-3. **若為多項獨立功能**：依功能分組，分別 stage 並各自 commit（例如 feat + chore 拆開）
-4. **若為單一功能**：全部一起 commit
+2. 分析變更內容，**逐一辨識**每項獨立功能
+3. **依功能拆分 commit**：每項獨立功能各自 stage 並 commit，不混雜
+4. 只有功能之間有**嚴重相依性**時（如 Migration + 對應 Model），才合併為同一個 commit
 5. 撰寫繁體中文 commit 訊息（不要加 Co-Authored-By）
 
 ## Commit 格式
