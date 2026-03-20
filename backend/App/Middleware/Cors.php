@@ -8,6 +8,9 @@ use \Response;
 class Cors {
   private $_origins = [
     'http://127.0.0.1:8000',
+    'http://local-life.iwi.tw',
+    'https://beta-life.iwi.tw',
+    'https://life.iwi.tw',
   ];
 
   private $_methods = ['POST', 'PUT', 'DELETE', 'OPTIONS'];
