@@ -63,6 +63,7 @@ life/
 ## 已完成功能
 
 - Apple Sign In 登入（後端 API + iOS App）
+- iOS 記帳功能（純記憶體儲存，含計算機、分類選擇、位置記錄）
 
 ---
 
@@ -87,6 +88,10 @@ life/
 ### 測試登入（isDev）
 
 非 Production 環境下，API `POST /api/auth/apple/callback` 支援 `isDev: true` 參數，以 email 模擬登入（跳過 Apple token 驗證）。iOS App 在 LOCAL 環境會顯示「開發者登入」按鈕。
+
+### iOS `Environment` 命名衝突
+
+iOS App 中 `Environment.swift` 已重命名為 `AppEnvironment`，避免與 SwiftUI 的 `@Environment` 屬性包裝器衝突。引用環境設定時使用 `AppEnvironment.apiBaseURL` 等。
 
 ### CSS class 命名偏好
 
