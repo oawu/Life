@@ -1,0 +1,10 @@
+{
+  "plansDirectory": "./.claude/plans",
+  "permissions": {
+    "deny": [
+      "Read(backend/Config/Local/**)",
+      "Edit(backend/Config/Local/**)",
+      "Write(backend/Config/Local/**)"
+    ]
+  }
+}
