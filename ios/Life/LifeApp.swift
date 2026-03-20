@@ -2,9 +2,17 @@ import SwiftUI
 
 @main
 struct LifeApp: App {
+  @State private var authManager = AuthManager()
+
   var body: some Scene {
     WindowGroup {
-      ContentView()
+      Group {
+        if authManager.isAuthenticated {
+          HomeView(authManager: authManager)
+        } else {
+          LoginView(authManager: authManager)
+        }
+      }
     }
   }
 }

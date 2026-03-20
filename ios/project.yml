@@ -15,6 +15,11 @@ targets:
     type: application
     platform: iOS
     sources: Life
+    entitlements:
+      path: Life/Life.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
     settings:
       base:
         GENERATE_INFOPLIST_FILE: true
