@@ -36,7 +36,7 @@ struct CategoryGridView: View {
         }
       }
       .tabViewStyle(.page(indexDisplayMode: .always))
-      .frame(height: 180)
+      .frame(height: 200)
     }
   }
 }
