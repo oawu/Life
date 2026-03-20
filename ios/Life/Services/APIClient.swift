@@ -40,7 +40,7 @@ final class APIClient {
     body: [String: Any]? = nil,
     responseType: T.Type
   ) async throws -> T {
-    let urlString = Environment.apiBaseURL + path
+    let urlString = AppEnvironment.apiBaseURL + path
 
     guard let url = URL(string: urlString) else {
       throw APIError.invalidURL

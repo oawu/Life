@@ -1,6 +1,6 @@
 import Foundation
 
-enum Environment {
+enum AppEnvironment {
   static var apiBaseURL: String {
     #if LOCAL
     return "http://local-api-life.iwi.tw"
