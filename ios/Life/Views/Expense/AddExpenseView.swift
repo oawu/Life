@@ -16,12 +16,13 @@ struct AddExpenseView: View {
   }
 
   var body: some View {
-    ScrollView {
-      VStack(spacing: 20) {
+    ScrollView(showsIndicators: false) {
+      VStack(spacing: 0) {
         CalculatorView(engine: engine)
 
         CategoryGridView(categories: store.categories, selected: $selectedCategory)
-
+              .padding(.top, 32)
+              
         // 分類提示
         if engine.currentValue > 0 && selectedCategory == nil {
           Text("請選擇分類")
@@ -108,6 +109,7 @@ struct AddExpenseView: View {
       .padding(.vertical, 16)
     }
     .scrollDismissesKeyboard(.interactively)
+    .background(Color(.systemGroupedBackground))
     .navigationTitle("新增開銷")
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
@@ -185,5 +187,11 @@ struct AddExpenseView: View {
     memo = ""
     date = Date()
     locationService.clear()
+  }
+}
+
+#Preview {
+  NavigationStack {
+    AddExpenseView(store: ExpenseStore())
   }
 }
