@@ -11,7 +11,7 @@ struct AddExpenseView: View {
   @State private var locationService = LocationService()
 
   private var canSave: Bool {
-    engine.evaluateIfNeeded() > 0 && selectedCategory != nil
+    engine.currentValue > 0 && selectedCategory != nil
   }
 
   var body: some View {
@@ -115,7 +115,7 @@ struct AddExpenseView: View {
     }
 
     store.addExpense(
-      amount: amount,
+      amount: Double(amount),
       category: category,
       memo: memo,
       date: date,

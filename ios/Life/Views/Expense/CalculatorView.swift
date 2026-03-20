@@ -51,7 +51,7 @@ struct CalculatorView: View {
 
       KeyDef(label: "C", engineKey: .clear, style: .clear),
       KeyDef(label: "0", engineKey: .digit("0"), style: .digit),
-      KeyDef(label: ".", engineKey: .dot, style: .digit),
+      KeyDef(label: "=", engineKey: .equal, style: .equal),
       KeyDef(label: "+", engineKey: .op(.add), style: .op),
     ]
   }
@@ -68,6 +68,7 @@ private struct KeyDef {
 private enum KeyStyle {
   case digit
   case op
+  case equal
   case clear
 }
 
@@ -97,6 +98,7 @@ private struct CalculatorButton: View {
     switch key.style {
     case .digit:  return .primary
     case .op:     return .white
+    case .equal:  return .white
     case .clear:  return .red
     }
   }
@@ -105,6 +107,7 @@ private struct CalculatorButton: View {
     switch key.style {
     case .digit:  return Color(.secondarySystemBackground)
     case .op:     return .orange
+    case .equal:  return .blue
     case .clear:  return Color(.systemRed).opacity(0.15)
     }
   }
