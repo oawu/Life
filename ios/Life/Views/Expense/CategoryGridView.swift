@@ -4,7 +4,7 @@ struct CategoryGridView: View {
   let categories: [ExpenseCategory]
   @Binding var selected: ExpenseCategory?
 
-  @State private var currentPage = 0
+  @State private var currentPage: Int? = 0
 
   private let columnsPerPage = 4
   private let rowsPerPage = 2
@@ -30,19 +30,19 @@ struct CategoryGridView: View {
           ForEach(0..<pageCount, id: \.self) { pageIndex in
             categoryGrid(for: pageIndex)
               .containerRelativeFrame(.horizontal)
-              .onAppear { currentPage = pageIndex }
           }
         }
         .scrollTargetLayout()
       }
       .scrollTargetBehavior(.viewAligned)
+      .scrollPosition(id: $currentPage)
       .padding(.top, 10)
 
       if pageCount > 1 {
         HStack(spacing: 6) {
           ForEach(0..<pageCount, id: \.self) { index in
             Circle()
-              .fill(index == currentPage ? Color(.secondaryLabel) : Color(.quaternaryLabel))
+              .fill(index == (currentPage ?? 0) ? Color(.secondaryLabel) : Color(.quaternaryLabel))
               .frame(width: 7, height: 7)
           }
         }
@@ -110,7 +110,7 @@ private struct CategoryCell: View {
     .padding(.vertical, 12)
     .background(
       RoundedRectangle(cornerRadius: 12)
-        .fill(Color(.quaternarySystemFill))
+        .fill(Color(.secondarySystemGroupedBackground))
     )
     .overlay(
       RoundedRectangle(cornerRadius: 12)
