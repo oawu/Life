@@ -119,7 +119,7 @@ return [
   'google' => [
     'clientId' => 'xxx',
     'clientSecret' => 'xxx',
-    'redirectUri' => 'http://127.0.0.1:7100/auth/login',
+    'redirectUri' => 'http://127.0.0.1:7200/auth/login',
   ],
 ];
 ```
