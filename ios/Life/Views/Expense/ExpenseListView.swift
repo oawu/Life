@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ExpenseListView: View {
   @Bindable var store: ExpenseStore
-  @State private var showAddExpense = false
 
   private var groupedExpenses: [(date: String, expenses: [Expense], total: Double)] {
     let formatter = DateFormatter()
@@ -30,19 +29,7 @@ struct ExpenseListView: View {
         expenseList
       }
     }
-    .navigationTitle("開銷")
-    .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
-        Button {
-          showAddExpense = true
-        } label: {
-          Image(systemName: "plus")
-        }
-      }
-    }
-    .sheet(isPresented: $showAddExpense) {
-      AddExpenseView(store: store)
-    }
+    .navigationTitle("開銷紀錄")
   }
 
   // MARK: - Subviews
@@ -59,7 +46,7 @@ struct ExpenseListView: View {
         .font(.title3)
         .foregroundStyle(.secondary)
 
-      Text("點擊右上角 + 新增")
+      Text("返回上一頁新增開銷")
         .font(.subheadline)
         .foregroundStyle(.tertiary)
 

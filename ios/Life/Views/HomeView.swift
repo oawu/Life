@@ -7,10 +7,10 @@ struct HomeView: View {
   var body: some View {
     TabView {
       NavigationStack {
-        ExpenseListView(store: expenseStore)
+        AddExpenseView(store: expenseStore)
       }
       .tabItem {
-        Label("開銷", systemImage: "yensign.circle.fill")
+        Label("記帳", systemImage: "yensign.circle.fill")
       }
 
       NavigationStack {
