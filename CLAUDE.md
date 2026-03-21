@@ -66,7 +66,7 @@ life/
 - iOS 記帳功能（純記憶體儲存，含計算機、分類選擇、位置記錄）
   - 登入後直接進入新增開銷頁面（Tab 1），「紀錄」按鈕 push 到開銷列表
   - 分類設定頁面（CategorySettingsView）：瀏覽、排序、刪除分類，常駐編輯模式，頂部虛線新增按鈕
-  - 分類編輯 Sheet（CategoryEditView）：新增/編輯分類（名稱、圖示、顏色）
+  - 分類編輯 Sheet（CategoryEditView）：新增/編輯分類（名稱、圖示、顏色），支援自訂顏色（彩球 ColorPicker）
 
 ---
 
