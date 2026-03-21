@@ -65,7 +65,7 @@ life/
 - Apple Sign In 登入（後端 API + iOS App）
 - iOS 記帳功能（純記憶體儲存，含計算機、分類選擇、位置記錄）
   - 登入後直接進入新增開銷頁面（Tab 1），「紀錄」按鈕 push 到開銷列表
-  - 分類設定頁面（CategorySettingsView）：瀏覽、排序、刪除分類
+  - 分類設定頁面（CategorySettingsView）：瀏覽、排序、刪除分類，常駐編輯模式，頂部虛線新增按鈕
   - 分類編輯 Sheet（CategoryEditView）：新增/編輯分類（名稱、圖示、顏色）
 
 ---
@@ -138,6 +138,7 @@ docs/
 ├── vuejs-conventions.md         # Vue 組件規範（命名、結構、_prepare）
 ├── design-standards.md          # 視覺設計 + iOS 色彩
 ├── php-conventions.md           # PHP 後端規範 + Docker 執行
+├── swift-conventions.md         # Swift 開發規範（縮排）
 └── git-conventions.md           # Git 開發規範（--no-ff）
 ```
 
