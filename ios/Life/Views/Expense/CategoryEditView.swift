@@ -14,6 +14,9 @@ struct CategoryEditView: View {
     @State private var name: String = ""
     @State private var selectedIcon: String = "fork.knife"
     @State private var selectedColor: Color = .blue
+    @State private var customColor: Color = .blue
+    @State private var isCustomColor: Bool = false
+    @State private var hasUsedCustomColor: Bool = false
 
     private static let colorOptions: [(Color, String)] = [
         (.red, "red"), (.orange, "orange"), (.yellow, "yellow"),
@@ -38,12 +41,16 @@ struct CategoryEditView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                nameSection
-                previewSection
-                iconSection
-                colorSection
+            ScrollView {
+                VStack(spacing: 16) {
+                    previewCard
+                    nameCard
+                    colorCard
+                    iconCard
+                }
+                .padding(16)
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle(mode.isAdd ? "新增分類" : "編輯分類")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -71,84 +78,169 @@ struct CategoryEditView: View {
                     name = category.name
                     selectedIcon = category.icon
                     selectedColor = category.color
+
+                    let isPreset = Self.colorOptions.contains { $0.0 == category.color }
+                    if !isPreset {
+                        isCustomColor = true
+                        hasUsedCustomColor = true
+                        customColor = category.color
+                    }
                 }
             }
         }
     }
 
-    // MARK: - Sections
+    // MARK: - Preview
 
-    private var nameSection: some View {
-        Section("名稱") {
-            TextField("分類名稱", text: $name)
-        }
-    }
-
-    private var previewSection: some View {
-        Section("預覽") {
-            HStack(spacing: 12) {
+    private var previewCard: some View {
+        cardSection {
+            VStack(spacing: 12) {
                 Image(systemName: selectedIcon)
-                    .font(.system(size: 24))
+                    .font(.system(size: 28))
                     .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(selectedColor, in: RoundedRectangle(cornerRadius: 10))
+                    .frame(width: 52, height: 52)
+                    .background(selectedColor, in: RoundedRectangle(cornerRadius: 12))
 
                 Text(name.isEmpty ? "分類名稱" : name)
-                    .foregroundStyle(name.isEmpty ? .secondary : .primary)
+                    .font(.headline)
+                    .foregroundStyle(name.isEmpty ? Color(.secondaryLabel) : Color(.label))
             }
-            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
         }
     }
 
-    private var iconSection: some View {
-        Section("圖示") {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
-                ForEach(CategoryIcon.all, id: \.self) { icon in
-                    Image(systemName: icon)
-                        .font(.system(size: 20))
-                        .frame(width: 44, height: 44)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(selectedIcon == icon ? selectedColor.opacity(0.15) : Color(.tertiarySystemFill))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(selectedIcon == icon ? selectedColor : .clear, lineWidth: 2)
-                        )
-                        .onTapGesture {
-                            selectedIcon = icon
-                        }
-                }
-            }
-            .padding(.vertical, 4)
+    // MARK: - Name
+
+    private var nameCard: some View {
+        cardSection(title: "名稱") {
+            TextField("分類名稱", text: $name)
+                .padding(12)
         }
     }
 
-    private var colorSection: some View {
-        Section("顏色") {
-            HStack(spacing: 0) {
+    // MARK: - Color
+
+    private var colorCard: some View {
+        cardSection(title: "顏色") {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7), spacing: 12) {
                 ForEach(Self.colorOptions, id: \.1) { color, _ in
-                    Circle()
-                        .fill(color)
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            Circle()
-                                .stroke(Color(.systemBackground), lineWidth: 2)
-                                .opacity(selectedColor == color ? 1 : 0)
-                        )
-                        .overlay(
+                    ZStack {
+                        if !isCustomColor && selectedColor == color {
                             Circle()
                                 .stroke(color, lineWidth: 2)
-                                .frame(width: 34, height: 34)
-                                .opacity(selectedColor == color ? 1 : 0)
-                        )
-                        .frame(maxWidth: .infinity)
-                        .onTapGesture {
-                            selectedColor = color
+                                .frame(width: 38, height: 38)
                         }
+                        Circle()
+                            .fill(color)
+                            .frame(width: 32, height: 32)
+                    }
+                    .frame(width: 42, height: 42)
+                    .onTapGesture {
+                        isCustomColor = false
+                        selectedColor = color
+                    }
+                }
+
+                // Custom color picker
+                ZStack {
+                    ColorPicker("", selection: $customColor, supportsOpacity: false)
+                        .labelsHidden()
+
+                    Group {
+                        if hasUsedCustomColor {
+                            ZStack {
+                                if isCustomColor {
+                                    Circle()
+                                        .stroke(
+                                            AngularGradient(
+                                                colors: [.red, .orange, .yellow, .green, .cyan, .blue, .purple, .red],
+                                                center: .center
+                                            ),
+                                            lineWidth: 2
+                                        )
+                                        .frame(width: 38, height: 38)
+                                }
+                                Circle()
+                                    .fill(customColor)
+                                    .frame(width: 32, height: 32)
+                            }
+                        } else {
+                            Circle()
+                                .fill(
+                                    AngularGradient(
+                                        colors: [.red, .orange, .yellow, .green, .cyan, .blue, .purple, .red],
+                                        center: .center
+                                    )
+                                )
+                                .frame(width: 32, height: 32)
+                        }
+                    }
+                    .allowsHitTesting(false)
+                }
+                .frame(width: 42, height: 42)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+        }
+        .onChange(of: customColor) { _, newColor in
+            isCustomColor = true
+            hasUsedCustomColor = true
+            selectedColor = newColor
+        }
+    }
+
+    // MARK: - Icon
+
+    private var iconCard: some View {
+        cardSection(title: "圖示") {
+            VStack(spacing: 16) {
+                ForEach(Array(CategoryIcon.groups.enumerated()), id: \.offset) { _, group in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(group.name)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color(.tertiaryLabel))
+                            .padding(.leading, 4)
+
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
+                            ForEach(group.icons, id: \.self) { icon in
+                                Image(systemName: icon)
+                                    .font(.system(size: 20))
+                                    .frame(width: 44, height: 44)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(selectedIcon == icon ? selectedColor.opacity(0.15) : Color(.tertiarySystemFill))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(selectedIcon == icon ? selectedColor : .clear, lineWidth: 2)
+                                    )
+                                    .onTapGesture {
+                                        selectedIcon = icon
+                                    }
+                            }
+                        }
+                    }
                 }
             }
-            .padding(.vertical, 8)
+            .padding(12)
+        }
+    }
+
+    // MARK: - Card Container
+
+    private func cardSection(title: String? = nil, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let title {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.secondaryLabel))
+                    .padding(.leading, 16)
+            }
+            content()
+                .background(Color(.secondarySystemGroupedBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 }
