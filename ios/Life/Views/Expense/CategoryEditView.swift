@@ -8,6 +8,7 @@ struct CategoryEditView: View {
 
     let mode: Mode
     let onSave: (ExpenseCategory) -> Void
+    var onDelete: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -17,6 +18,7 @@ struct CategoryEditView: View {
     @State private var customColor: Color = .blue
     @State private var isCustomColor: Bool = false
     @State private var hasUsedCustomColor: Bool = false
+    @State private var showDeleteConfirmation: Bool = false
 
     private static let colorOptions: [(Color, String)] = [
         (.red, "red"), (.orange, "orange"), (.yellow, "yellow"),
@@ -42,11 +44,15 @@ struct CategoryEditView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 32) {
                     previewCard
                     nameCard
                     colorCard
                     iconCard
+
+                    if case .edit = mode {
+                        deleteButton
+                    }
                 }
                 .padding(16)
             }
@@ -225,6 +231,26 @@ struct CategoryEditView: View {
                 }
             }
             .padding(12)
+        }
+    }
+
+    // MARK: - Delete
+
+    private var deleteButton: some View {
+        Button(role: .destructive) {
+            showDeleteConfirmation = true
+        } label: {
+            Text("刪除分類")
+                .frame(maxWidth: .infinity)
+                .padding(12)
+        }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .confirmationDialog("確定要刪除此分類嗎？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button("刪除", role: .destructive) {
+                onDelete?()
+                dismiss()
+            }
         }
     }
 

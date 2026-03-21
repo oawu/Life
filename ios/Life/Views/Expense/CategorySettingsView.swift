@@ -55,12 +55,6 @@ struct CategorySettingsView: View {
                 .onMove { source, destination in
                     store.moveCategory(from: source, to: destination)
                 }
-                .onDelete { indexSet in
-                    let idsToDelete = indexSet.map { store.categories[$0].id }
-                    for id in idsToDelete {
-                        store.deleteCategory(id: id)
-                    }
-                }
             }
         }
         .listStyle(.insetGrouped)
@@ -70,6 +64,8 @@ struct CategorySettingsView: View {
         .sheet(item: $editingCategory) { category in
             CategoryEditView(mode: .edit(category)) { updated in
                 store.updateCategory(updated)
+            } onDelete: {
+                store.deleteCategory(id: category.id)
             }
         }
         .sheet(isPresented: $showAddSheet) {
