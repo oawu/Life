@@ -13,12 +13,13 @@ struct CategoryEditView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
-    @State private var selectedIcon: String = "fork.knife"
+    @State private var selectedIcon: String = ""
     @State private var selectedColor: Color = .blue
     @State private var customColor: Color = .blue
     @State private var isCustomColor: Bool = false
     @State private var hasUsedCustomColor: Bool = false
     @State private var showDeleteConfirmation: Bool = false
+    @State private var expandedIconGroup: Int? = nil
 
     private static let colorOptions: [(Color, String)] = [
         (.red, "red"), (.orange, "orange"), (.yellow, "yellow"),
@@ -29,7 +30,11 @@ struct CategoryEditView: View {
     ]
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
+        !name.trimmingCharacters(in: .whitespaces).isEmpty && !selectedIcon.isEmpty
+    }
+
+    private var selectedIconGroupIndex: Int? {
+        CategoryIcon.groups.firstIndex { $0.icons.contains(selectedIcon) }
     }
 
     private var categoryId: String {
@@ -91,6 +96,7 @@ struct CategoryEditView: View {
                         hasUsedCustomColor = true
                         customColor = category.color
                     }
+
                 }
             }
         }
@@ -101,7 +107,7 @@ struct CategoryEditView: View {
     private var previewCard: some View {
         cardSection {
             VStack(spacing: 12) {
-                Image(systemName: selectedIcon)
+                Image(systemName: selectedIcon.isEmpty ? "questionmark" : selectedIcon)
                     .font(.system(size: 28))
                     .foregroundStyle(.white)
                     .frame(width: 52, height: 52)
@@ -200,38 +206,78 @@ struct CategoryEditView: View {
 
     private var iconCard: some View {
         cardSection(title: "圖示") {
-            VStack(spacing: 16) {
-                ForEach(Array(CategoryIcon.groups.enumerated()), id: \.offset) { _, group in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(group.name)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundStyle(Color(.tertiaryLabel))
-                            .padding(.leading, 4)
+            if let groupIndex = expandedIconGroup {
+                iconDetailGrid(for: groupIndex)
+            } else {
+                iconGroupGrid
+            }
+        }
+    }
 
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
-                            ForEach(group.icons, id: \.self) { icon in
-                                Image(systemName: icon)
-                                    .font(.system(size: 20))
-                                    .frame(width: 44, height: 44)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(selectedIcon == icon ? selectedColor.opacity(0.15) : Color(.tertiarySystemFill))
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(selectedIcon == icon ? selectedColor : .clear, lineWidth: 2)
-                                    )
-                                    .onTapGesture {
-                                        selectedIcon = icon
-                                    }
-                            }
-                        }
-                    }
+    private var iconGroupGrid: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+            ForEach(Array(CategoryIcon.groups.enumerated()), id: \.offset) { index, group in
+                let isSelected = selectedIconGroupIndex == index
+                let displayIcon = isSelected ? selectedIcon : group.icons[0]
+                VStack(spacing: 6) {
+                    Image(systemName: displayIcon)
+                        .font(.system(size: 22))
+                        .foregroundStyle(isSelected ? selectedColor : Color(.label))
+                    Text(group.name)
+                        .font(.caption)
+                        .foregroundStyle(isSelected ? selectedColor : Color(.secondaryLabel))
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 72)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(isSelected ? selectedColor.opacity(0.1) : Color(.tertiarySystemFill))
+                )
+                .onTapGesture {
+                    expandedIconGroup = index
                 }
             }
-            .padding(12)
         }
+        .padding(12)
+    }
+
+    private func iconDetailGrid(for groupIndex: Int) -> some View {
+        let group = CategoryIcon.groups[groupIndex]
+        return VStack(alignment: .leading, spacing: 12) {
+            Button {
+                expandedIconGroup = nil
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(group.name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .foregroundStyle(Color(.secondaryLabel))
+            }
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
+                ForEach(group.icons, id: \.self) { icon in
+                    Image(systemName: icon)
+                        .font(.system(size: 20))
+                        .frame(width: 44, height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(selectedIcon == icon ? selectedColor.opacity(0.15) : Color(.tertiarySystemFill))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(selectedIcon == icon ? selectedColor : .clear, lineWidth: 2)
+                        )
+                        .onTapGesture {
+                            selectedIcon = icon
+                            expandedIconGroup = nil
+                        }
+                }
+            }
+        }
+        .padding(12)
     }
 
     // MARK: - Delete
