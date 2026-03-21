@@ -3,6 +3,7 @@ import SwiftUI
 struct CategoryGridView: View {
   let categories: [ExpenseCategory]
   @Binding var selected: ExpenseCategory?
+  var onSettingsTapped: () -> Void = {}
 
   @State private var currentPage: Int? = 0
 
@@ -20,7 +21,9 @@ struct CategoryGridView: View {
 
         Spacer()
 
-        Button("設定") {}
+        Button("設定") {
+          onSettingsTapped()
+        }
           .font(.subheadline)
       }
       .padding(.horizontal, 20)
@@ -76,11 +79,20 @@ struct CategoryGridView: View {
 
       ForEach(0..<placeholderCount, id: \.self) { _ in
         VStack(spacing: 0) {
-          Color.clear.frame(width: 44, height: 44)
+          Image(systemName: "questionmark")
+            .font(.system(size: 20))
+            .foregroundStyle(Color(.quaternaryLabel))
+            .frame(width: 44, height: 44)
+
           Text(" ").font(.caption).lineLimit(1)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
+        .overlay(
+          RoundedRectangle(cornerRadius: 12)
+            .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+            .foregroundStyle(Color(.quaternaryLabel))
+        )
       }
     }
     .padding(.horizontal, 12)

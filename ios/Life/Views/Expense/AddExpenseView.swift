@@ -9,6 +9,7 @@ struct AddExpenseView: View {
   @State private var date: Date = Date()
   @State private var locationService = LocationService()
   @State private var showExpenseList = false
+  @State private var showCategorySettings = false
   @State private var showSaveConfirmation = false
 
   private var canSave: Bool {
@@ -20,7 +21,11 @@ struct AddExpenseView: View {
       VStack(spacing: 32) {
         CalculatorView(engine: engine)
 
-        CategoryGridView(categories: store.categories, selected: $selectedCategory)
+        CategoryGridView(
+          categories: store.categories,
+          selected: $selectedCategory,
+          onSettingsTapped: { showCategorySettings = true }
+        )
 
         ExpenseDetailFields(memo: $memo, date: $date, locationService: locationService)
       }
@@ -48,6 +53,15 @@ struct AddExpenseView: View {
     }
     .navigationDestination(isPresented: $showExpenseList) {
       ExpenseListView(store: store)
+    }
+    .navigationDestination(isPresented: $showCategorySettings) {
+      CategorySettingsView(store: store)
+    }
+    .onChange(of: store.categories) {
+      if let selected = selectedCategory,
+         !store.categories.contains(where: { $0.id == selected.id }) {
+        selectedCategory = nil
+      }
     }
     .overlay {
       if showSaveConfirmation {

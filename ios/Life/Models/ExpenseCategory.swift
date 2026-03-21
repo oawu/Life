@@ -1,10 +1,14 @@
 import SwiftUI
 
-struct ExpenseCategory: Identifiable, Equatable {
-  let id: String
-  let name: String
-  let icon: String
-  let color: Color
+struct ExpenseCategory: Identifiable, Equatable, Hashable {
+  var id: String
+  var name: String
+  var icon: String
+  var color: Color
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(id)
+  }
 }
 
 extension ExpenseCategory {

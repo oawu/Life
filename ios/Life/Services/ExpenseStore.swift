@@ -44,6 +44,27 @@ final class ExpenseStore {
     categories.append(category)
   }
 
+  func updateCategory(_ category: ExpenseCategory) {
+    guard let index = categories.firstIndex(where: { $0.id == category.id }) else {
+      return
+    }
+    categories[index] = category
+
+    for i in expenses.indices {
+      if expenses[i].category.id == category.id {
+        expenses[i].category = category
+      }
+    }
+  }
+
+  func deleteCategory(id: String) {
+    categories.removeAll { $0.id == id }
+  }
+
+  func moveCategory(from source: IndexSet, to destination: Int) {
+    categories.move(fromOffsets: source, toOffset: destination)
+  }
+
   // MARK: - Sample Data
 
   private static func sampleData() -> [Expense] {

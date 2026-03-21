@@ -1,0 +1,74 @@
+import SwiftUI
+
+struct CategorySettingsView: View {
+  @Bindable var store: ExpenseStore
+
+  @State private var editingCategory: ExpenseCategory?
+  @State private var showAddSheet = false
+
+  var body: some View {
+    List {
+      ForEach(store.categories) { category in
+        Button {
+          editingCategory = category
+        } label: {
+          HStack(spacing: 12) {
+            Image(systemName: category.icon)
+              .font(.system(size: 18))
+              .foregroundStyle(.white)
+              .frame(width: 34, height: 34)
+              .background(category.color, in: RoundedRectangle(cornerRadius: 8))
+
+            Text(category.name)
+              .foregroundStyle(.primary)
+
+//            Spacer()
+//
+//            Image(systemName: "chevron.right")
+//              .font(.system(size: 13, weight: .semibold))
+//              .foregroundStyle(Color(.tertiaryLabel))
+          }
+        }
+      }
+      .onMove { source, destination in
+        store.moveCategory(from: source, to: destination)
+      }
+      .onDelete { indexSet in
+        let idsToDelete = indexSet.map { store.categories[$0].id }
+        for id in idsToDelete {
+          store.deleteCategory(id: id)
+        }
+      }
+    }
+    .navigationTitle("分類設定")
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        HStack(spacing: 16) {
+          Button {
+            showAddSheet = true
+          } label: {
+            Image(systemName: "plus")
+          }
+          EditButton()
+        }
+      }
+    }
+    .sheet(item: $editingCategory) { category in
+      CategoryEditView(mode: .edit(category)) { updated in
+        store.updateCategory(updated)
+      }
+    }
+    .sheet(isPresented: $showAddSheet) {
+      CategoryEditView(mode: .add) { newCategory in
+        store.categories.append(newCategory)
+      }
+    }
+  }
+}
+
+#Preview {
+  NavigationStack {
+    CategorySettingsView(store: ExpenseStore())
+  }
+}
