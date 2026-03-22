@@ -208,10 +208,19 @@ struct CategoryEditView: View {
         cardSection(title: "圖示") {
             if let groupIndex = expandedIconGroup {
                 iconDetailGrid(for: groupIndex)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing),
+                        removal: .move(edge: .trailing)
+                    ))
             } else {
                 iconGroupGrid
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading),
+                        removal: .move(edge: .leading)
+                    ))
             }
         }
+        .clipped()
     }
 
     private var iconGroupGrid: some View {
@@ -234,7 +243,9 @@ struct CategoryEditView: View {
                         .fill(isSelected ? selectedColor.opacity(0.1) : Color(.tertiarySystemFill))
                 )
                 .onTapGesture {
-                    expandedIconGroup = index
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        expandedIconGroup = index
+                    }
                 }
             }
         }
@@ -245,17 +256,25 @@ struct CategoryEditView: View {
         let group = CategoryIcon.groups[groupIndex]
         return VStack(alignment: .leading, spacing: 12) {
             Button {
-                expandedIconGroup = nil
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    expandedIconGroup = nil
+                }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                     Text(group.name)
                         .font(.subheadline)
                         .fontWeight(.medium)
+                    Spacer()
                 }
                 .foregroundStyle(Color(.secondaryLabel))
+                .padding(.vertical, 2)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+
+            Divider()
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
                 ForEach(group.icons, id: \.self) { icon in
@@ -272,7 +291,9 @@ struct CategoryEditView: View {
                         )
                         .onTapGesture {
                             selectedIcon = icon
-                            expandedIconGroup = nil
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                expandedIconGroup = nil
+                            }
                         }
                 }
             }
