@@ -57,7 +57,7 @@ LifeApp
    │
    ├─ Tab 1：記帳（NavigationStack）
    │  └─ AddExpenseView
-   │     ├─ [紀錄] → push ExpenseListView
+   │     ├─ [明細] → push ExpenseListView
    │     ├─ [分類設定] → push CategorySettingsView
    │     │  └─ 分類行 → sheet CategoryEditView
    │     └─ [帳本設定] → push LedgerSettingsView

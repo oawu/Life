@@ -29,7 +29,7 @@
 
 | View | 檔案 | 參數 | 呈現方式 |
 |------|------|------|----------|
-| LedgerSwitcher | LedgerSwitcher.swift | ledgers, selectedId, onSettingsTapped? | 嵌入 AddExpenseView 頂部 |
+| LedgerSwitcher | LedgerSwitcher.swift | ledgers, selectedId, onSettingsTapped? | 嵌入 AddExpenseView 頂部 + ExpenseListView safeAreaInset |
 | LedgerSettingsView | LedgerSettingsView.swift | store: ExpenseStore | push 從 AddExpenseView |
 | LedgerEditView | LedgerEditView.swift | mode: Mode, onSave | sheet |
 | LedgerDetailView | LedgerDetailView.swift | store: ExpenseStore, ledgerId: String | push 從 LedgerSettingsView |
@@ -94,6 +94,8 @@ HomeView (TabView)
 │  │         └─ sheet: LocationPickerView
 │  │
 │  ├─ push: ExpenseListView
+│  │         ├─ 嵌入: LedgerSwitcher（safeAreaInset）
+│  │         └─ push: SettlementDetailView
 │  ├─ push: CategorySettingsView
 │  │         └─ sheet: CategoryEditView
 │  └─ push: LedgerSettingsView

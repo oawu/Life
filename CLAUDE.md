@@ -68,7 +68,9 @@ life/
 
 - Apple Sign In 登入（後端 API + iOS App）
 - iOS 記帳功能（純記憶體儲存，含計算機、分類選擇、位置記錄）
-  - 登入後直接進入新增開銷頁面（Tab 1），「紀錄」按鈕 push 到開銷列表
+  - 登入後直接進入新增開銷頁面（Tab 1），「明細」按鈕 push 到開銷列表
+  - 儲存成功顯示金額「已儲存 $150」+ 打勾動畫
+  - 開銷列表（ExpenseListView）：safeAreaInset header 內嵌 LedgerSwitcher，滾動時漸變毛玻璃（iOS 18+）
   - 帳本切換（LedgerSwitcher）：頂部橫向滾動 pill，支援個人帳本 + 群組帳本
     - 切換帳本自動替換分類、清空已選分類
     - 群組帳本顯示付款人選擇器（PayerChips），預設「我」
@@ -107,7 +109,7 @@ life/
     - 拆帳區塊：開銷列表頂部 Section，有差異時才顯示（持平不顯示）
     - 拆帳計算：未結算開銷 → 人均分攤 → 貪婪配對產生轉帳明細
     - 轉帳明細：付款人 → 收款人 + 金額（橘色），千分位格式化
-    - 重設：confirmationDialog 確認後標記已結算，toast 回饋「已完成結算」
+    - 結清：confirmationDialog 確認後標記已結算，toast 回饋「已完成結算」
     - 結算紀錄：重設後在時間線顯示「已經由 xxx 結算拆帳！」+ 時間副標題，點擊進入詳情頁
     - 結算詳情頁（SettlementDetailView）：結算時間、操作者、轉帳明細快照
     - SettlementRecord 儲存轉帳明細快照（SettlementTransfer）與幣別符號
@@ -172,6 +174,11 @@ docs/
 │   ├── api-routes.md            # 完整路由表
 │   ├── router.md / controller.md / middleware.md / migration.md / valid.md / orm.md
 │   └──                          # 路由、控制器、中介層、Migration、驗證、ORM
+├── ios/
+│   ├── overview.md              # iOS 架構、導航結構、狀態管理
+│   ├── features.md              # iOS 功能模組、操作流程
+│   ├── data-models.md           # iOS 資料模型、後端 Table 設計
+│   └── views.md                 # iOS View 清單、參數、導航關係
 └── worker/
     └── overview.md              # Worker 架構總覽
 

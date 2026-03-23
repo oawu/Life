@@ -86,7 +86,7 @@
    └─ 位置可：取得目前位置 / 地圖選點 / 清除
 6. 點「儲存」
    └─ 驗證：金額 > 0、已選分類、群組帳本需選付款人
-   └─ 儲存成功 → 打勾動畫 → 表單重置
+   └─ 儲存成功 → 顯示金額「已儲存 $150」→ 表單重置
 ```
 
 ### 儲存驗證規則
@@ -120,19 +120,24 @@
 
 ### 畫面
 
-**ExpenseListView** — 從 AddExpenseView 點「紀錄」push 進入
+**ExpenseListView** — 從 AddExpenseView 點「明細」push 進入
 
-- 空狀態：圖示 + 「尚無開銷紀錄」
+- 頂部 LedgerSwitcher（safeAreaInset），滾動時漸變為毛玻璃背景（iOS 18+）
+- 群組帳本顯示拆帳區塊（有差異時）+ 結清按鈕
+- 空狀態：tray 圖示 + 「尚無開銷紀錄」
 - 列表：按日期分組（新→舊），Section header 顯示日期 + 當日小計
+- 時間線包含：開銷群組 + 結算紀錄（群組帳本）
 - 每行：分類圖示（帶顏色）+ 分類名 + 備註 + 付款人（群組帳本）+ 金額
 - 左滑刪除
 
 ### 流程
 
 ```
-1. 顯示目前帳本的所有開銷
-2. 按日期分組排列
-3. 左滑某筆 → 刪除
+1. 切換帳本（LedgerSwitcher）
+2. 顯示目前帳本的所有開銷
+3. 按日期分組排列
+4. 群組帳本：頂部顯示拆帳區塊（見 Section 8）
+5. 左滑某筆 → 刪除
 ```
 
 ---
@@ -353,6 +358,105 @@
 1. 點「登出」→ AuthManager.signOut()
 2. 清除 Keychain JWT → isAuthenticated = false → 顯示 LoginView
 ```
+
+---
+
+## 8. 拆帳（Settlement）
+
+### 畫面
+
+拆帳功能整合於 **ExpenseListView**（群組帳本限定）
+
+| 區塊 | 說明 |
+|------|------|
+| 拆帳區塊 | 列表頂部 Section，顯示轉帳明細（有差異時才顯示） |
+| 結清按鈕 | 確認後標記所有開銷為已結算 |
+| 結算紀錄 | 時間線中顯示「已經由 xxx 結算拆帳！」，可點擊進入詳情 |
+
+**SettlementDetailView** — 從結算紀錄 push 進入
+
+- 結算時間、操作者
+- 轉帳明細快照（付款人 → 收款人 + 金額）
+
+### 流程
+
+```
+拆帳計算：
+1. 統計未結算開銷中每位成員的付款總額
+2. 計算人均分攤金額
+3. 貪婪配對產生最少筆轉帳明細
+4. 持平時不顯示拆帳區塊
+
+結清：
+1. 點「結清」→ confirmationDialog 確認
+2. 標記所有開銷為已結算
+3. 建立 SettlementRecord（含轉帳明細快照 + 幣別）
+4. toast「已完成結算」
+5. 時間線中顯示結算紀錄
+```
+
+### 資料模型
+
+- `SettlementTransfer`：from（成員）→ to（成員）+ 金額
+- `SettlementRecord`：結算時間 + 操作者 + 轉帳明細快照 + 幣別符號
+- `Ledger.settledExpenseIds`：已結算開銷 ID 集合（排除於拆帳計算）
+- `Ledger.settlementRecords`：結算歷史紀錄
+
+---
+
+## 9. 固定開銷（Recurring Expense）
+
+### 畫面
+
+**RecurringExpenseListView** — 從帳本設定 / 帳本詳情 push 進入
+
+- 列表：金額 + 排程描述 + 備註 + 付款人（群組帳本）
+- 左滑刪除
+- 右上角「＋」新增按鈕
+
+**RecurringExpenseEditView** — Sheet 呈現
+
+| 區塊 | 說明 |
+|------|------|
+| 金額輸入 | 複用 CalculatorView |
+| 分類選擇 | 複用 CategoryGridView |
+| 排程選擇 | 每天 / 每週 / 每月 / 每年 |
+| 付款人 | 複用 PayerChips（群組帳本） |
+| 詳細資訊 | 複用 ExpenseDetailFields（隱藏日期） |
+
+### 流程
+
+```
+新增：
+1. 點「＋」→ sheet RecurringExpenseEditView（add mode）
+2. 輸入金額 + 選分類 + 選排程 → 儲存
+
+編輯：
+1. 點擊項目 → sheet RecurringExpenseEditView（edit mode）
+2. 修改 → 儲存
+
+刪除：
+1. 左滑 → 刪除
+```
+
+### 排程規則
+
+| 頻率 | 參數 | 顯示範例 |
+|------|------|----------|
+| daily | — | 每天 |
+| weekly | dayOfWeek（1=日…7=六） | 每週三 |
+| monthly | dayOfMonth（1-31） | 每月 15 日 |
+| yearly | month + day | 每年 1 月 1 日 |
+
+- 每月 29-31 日、每年特殊日期顯示橘色警告
+- 新增時排程不預選，必須選擇才能儲存
+
+### 入口
+
+| 帳本類型 | 入口位置 |
+|----------|----------|
+| 個人帳本 | LedgerSettingsView → 固定開銷 |
+| 群組帳本 | LedgerDetailView → 固定開銷 |
 
 ---
 
