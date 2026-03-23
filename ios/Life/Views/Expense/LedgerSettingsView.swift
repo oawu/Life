@@ -4,7 +4,6 @@ struct LedgerSettingsView: View {
     @Bindable var store: ExpenseStore
 
     @State private var editingLedger: Ledger?
-    @State private var showAddChoice = false
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
     @State private var selectedLedgerId: String?
@@ -19,41 +18,6 @@ struct LedgerSettingsView: View {
 
     var body: some View {
         List {
-            // 新增按鈕
-            Section {
-                Button {
-                    showAddChoice = true
-                } label: {
-                    HStack {
-                        Spacer()
-                        Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("新增帳本")
-                            .font(.subheadline.weight(.medium))
-                        Spacer()
-                    }
-                    .foregroundStyle(Color(.secondaryLabel))
-                    .padding(.vertical, 4)
-                }
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(
-                            Color(.separator),
-                            style: StrokeStyle(lineWidth: 1, dash: [6, 4])
-                        )
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                )
-                .confirmationDialog("新增帳本", isPresented: $showAddChoice) {
-                    Button("自己建立") {
-                        showCreateSheet = true
-                    }
-                    Button("掃碼加入") {
-                        showJoinSheet = true
-                    }
-                }
-            }
-
             // 個人帳本
             if let ledger = personalLedger {
                 Section {
@@ -90,6 +54,24 @@ struct LedgerSettingsView: View {
         .navigationTitle("帳本設定")
         .navigationBarTitleDisplayMode(.inline)
         .environment(\.editMode, .constant(.active))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        showCreateSheet = true
+                    } label: {
+                        Label("自己建立", systemImage: "plus")
+                    }
+                    Button {
+                        showJoinSheet = true
+                    } label: {
+                        Label("掃碼加入", systemImage: "qrcode.viewfinder")
+                    }
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                }
+            }
+        }
         .navigationDestination(item: $selectedLedgerId) { ledgerId in
             LedgerDetailView(store: store, ledgerId: ledgerId)
         }
