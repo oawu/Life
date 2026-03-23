@@ -65,7 +65,7 @@ struct ExpenseListView: View {
             ForEach(groupedExpenses, id: \.date) { group in
                 Section {
                     ForEach(group.expenses) { expense in
-                        ExpenseRow(expense: expense)
+                        ExpenseRow(expense: expense, showPayer: store.isGroupLedger)
                     }
                     .onDelete { offsets in
                         deleteExpenses(from: group.expenses, at: offsets)
@@ -94,6 +94,7 @@ struct ExpenseListView: View {
 
 private struct ExpenseRow: View {
     let expense: Expense
+    var showPayer: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -108,7 +109,7 @@ private struct ExpenseRow: View {
                     .foregroundStyle(expense.category.color)
             }
 
-            // 分類名 + 備註
+            // 分類名 + 備註 + 付款人
             VStack(alignment: .leading, spacing: 2) {
                 Text(expense.category.name)
                     .font(.subheadline)
@@ -119,6 +120,17 @@ private struct ExpenseRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                }
+
+                if showPayer, let payer = expense.paidBy {
+                    HStack(spacing: 3) {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 9))
+
+                        Text(payer.name)
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
                 }
             }
 

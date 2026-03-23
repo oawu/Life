@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct Expense: Identifiable {
+struct Expense: Identifiable, Equatable {
     let id: UUID
     var amount: Double
     var category: ExpenseCategory
@@ -10,18 +10,57 @@ struct Expense: Identifiable {
     var latitude: Double?
     var longitude: Double?
     var address: String?
+    var ledgerId: String
+    var paidBy: LedgerMember?
 }
 
 @Observable
 final class ExpenseStore {
-    var expenses: [Expense] = []
-    var categories: [ExpenseCategory] = ExpenseCategory.defaults
+    var ledgers: [Ledger] = []
+    var currentLedgerId: String = "personal"
 
-    init() {
-        expenses = Self.sampleData()
+    var categories: [ExpenseCategory] {
+        get { currentLedger?.categories ?? [] }
+        set {
+            guard let index = currentLedgerIndex else {
+                return
+            }
+            ledgers[index].categories = newValue
+        }
     }
 
-    func addExpense(amount: Double, category: ExpenseCategory, memo: String, date: Date, latitude: Double?, longitude: Double?, address: String?) {
+    var expenses: [Expense] {
+        get { currentLedger?.expenses ?? [] }
+        set {
+            guard let index = currentLedgerIndex else {
+                return
+            }
+            ledgers[index].expenses = newValue
+        }
+    }
+
+    var isGroupLedger: Bool {
+        currentLedger?.type == .group
+    }
+
+    var currentMembers: [LedgerMember] {
+        currentLedger?.members ?? []
+    }
+
+    private var currentLedger: Ledger? {
+        ledgers.first { $0.id == currentLedgerId }
+    }
+
+    private var currentLedgerIndex: Int? {
+        ledgers.firstIndex { $0.id == currentLedgerId }
+    }
+
+    init() {
+        ledgers = Ledger.defaults
+        loadSampleData()
+    }
+
+    func addExpense(amount: Double, category: ExpenseCategory, memo: String, date: Date, latitude: Double?, longitude: Double?, address: String?, paidBy: LedgerMember? = nil) {
         let expense = Expense(
             id: UUID(),
             amount: amount,
@@ -30,7 +69,9 @@ final class ExpenseStore {
             date: date,
             latitude: latitude,
             longitude: longitude,
-            address: address
+            address: address,
+            ledgerId: currentLedgerId,
+            paidBy: paidBy
         )
         expenses.insert(expense, at: 0)
     }
@@ -50,11 +91,13 @@ final class ExpenseStore {
         }
         categories[index] = category
 
-        for i in expenses.indices {
-            if expenses[i].category.id == category.id {
-                expenses[i].category = category
+        var updated = expenses
+        for i in updated.indices {
+            if updated[i].category.id == category.id {
+                updated[i].category = category
             }
         }
+        expenses = updated
     }
 
     func deleteCategory(id: String) {
@@ -67,20 +110,35 @@ final class ExpenseStore {
 
     // MARK: - Sample Data
 
-    private static func sampleData() -> [Expense] {
+    private func loadSampleData() {
         let calendar = Calendar.current
         let today = Date()
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
 
-        let defaults = ExpenseCategory.defaults
+        guard let personalIndex = ledgers.firstIndex(where: { $0.id == "personal" }) else {
+            return
+        }
+        let personalCategories = ledgers[personalIndex].categories
 
-        return [
-            Expense(id: UUID(), amount: 85,   category: defaults[0],  memo: "蛋餅 + 豆漿",     date: today,     latitude: nil, longitude: nil, address: nil),
-            Expense(id: UUID(), amount: 150,  category: defaults[1],  memo: "便當",             date: today,     latitude: nil, longitude: nil, address: nil),
-            Expense(id: UUID(), amount: 55,   category: defaults[4],  memo: "拿鐵",             date: today,     latitude: nil, longitude: nil, address: nil),
-            Expense(id: UUID(), amount: 350,  category: defaults[2],  memo: "火鍋",             date: yesterday, latitude: nil, longitude: nil, address: nil),
-            Expense(id: UUID(), amount: 33,   category: defaults[10], memo: "捷運",             date: yesterday, latitude: nil, longitude: nil, address: nil),
-            Expense(id: UUID(), amount: 1200, category: defaults[9],  memo: "UNIQLO 外套",     date: yesterday, latitude: nil, longitude: nil, address: nil),
+        ledgers[personalIndex].expenses = [
+            Expense(id: UUID(), amount: 85,   category: personalCategories[0],  memo: "蛋餅 + 豆漿",   date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 150,  category: personalCategories[1],  memo: "便當",           date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 55,   category: personalCategories[4],  memo: "拿鐵",           date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 350,  category: personalCategories[2],  memo: "火鍋",           date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 33,   category: personalCategories[10], memo: "捷運",           date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 1200, category: personalCategories[9],  memo: "UNIQLO 外套",   date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+        ]
+
+        guard let roommatesIndex = ledgers.firstIndex(where: { $0.id == "roommates" }) else {
+            return
+        }
+        let roommatesCategories = ledgers[roommatesIndex].categories
+        let me = LedgerMember(id: Ledger.defaultMemberId, name: "我")
+        let alice = LedgerMember(id: "alice", name: "Alice")
+
+        ledgers[roommatesIndex].expenses = [
+            Expense(id: UUID(), amount: 1800, category: roommatesCategories[0], memo: "火鍋聚餐",     date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "roommates", paidBy: me),
+            Expense(id: UUID(), amount: 520,  category: roommatesCategories[1], memo: "全聯採買",     date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "roommates", paidBy: alice),
         ]
     }
 }

@@ -47,4 +47,14 @@ extension ExpenseCategory {
         ExpenseCategory(id: "subscription", name: "訂閱",   icon: "repeat",                     color: .indigo),
         ExpenseCategory(id: "threeC",       name: "3C",     icon: "desktopcomputer",            color: .gray),
     ]
+
+    static let groupDefaults: [ExpenseCategory] = [
+        ExpenseCategory(id: "groupDining",        name: "聚餐",   icon: "fork.knife",                 color: .orange),
+        ExpenseCategory(id: "groupGrocery",       name: "採買",   icon: "cart.fill",                  color: .pink),
+        ExpenseCategory(id: "groupRent",          name: "租金",   icon: "building.2.fill",            color: .green),
+        ExpenseCategory(id: "groupUtility",       name: "水電",   icon: "bolt.fill",                  color: .yellow),
+        ExpenseCategory(id: "groupTransport",     name: "交通",   icon: "bus.fill",                   color: .blue),
+        ExpenseCategory(id: "groupEntertainment", name: "娛樂",   icon: "gamecontroller.fill",        color: .purple),
+        ExpenseCategory(id: "groupOther",         name: "其他",   icon: "ellipsis.circle.fill",       color: .gray),
+    ]
 }

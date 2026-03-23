@@ -5,6 +5,7 @@ struct AddExpenseView: View {
 
     @State private var engine = CalculatorEngine()
     @State private var selectedCategory: ExpenseCategory?
+    @State private var selectedPayer: LedgerMember?
     @State private var memo: String = ""
     @State private var date: Date = Date()
     @State private var locationService = LocationService()
@@ -13,12 +14,23 @@ struct AddExpenseView: View {
     @State private var showSaveConfirmation = false
 
     private var canSave: Bool {
-        engine.currentValue > 0 && selectedCategory != nil
+        guard engine.currentValue > 0 && selectedCategory != nil else {
+            return false
+        }
+        if store.isGroupLedger {
+            return selectedPayer != nil
+        }
+        return true
     }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 32) {
+                LedgerSwitcher(
+                    ledgers: store.ledgers,
+                    selectedId: $store.currentLedgerId
+                )
+
                 CalculatorView(engine: engine)
 
                 CategoryGridView(
@@ -26,6 +38,13 @@ struct AddExpenseView: View {
                     selected: $selectedCategory,
                     onSettingsTapped: { showCategorySettings = true }
                 )
+
+                if store.isGroupLedger {
+                    PayerChips(
+                        members: store.currentMembers,
+                        selected: $selectedPayer
+                    )
+                }
 
                 ExpenseDetailFields(memo: $memo, date: $date, locationService: locationService)
             }
@@ -40,7 +59,7 @@ struct AddExpenseView: View {
                 Button {
                     showExpenseList = true
                 } label: {
-                    Label("紀錄", systemImage: "list.bullet")
+                    Text("紀錄")
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -61,6 +80,14 @@ struct AddExpenseView: View {
             if let selected = selectedCategory,
                !store.categories.contains(where: { $0.id == selected.id }) {
                 selectedCategory = nil
+            }
+        }
+        .onChange(of: store.currentLedgerId) {
+            selectedCategory = nil
+            if store.isGroupLedger {
+                selectedPayer = store.currentMembers.first
+            } else {
+                selectedPayer = nil
             }
         }
         .overlay {
@@ -96,7 +123,8 @@ struct AddExpenseView: View {
             date: date,
             latitude: locationService.latitude,
             longitude: locationService.longitude,
-            address: locationService.currentAddress
+            address: locationService.currentAddress,
+            paidBy: selectedPayer
         )
 
         UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -119,6 +147,11 @@ struct AddExpenseView: View {
         memo = ""
         date = Date()
         locationService.clear()
+        if store.isGroupLedger {
+            selectedPayer = store.currentMembers.first
+        } else {
+            selectedPayer = nil
+        }
     }
 }
 
