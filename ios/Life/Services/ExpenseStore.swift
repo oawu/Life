@@ -94,6 +94,16 @@ final class ExpenseStore {
         expenses.removeAll { $0.id == id }
     }
 
+    func updateExpense(_ expense: Expense) {
+        guard let ledgerIndex = ledgers.firstIndex(where: { $0.id == expense.ledgerId }) else {
+            return
+        }
+        guard let expenseIndex = ledgers[ledgerIndex].expenses.firstIndex(where: { $0.id == expense.id }) else {
+            return
+        }
+        ledgers[ledgerIndex].expenses[expenseIndex] = expense
+    }
+
     func addCategory(id: String, name: String, icon: String, color: Color) {
         let category = ExpenseCategory(id: id, name: name, icon: icon, color: color)
         categories.append(category)
@@ -325,9 +335,9 @@ final class ExpenseStore {
         let personalCategories = ledgers[personalIndex].categories
 
         ledgers[personalIndex].expenses = [
-            Expense(id: UUID(), amount: 85,   category: personalCategories[0],  memo: "蛋餅 + 豆漿",   date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 85,   category: personalCategories[0],  memo: "蛋餅 + 豆漿",   date: today,     latitude: 25.0330, longitude: 121.5654, address: "台北市大安區忠孝東路四段", ledgerId: "personal", paidBy: nil),
             Expense(id: UUID(), amount: 150,  category: personalCategories[1],  memo: "便當",           date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
-            Expense(id: UUID(), amount: 55,   category: personalCategories[4],  memo: "拿鐵",           date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 55,   category: personalCategories[4],  memo: "拿鐵",           date: today,     latitude: 25.0418, longitude: 121.5075, address: "台北市中正區重慶南路一段", ledgerId: "personal", paidBy: nil),
             Expense(id: UUID(), amount: 350,  category: personalCategories[2],  memo: "火鍋",           date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
             Expense(id: UUID(), amount: 33,   category: personalCategories[10], memo: "捷運",           date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
             Expense(id: UUID(), amount: 1200, category: personalCategories[9],  memo: "UNIQLO 外套",   date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),

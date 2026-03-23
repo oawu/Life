@@ -250,7 +250,11 @@ struct ExpenseListView: View {
                 case .expenseGroup(let date, let expenses, let total):
                     Section {
                         ForEach(expenses) { expense in
-                            ExpenseRow(expense: expense, showPayer: store.isGroupLedger, currencySymbol: currencySymbol)
+                            NavigationLink {
+                                ExpenseDetailView(store: store, expenseId: expense.id)
+                            } label: {
+                                ExpenseRow(expense: expense, showPayer: store.isGroupLedger, currencySymbol: currencySymbol)
+                            }
                         }
                         .onDelete { offsets in
                             deleteExpenses(from: expenses, at: offsets)
