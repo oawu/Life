@@ -21,6 +21,14 @@ struct ExpenseListView: View {
         return formatter
     }()
 
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        formatter.locale = Locale(identifier: "zh_TW")
+        return formatter
+    }()
+
     private enum TimelineEntry: Identifiable {
         case expenseGroup(date: String, expenses: [Expense], total: Double)
         case settlement(record: SettlementRecord, date: String)
@@ -73,66 +81,14 @@ struct ExpenseListView: View {
 
     // MARK: - Settlement
 
-    private var settlements: [(from: LedgerMember, to: LedgerMember, amount: Double)] {
+    private var settlements: [SettlementTransfer] {
         guard let ledger = store.ledgers.first(where: { $0.id == store.currentLedgerId }),
               ledger.type == .group else {
             return []
         }
 
         let unsettledExpenses = ledger.expenses.filter { !ledger.settledExpenseIds.contains($0.id) }
-
-        if unsettledExpenses.isEmpty {
-            return []
-        }
-
-        // 計算每位成員的已付總額
-        var paid: [String: Double] = [:]
-        for member in ledger.members {
-            paid[member.id] = 0
-        }
-        for expense in unsettledExpenses {
-            if let payer = expense.paidBy {
-                paid[payer.id, default: 0] += expense.amount
-            }
-        }
-
-        // 人均應付額
-        let total = paid.values.reduce(0, +)
-        let share = total / Double(ledger.members.count)
-
-        // 計算 balance
-        var balances: [(member: LedgerMember, balance: Double)] = []
-        for member in ledger.members {
-            let balance = (paid[member.id] ?? 0) - share
-            if abs(balance) > 0.01 {
-                balances.append((member: member, balance: balance))
-            }
-        }
-
-        // 貪婪配對
-        var debtors = balances.filter { $0.balance < 0 }.sorted { $0.balance < $1.balance }
-        var creditors = balances.filter { $0.balance > 0 }.sorted { $0.balance > $1.balance }
-        var result: [(from: LedgerMember, to: LedgerMember, amount: Double)] = []
-
-        var debtorIndex = 0
-        var creditorIndex = 0
-
-        while debtorIndex < debtors.count && creditorIndex < creditors.count {
-            let amount = min(-debtors[debtorIndex].balance, creditors[creditorIndex].balance)
-            result.append((from: debtors[debtorIndex].member, to: creditors[creditorIndex].member, amount: amount))
-
-            debtors[debtorIndex].balance += amount
-            creditors[creditorIndex].balance -= amount
-
-            if abs(debtors[debtorIndex].balance) < 0.01 {
-                debtorIndex += 1
-            }
-            if abs(creditors[creditorIndex].balance) < 0.01 {
-                creditorIndex += 1
-            }
-        }
-
-        return result
+        return ExpenseStore.calculateTransfers(expenses: unsettledExpenses, members: ledger.members)
     }
 
     var body: some View {
@@ -207,7 +163,7 @@ struct ExpenseListView: View {
 
         if !items.isEmpty {
             Section {
-                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                ForEach(items) { item in
                     HStack(spacing: 10) {
                         Text(item.from.name)
                             .font(.subheadline)
@@ -287,12 +243,20 @@ struct ExpenseListView: View {
 
                 case .settlement(let record, let date):
                     Section {
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                            Text("已經由 \(record.settledBy.name) 結算拆帳！")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                        NavigationLink {
+                            SettlementDetailView(record: record)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("已經由 \(record.settledBy.name) 結算拆帳！")
+                                        .font(.subheadline)
+                                    Text(Self.timeFormatter.string(from: record.date))
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
                         }
                     } header: {
                         Text(date)

@@ -186,13 +186,83 @@ final class ExpenseStore {
         guard let index = ledgers.firstIndex(where: { $0.id == id }) else {
             return
         }
-        let expenseIds = Set(ledgers[index].expenses.map { $0.id })
+        let ledger = ledgers[index]
+
+        // 計算當前轉帳明細快照
+        let transfers = Self.calculateTransfers(
+            expenses: ledger.expenses.filter { !ledger.settledExpenseIds.contains($0.id) },
+            members: ledger.members
+        )
+
+        let expenseIds = Set(ledger.expenses.map { $0.id })
         ledgers[index].settledExpenseIds.formUnion(expenseIds)
 
-        let me = ledgers[index].members.first { $0.id == Ledger.defaultMemberId }
+        let me = ledger.members.first { $0.id == Ledger.defaultMemberId }
             ?? LedgerMember(id: Ledger.defaultMemberId, name: "我")
-        let record = SettlementRecord(id: UUID(), date: Date(), settledBy: me)
+        let record = SettlementRecord(
+            id: UUID(),
+            date: Date(),
+            settledBy: me,
+            transfers: transfers,
+            currencySymbol: ledger.currency.symbol
+        )
         ledgers[index].settlementRecords.append(record)
+    }
+
+    static func calculateTransfers(expenses: [Expense], members: [LedgerMember]) -> [SettlementTransfer] {
+        if expenses.isEmpty || members.isEmpty {
+            return []
+        }
+
+        var paid: [String: Double] = [:]
+        for member in members {
+            paid[member.id] = 0
+        }
+        for expense in expenses {
+            if let payer = expense.paidBy {
+                paid[payer.id, default: 0] += expense.amount
+            }
+        }
+
+        let total = paid.values.reduce(0, +)
+        let share = total / Double(members.count)
+
+        var balances: [(member: LedgerMember, balance: Double)] = []
+        for member in members {
+            let balance = (paid[member.id] ?? 0) - share
+            if abs(balance) > 0.01 {
+                balances.append((member: member, balance: balance))
+            }
+        }
+
+        var debtors = balances.filter { $0.balance < 0 }.sorted { $0.balance < $1.balance }
+        var creditors = balances.filter { $0.balance > 0 }.sorted { $0.balance > $1.balance }
+        var result: [SettlementTransfer] = []
+
+        var debtorIndex = 0
+        var creditorIndex = 0
+
+        while debtorIndex < debtors.count && creditorIndex < creditors.count {
+            let amount = min(-debtors[debtorIndex].balance, creditors[creditorIndex].balance)
+            result.append(SettlementTransfer(
+                id: UUID(),
+                from: debtors[debtorIndex].member,
+                to: creditors[creditorIndex].member,
+                amount: amount
+            ))
+
+            debtors[debtorIndex].balance += amount
+            creditors[creditorIndex].balance -= amount
+
+            if abs(debtors[debtorIndex].balance) < 0.01 {
+                debtorIndex += 1
+            }
+            if abs(creditors[creditorIndex].balance) < 0.01 {
+                creditorIndex += 1
+            }
+        }
+
+        return result
     }
 
     // MARK: - Ledger CRUD
@@ -245,6 +315,9 @@ final class ExpenseStore {
         let calendar = Calendar.current
         let today = Date()
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+        let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: today)!
+        let threeDaysAgo = calendar.date(byAdding: .day, value: -3, to: today)!
+        let fiveDaysAgo = calendar.date(byAdding: .day, value: -5, to: today)!
 
         guard let personalIndex = ledgers.firstIndex(where: { $0.id == "personal" }) else {
             return
@@ -265,16 +338,59 @@ final class ExpenseStore {
             RecurringExpense(id: UUID(), amount: 390,   category: personalCategories[24], frequency: .monthly(dayOfMonth: 15), memo: "Netflix", isEnabled: true, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
         ]
 
+        // MARK: 室友帳本（群組）
+
         guard let roommatesIndex = ledgers.firstIndex(where: { $0.id == "roommates" }) else {
             return
         }
         let roommatesCategories = ledgers[roommatesIndex].categories
         let me = LedgerMember(id: Ledger.defaultMemberId, name: "我")
         let alice = LedgerMember(id: "alice", name: "Alice")
+        let bob = LedgerMember(id: "bob", name: "Bob")
 
-        ledgers[roommatesIndex].expenses = [
+        // 上一輪已結算的開銷（5 天前 & 3 天前）
+        let settledExpenses = [
+            Expense(id: UUID(), amount: 2400, category: roommatesCategories[0], memo: "燒肉聚餐",     date: fiveDaysAgo,  latitude: nil, longitude: nil, address: nil, ledgerId: "roommates", paidBy: me),
+            Expense(id: UUID(), amount: 350,  category: roommatesCategories[1], memo: "全聯日用品",   date: fiveDaysAgo,  latitude: nil, longitude: nil, address: nil, ledgerId: "roommates", paidBy: alice),
+            Expense(id: UUID(), amount: 180,  category: roommatesCategories[4], memo: "飲料",         date: threeDaysAgo, latitude: nil, longitude: nil, address: nil, ledgerId: "roommates", paidBy: bob),
+        ]
+        let settledIds = Set(settledExpenses.map { $0.id })
+
+        // 歷史結算紀錄
+        var settlementDate = calendar.date(byAdding: .day, value: -2, to: today)!
+        settlementDate = calendar.date(bySettingHour: 16, minute: 22, second: 0, of: settlementDate)!
+        let pastTransfers = Self.calculateTransfers(expenses: settledExpenses, members: [me, alice, bob])
+
+        ledgers[roommatesIndex].settledExpenseIds = settledIds
+        ledgers[roommatesIndex].settlementRecords = [
+            SettlementRecord(
+                id: UUID(),
+                date: settlementDate,
+                settledBy: me,
+                transfers: pastTransfers,
+                currencySymbol: "$"
+            ),
+        ]
+
+        // 本輪未結算的開銷
+        ledgers[roommatesIndex].expenses = settledExpenses + [
             Expense(id: UUID(), amount: 1800, category: roommatesCategories[0], memo: "火鍋聚餐",     date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "roommates", paidBy: me),
             Expense(id: UUID(), amount: 520,  category: roommatesCategories[1], memo: "全聯採買",     date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "roommates", paidBy: alice),
+            Expense(id: UUID(), amount: 75,   category: roommatesCategories[4], memo: "超商咖啡",     date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "roommates", paidBy: bob),
+            Expense(id: UUID(), amount: 1200, category: roommatesCategories[3], memo: "衛生紙 + 洗衣精", date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "roommates", paidBy: me),
+        ]
+
+        // MARK: 約會帳本（群組）
+
+        guard let datingIndex = ledgers.firstIndex(where: { $0.id == "dating" }) else {
+            return
+        }
+        let datingCategories = ledgers[datingIndex].categories
+
+        ledgers[datingIndex].expenses = [
+            Expense(id: UUID(), amount: 1580, category: datingCategories[0], memo: "義式餐廳",     date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "dating", paidBy: me),
+            Expense(id: UUID(), amount: 680,  category: datingCategories[5], memo: "電影票 × 2",   date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "dating", paidBy: alice),
+            Expense(id: UUID(), amount: 220,  category: datingCategories[4], memo: "星巴克",       date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "dating", paidBy: me),
         ]
     }
 }

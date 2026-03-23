@@ -10,10 +10,19 @@ struct LedgerMember: Identifiable, Equatable, Hashable {
     var name: String
 }
 
+struct SettlementTransfer: Identifiable, Equatable {
+    let id: UUID
+    var from: LedgerMember
+    var to: LedgerMember
+    var amount: Double
+}
+
 struct SettlementRecord: Identifiable, Equatable {
     let id: UUID
     var date: Date
     var settledBy: LedgerMember
+    var transfers: [SettlementTransfer]
+    var currencySymbol: String
 }
 
 struct Ledger: Identifiable, Equatable {
