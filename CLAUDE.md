@@ -65,6 +65,10 @@ life/
 - Apple Sign In 登入（後端 API + iOS App）
 - iOS 記帳功能（純記憶體儲存，含計算機、分類選擇、位置記錄）
   - 登入後直接進入新增開銷頁面（Tab 1），「紀錄」按鈕 push 到開銷列表
+  - 帳本切換（LedgerSwitcher）：頂部橫向滾動 pill，支援個人帳本 + 群組帳本
+    - 切換帳本自動替換分類、清空已選分類
+    - 群組帳本顯示付款人選擇器（PayerChips），預設「我」
+    - ExpenseStore 以 computed property 代理 `categories`/`expenses` 到 currentLedger，現有分類相關 View 無需修改
   - 分類設定頁面（CategorySettingsView）：瀏覽、排序分類，頂部虛線新增按鈕
   - 分類編輯 Sheet（CategoryEditView）：新增/編輯/刪除分類（名稱、圖示、顏色），支援自訂顏色（彩球 ColorPicker）
     - 圖示選擇器為兩步驟：先選群組（3×3），再選圖示（6 欄），選後自動返回群組列表
