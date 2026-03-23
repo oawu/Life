@@ -20,19 +20,14 @@ struct LedgerSwitcher: View {
                             selectedId = ledger.id
                         }
                     } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: ledger.icon)
-                                .font(.system(size: 12))
-
-                            Text(ledger.name)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(isSelected ? Color.blue : Color(.tertiarySystemFill))
-                        .foregroundStyle(isSelected ? .white : .primary)
-                        .clipShape(Capsule())
+                        Text(ledger.name)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(isSelected ? Color.blue : Color(.tertiarySystemFill))
+                            .foregroundStyle(isSelected ? .white : .primary)
+                            .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                 }

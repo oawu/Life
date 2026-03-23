@@ -29,6 +29,7 @@ targets:
           UIApplicationSupportsMultipleScenes: true
         UILaunchScreen: {}
         NSLocationWhenInUseUsageDescription: "用於記錄開銷的發生地點"
+        NSCameraUsageDescription: "用於掃描帳本邀請碼 QR Code"
         NSAppTransportSecurity:
           NSExceptionDomains:
             local-api-life.iwi.tw:

@@ -29,6 +29,8 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>用於掃描帳本邀請碼 QR Code</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>用於記錄開銷的發生地點</string>
 	<key>UIApplicationSceneManifest</key>

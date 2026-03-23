@@ -13,11 +13,23 @@ struct LedgerMember: Identifiable, Equatable, Hashable {
 struct Ledger: Identifiable, Equatable {
     let id: String
     var name: String
-    var icon: String
     var type: LedgerType
+    var inviteCode: String?
     var members: [LedgerMember]
     var categories: [ExpenseCategory]
     var expenses: [Expense]
+
+    var formattedInviteCode: String? {
+        guard let inviteCode else {
+            return nil
+        }
+        return "#\(inviteCode)"
+    }
+
+    static func generateInviteCode() -> String {
+        let characters = Array("ACDEFGHJKMNPQRTUVWXY34679")
+        return String((0..<6).map { _ in characters.randomElement()! })
+    }
 }
 
 extension Ledger {
@@ -32,8 +44,8 @@ extension Ledger {
             Ledger(
                 id: "personal",
                 name: "個人",
-                icon: "person.fill",
                 type: .personal,
+                inviteCode: nil,
                 members: [me],
                 categories: ExpenseCategory.defaults,
                 expenses: []
@@ -41,8 +53,8 @@ extension Ledger {
             Ledger(
                 id: "roommates",
                 name: "室友",
-                icon: "house.fill",
                 type: .group,
+                inviteCode: "K3XR7N",
                 members: [me, alice, bob],
                 categories: ExpenseCategory.groupDefaults,
                 expenses: []
@@ -50,8 +62,8 @@ extension Ledger {
             Ledger(
                 id: "dating",
                 name: "約會",
-                icon: "heart.fill",
                 type: .group,
+                inviteCode: "D4YGWP",
                 members: [me, alice],
                 categories: ExpenseCategory.groupDefaults,
                 expenses: []
@@ -59,8 +71,8 @@ extension Ledger {
             Ledger(
                 id: "family",
                 name: "家人",
-                icon: "heart.fill",
                 type: .group,
+                inviteCode: "F7HJMC",
                 members: [me, alice],
                 categories: ExpenseCategory.groupDefaults,
                 expenses: []
@@ -68,8 +80,8 @@ extension Ledger {
             Ledger(
                 id: "travel",
                 name: "旅遊",
-                icon: "heart.fill",
                 type: .group,
+                inviteCode: "T9QRVX",
                 members: [me, alice],
                 categories: ExpenseCategory.groupDefaults,
                 expenses: []

@@ -4,7 +4,10 @@ struct LedgerSettingsView: View {
     @Bindable var store: ExpenseStore
 
     @State private var editingLedger: Ledger?
-    @State private var showAddSheet = false
+    @State private var showAddChoice = false
+    @State private var showCreateSheet = false
+    @State private var showJoinSheet = false
+    @State private var selectedLedgerId: String?
 
     private var personalLedger: Ledger? {
         store.ledgers.first { $0.type == .personal }
@@ -19,7 +22,7 @@ struct LedgerSettingsView: View {
             // 新增按鈕
             Section {
                 Button {
-                    showAddSheet = true
+                    showAddChoice = true
                 } label: {
                     HStack {
                         Spacer()
@@ -41,6 +44,14 @@ struct LedgerSettingsView: View {
                         .padding(.horizontal, 4)
                         .padding(.vertical, 2)
                 )
+                .confirmationDialog("新增帳本", isPresented: $showAddChoice) {
+                    Button("自己建立") {
+                        showCreateSheet = true
+                    }
+                    Button("掃碼加入") {
+                        showJoinSheet = true
+                    }
+                }
             }
 
             // 個人帳本
@@ -59,9 +70,14 @@ struct LedgerSettingsView: View {
                 Section {
                     ForEach(groupLedgers) { ledger in
                         Button {
-                            editingLedger = ledger
+                            selectedLedgerId = ledger.id
                         } label: {
-                            ledgerRow(ledger)
+                            HStack {
+                                ledgerRow(ledger)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Color(.tertiaryLabel))
+                            }
                         }
                     }
                     .onMove { source, destination in
@@ -74,34 +90,28 @@ struct LedgerSettingsView: View {
         .navigationTitle("帳本設定")
         .navigationBarTitleDisplayMode(.inline)
         .environment(\.editMode, .constant(.active))
+        .navigationDestination(item: $selectedLedgerId) { ledgerId in
+            LedgerDetailView(store: store, ledgerId: ledgerId)
+        }
         .sheet(item: $editingLedger) { ledger in
-            if ledger.type == .personal {
-                LedgerEditView(mode: .editPersonal(ledger)) { updated in
-                    store.updateLedger(updated)
-                }
-            } else {
-                LedgerEditView(mode: .editGroup(ledger)) { updated in
-                    store.updateLedger(updated)
-                } onDelete: {
-                    store.deleteLedger(id: ledger.id)
-                }
+            LedgerEditView(mode: .editPersonal(ledger)) { updated in
+                store.updateLedger(updated)
             }
         }
-        .sheet(isPresented: $showAddSheet) {
+        .sheet(isPresented: $showCreateSheet) {
             LedgerEditView(mode: .add) { newLedger in
                 store.addLedger(newLedger)
+            }
+        }
+        .sheet(isPresented: $showJoinSheet) {
+            JoinLedgerView { ledger in
+                store.addLedger(ledger)
             }
         }
     }
 
     private func ledgerRow(_ ledger: Ledger) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: ledger.icon)
-                .font(.system(size: 18))
-                .foregroundStyle(.white)
-                .frame(width: 34, height: 34)
-                .background(Color.blue, in: RoundedRectangle(cornerRadius: 8))
-
             Text(ledger.name)
                 .foregroundStyle(.primary)
 
