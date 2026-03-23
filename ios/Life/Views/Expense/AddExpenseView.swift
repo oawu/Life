@@ -13,6 +13,14 @@ struct AddExpenseView: View {
     @State private var showCategorySettings = false
     @State private var showLedgerSettings = false
     @State private var showSaveConfirmation = false
+    @State private var scrollOpacity: Double = 0
+
+    private var headerOpacity: Double {
+        if #available(iOS 18, *) {
+            return scrollOpacity
+        }
+        return 1
+    }
 
     private var canSave: Bool {
         guard engine.currentValue > 0 && selectedCategory != nil else {
@@ -27,12 +35,6 @@ struct AddExpenseView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 32) {
-                LedgerSwitcher(
-                    ledgers: store.ledgers,
-                    selectedId: $store.currentLedgerId,
-                    onSettingsTapped: { showLedgerSettings = true }
-                )
-
                 CalculatorView(engine: engine, currency: store.currentCurrency)
 
                 CategoryGridView(
@@ -53,6 +55,26 @@ struct AddExpenseView: View {
             .padding(.vertical, 16)
         }
         .scrollDismissesKeyboard(.interactively)
+        .scrollHeaderOpacity($scrollOpacity)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                LedgerSwitcher(
+                    ledgers: store.ledgers,
+                    selectedId: $store.currentLedgerId,
+                    onSettingsTapped: { showLedgerSettings = true }
+                )
+                .padding(.vertical, 8)
+                Divider()
+                    .opacity(headerOpacity)
+            }
+            .background {
+                Rectangle()
+                    .fill(.bar)
+                    .opacity(headerOpacity)
+                    .ignoresSafeArea(edges: .top)
+            }
+        }
+        .toolbarBackground(.hidden, for: .navigationBar)
         .background(Color(.systemGroupedBackground))
         .navigationTitle("新增開銷")
         .navigationBarTitleDisplayMode(.inline)
@@ -156,6 +178,24 @@ struct AddExpenseView: View {
             selectedPayer = store.currentMembers.first
         } else {
             selectedPayer = nil
+        }
+    }
+}
+
+// MARK: - Scroll Header Opacity
+
+private extension View {
+    @ViewBuilder
+    func scrollHeaderOpacity(_ opacity: Binding<Double>) -> some View {
+        if #available(iOS 18, *) {
+            self.onScrollGeometryChange(for: Double.self) { geo in
+                let offset = geo.contentOffset.y + geo.contentInsets.top
+                return min(max(offset / 40, 0), 1)
+            } action: { _, newValue in
+                opacity.wrappedValue = newValue
+            }
+        } else {
+            self
         }
     }
 }
