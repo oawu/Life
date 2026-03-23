@@ -329,18 +329,54 @@ final class ExpenseStore {
         let threeDaysAgo = calendar.date(byAdding: .day, value: -3, to: today)!
         let fiveDaysAgo = calendar.date(byAdding: .day, value: -5, to: today)!
 
+        // 歷史月份日期
+        let lastMonth1 = calendar.date(byAdding: .month, value: -1, to: today)!
+        let lastMonth2 = calendar.date(byAdding: .day, value: -5, to: lastMonth1)!
+        let lastMonth3 = calendar.date(byAdding: .day, value: -10, to: lastMonth1)!
+        let twoMonthsAgo1 = calendar.date(byAdding: .month, value: -2, to: today)!
+        let twoMonthsAgo2 = calendar.date(byAdding: .day, value: -7, to: twoMonthsAgo1)!
+        let threeMonthsAgo1 = calendar.date(byAdding: .month, value: -3, to: today)!
+        let threeMonthsAgo2 = calendar.date(byAdding: .day, value: -3, to: threeMonthsAgo1)!
+        let lastYear1 = calendar.date(byAdding: .year, value: -1, to: today)!
+        let lastYear2 = calendar.date(byAdding: .day, value: -15, to: lastYear1)!
+
         guard let personalIndex = ledgers.firstIndex(where: { $0.id == "personal" }) else {
             return
         }
         let personalCategories = ledgers[personalIndex].categories
 
         ledgers[personalIndex].expenses = [
-            Expense(id: UUID(), amount: 85,   category: personalCategories[0],  memo: "蛋餅 + 豆漿",   date: today,     latitude: 25.0330, longitude: 121.5654, address: "台北市大安區忠孝東路四段", ledgerId: "personal", paidBy: nil),
-            Expense(id: UUID(), amount: 150,  category: personalCategories[1],  memo: "便當",           date: today,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
-            Expense(id: UUID(), amount: 55,   category: personalCategories[4],  memo: "拿鐵",           date: today,     latitude: 25.0418, longitude: 121.5075, address: "台北市中正區重慶南路一段", ledgerId: "personal", paidBy: nil),
-            Expense(id: UUID(), amount: 350,  category: personalCategories[2],  memo: "火鍋",           date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
-            Expense(id: UUID(), amount: 33,   category: personalCategories[10], memo: "捷運",           date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
-            Expense(id: UUID(), amount: 1200, category: personalCategories[9],  memo: "UNIQLO 外套",   date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            // 本月
+            Expense(id: UUID(), amount: 85,   category: personalCategories[0],  memo: "蛋餅 + 豆漿",   date: today,          latitude: 25.0330, longitude: 121.5654, address: "台北市大安區忠孝東路四段", ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 150,  category: personalCategories[1],  memo: "便當",           date: today,          latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 55,   category: personalCategories[4],  memo: "拿鐵",           date: today,          latitude: 25.0418, longitude: 121.5075, address: "台北市中正區重慶南路一段", ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 350,  category: personalCategories[2],  memo: "火鍋",           date: yesterday,      latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 33,   category: personalCategories[10], memo: "捷運",           date: yesterday,      latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 1200, category: personalCategories[9],  memo: "UNIQLO 外套",   date: yesterday,      latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            // 上個月
+            Expense(id: UUID(), amount: 15000, category: personalCategories[5],  memo: "房租",          date: lastMonth1,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 420,   category: personalCategories[2],  memo: "壽司",          date: lastMonth1,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 89,    category: personalCategories[0],  memo: "蘿蔔糕 + 紅茶", date: lastMonth2,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 650,   category: personalCategories[15], memo: "KTV",           date: lastMonth2,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 1680,  category: personalCategories[6],  memo: "GU 牛仔褲 × 2", date: lastMonth3,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 280,   category: personalCategories[7],  memo: "洗衣精 + 衛生紙", date: lastMonth3,   latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 66,    category: personalCategories[10], memo: "高鐵來回",       date: lastMonth2,     latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            // 兩個月前
+            Expense(id: UUID(), amount: 15000, category: personalCategories[5],  memo: "房租",          date: twoMonthsAgo1,  latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 520,   category: personalCategories[1],  memo: "牛排",          date: twoMonthsAgo1,  latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 3200,  category: personalCategories[8],  memo: "牙醫自費",      date: twoMonthsAgo2,  latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 390,   category: personalCategories[24], memo: "Netflix",       date: twoMonthsAgo2,  latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 75,    category: personalCategories[4],  memo: "星巴克",        date: twoMonthsAgo1,  latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            // 三個月前
+            Expense(id: UUID(), amount: 15000, category: personalCategories[5],  memo: "房租",          date: threeMonthsAgo1, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 4500,  category: personalCategories[25], memo: "AirPods Pro",   date: threeMonthsAgo1, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 180,   category: personalCategories[3],  memo: "千層蛋糕",      date: threeMonthsAgo2, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 1200,  category: personalCategories[16], memo: "健身房月費",     date: threeMonthsAgo2, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            // 去年
+            Expense(id: UUID(), amount: 8900,  category: personalCategories[6],  memo: "冬季外套",      date: lastYear1,      latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 2600,  category: personalCategories[21], memo: "聖誕禮物",      date: lastYear1,      latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 560,   category: personalCategories[2],  memo: "聖誕大餐",      date: lastYear2,      latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            Expense(id: UUID(), amount: 15000, category: personalCategories[5],  memo: "房租",          date: lastYear2,      latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
         ]
 
         ledgers[personalIndex].recurringExpenses = [
