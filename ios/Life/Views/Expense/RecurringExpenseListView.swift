@@ -92,24 +92,30 @@ struct RecurringExpenseListView: View {
 
     // MARK: - Row
 
+    private func toggleEnabled(_ recurring: RecurringExpense) {
+        var updated = recurring
+        updated.isEnabled.toggle()
+        store.updateRecurringExpense(updated)
+    }
+
     private func recurringRow(_ recurring: RecurringExpense) -> some View {
         HStack(spacing: 12) {
             Image(systemName: recurring.category.icon)
                 .font(.system(size: 16))
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
-                .background(recurring.category.color, in: RoundedRectangle(cornerRadius: 8))
+                .background(recurring.category.color.opacity(recurring.isEnabled ? 1 : 0.4), in: RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text("$\(Int(recurring.amount))")
                         .font(.body)
                         .fontWeight(.medium)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(recurring.isEnabled ? .primary : .tertiary)
 
                     Text(recurring.frequency.displayLabel)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(recurring.isEnabled ? .secondary : .tertiary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color(.tertiarySystemFill))
@@ -120,7 +126,7 @@ struct RecurringExpenseListView: View {
                     if !recurring.memo.isEmpty {
                         Text(recurring.memo)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(recurring.isEnabled ? .secondary : .tertiary)
                     }
 
                     if isGroup, let paidBy = recurring.paidBy {
@@ -131,12 +137,19 @@ struct RecurringExpenseListView: View {
                         }
                         Text(paidBy.name)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(recurring.isEnabled ? .secondary : .tertiary)
                     }
                 }
             }
 
             Spacer()
+
+            Toggle("", isOn: Binding(
+                get: { recurring.isEnabled },
+                set: { _ in toggleEnabled(recurring) }
+            ))
+            .labelsHidden()
+            .tint(.blue)
         }
         .padding(.vertical, 2)
     }

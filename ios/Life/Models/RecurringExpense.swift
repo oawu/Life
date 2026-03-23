@@ -55,6 +55,7 @@ struct RecurringExpense: Identifiable, Equatable {
     var category: ExpenseCategory
     var frequency: RecurringFrequency
     var memo: String
+    var isEnabled: Bool
     var latitude: Double?
     var longitude: Double?
     var address: String?

@@ -397,6 +397,7 @@ struct RecurringExpenseEditView: View {
             category: category,
             frequency: frequency,
             memo: memo,
+            isEnabled: isEditing ? editingIsEnabled : true,
             latitude: locationService.latitude,
             longitude: locationService.longitude,
             address: locationService.currentAddress,
@@ -418,6 +419,13 @@ struct RecurringExpenseEditView: View {
             return recurring.id
         }
         return UUID()
+    }
+
+    private var editingIsEnabled: Bool {
+        if case .edit(let recurring) = mode {
+            return recurring.isEnabled
+        }
+        return true
     }
 }
 

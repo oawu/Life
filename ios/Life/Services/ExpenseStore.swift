@@ -213,8 +213,8 @@ final class ExpenseStore {
         ]
 
         ledgers[personalIndex].recurringExpenses = [
-            RecurringExpense(id: UUID(), amount: 15000, category: personalCategories[5], frequency: .monthly(dayOfMonth: 1),  memo: "房租",    latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
-            RecurringExpense(id: UUID(), amount: 390,   category: personalCategories[24], frequency: .monthly(dayOfMonth: 15), memo: "Netflix", latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            RecurringExpense(id: UUID(), amount: 15000, category: personalCategories[5], frequency: .monthly(dayOfMonth: 1),  memo: "房租",    isEnabled: true, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            RecurringExpense(id: UUID(), amount: 390,   category: personalCategories[24], frequency: .monthly(dayOfMonth: 15), memo: "Netflix", isEnabled: true, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
         ]
 
         guard let roommatesIndex = ledgers.firstIndex(where: { $0.id == "roommates" }) else {
