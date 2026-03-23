@@ -32,7 +32,7 @@ struct CalculatorView: View {
                 .minimumScaleFactor(0.5)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
+            .padding(.top, 4)
 
             Divider()
 
