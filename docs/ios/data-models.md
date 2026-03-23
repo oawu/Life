@@ -40,6 +40,7 @@ struct Ledger: Identifiable, Equatable {
     var type: LedgerType            // .personal | .group
     var inviteCode: String?         // 群組帳本 6 碼邀請碼
     var members: [LedgerMember]
+    var currency: Currency          // 帳本幣別
     var categories: [ExpenseCategory]
     var expenses: [Expense]
     var recurringExpenses: [RecurringExpense]
@@ -50,6 +51,7 @@ struct Ledger: Identifiable, Equatable {
 |------|----------|-------|
 | inviteCode | nil | 6 碼（自動生成） |
 | members | 僅「我」 | 多人 |
+| currency | 預設 .twd | 建立時選擇 |
 | categories | 個人預設（25） | 群組預設（7） |
 
 ---
@@ -77,6 +79,26 @@ enum LedgerType: Equatable {
     case group
 }
 ```
+
+---
+
+### Currency
+
+帳本幣別。
+
+```swift
+struct Currency: Equatable, Hashable, Identifiable {
+    let code: String      // "TWD", "JPY", "USD"
+    let symbol: String    // "$", "¥", "€"
+    let name: String      // "新台幣", "日幣", "美元"
+
+    var unitLabel: String  // TWD→"元", JPY→"円", CNY→"元", 其他→code
+}
+```
+
+14 種預設幣別（`Currency.all`）：TWD、JPY、USD、EUR、GBP、KRW、CNY、THB、VND、AUD、CAD、SGD、HKD、MYR。
+
+預設值 `Currency.twd`。帳本已有開銷時，幣別不可變更。
 
 ---
 
@@ -180,6 +202,7 @@ struct CategoryIcon {
     var recurringExpenses: [RecurringExpense]  // get/set
     var isGroupLedger: Bool                   // get
     var currentMembers: [LedgerMember]        // get
+    var currentCurrency: Currency             // get
 }
 ```
 
@@ -321,6 +344,7 @@ JWT Token 安全儲存（Singleton）。
 | id | uint | PK |
 | name | string | 帳本名稱 |
 | type | enum | personal / group |
+| currency | varchar(3) | 幣別代碼（TWD、JPY 等） |
 | inviteCode | string? | 群組邀請碼（unique） |
 | createdByUserId | uint | FK → User |
 | createAt | datetime | |

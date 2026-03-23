@@ -20,7 +20,7 @@
 | View | 檔案 | 參數 | 說明 |
 |------|------|------|------|
 | AddExpenseView | AddExpenseView.swift | store: ExpenseStore | Tab 1 主畫面，整合所有記帳元件 |
-| CalculatorView | CalculatorView.swift | engine: CalculatorEngine | 4×4 計算機（金額輸入） |
+| CalculatorView | CalculatorView.swift | engine: CalculatorEngine, currency: Currency | 4×4 計算機（金額輸入），左上幣別 badge |
 | ExpenseDetailFields | ExpenseDetailFields.swift | memo, date, locationService | 備註 + 日期 + 位置 |
 | ExpenseListView | ExpenseListView.swift | store: ExpenseStore | 開銷列表（按日期分組） |
 
@@ -36,8 +36,8 @@
 
 **LedgerEditView.Mode**：
 - `.add` — 建立群組帳本
-- `.editPersonal(Ledger)` — 編輯個人帳本名稱
-- `.editGroup(Ledger)` — 編輯群組帳本名稱
+- `.editPersonal(Ledger)` — 編輯個人帳本名稱 + 幣別
+- `.editGroup(Ledger)` — 編輯群組帳本名稱 + 幣別
 
 ### 分類
 

@@ -213,7 +213,8 @@
 **LedgerEditView** — Sheet 呈現
 
 - 三種 mode：add / editPersonal / editGroup
-- 僅包含名稱 TextField + 取消/儲存按鈕
+- 名稱 TextField + 幣別選擇器（14 種幣別）+ 取消/儲存按鈕
+- 帳本已有開銷時，幣別選擇器 disabled 並顯示提示
 - add mode 建立群組帳本：自動生成邀請碼、預設成員「我」、使用群組預設分類
 
 **LedgerDetailView** — 群組帳本詳情頁（push 進入）
@@ -256,8 +257,8 @@
 （目前為 mock 邏輯，建立假的「好友帳本」）
 
 編輯帳本：
-1. 個人帳本：點擊 → sheet 修改名稱
-2. 群組帳本：點擊 → push 詳情頁 → 點「編輯」→ sheet 修改名稱
+1. 個人帳本：點擊 → sheet 修改名稱 / 幣別
+2. 群組帳本：點擊 → push 詳情頁 → 點「編輯」→ sheet 修改名稱 / 幣別
 
 分享邀請碼：
 1. 進入群組帳本詳情頁
@@ -274,10 +275,10 @@
 
 ### 帳本類型
 
-| 類型 | 邀請碼 | 成員 | 分類 | 說明 |
-|------|--------|------|------|------|
-| personal | 無 | 僅自己 | 個人預設（25 個） | 每人一個，不可刪除 |
-| group | 有 | 多人 | 群組預設（7 個） | 可多個，透過邀請碼加入 |
+| 類型 | 邀請碼 | 成員 | 幣別 | 分類 | 說明 |
+|------|--------|------|------|------|------|
+| personal | 無 | 僅自己 | 預設 TWD | 個人預設（25 個） | 每人一個，不可刪除 |
+| group | 有 | 多人 | 建立時選擇 | 群組預設（7 個） | 可多個，透過邀請碼加入 |
 
 ### 待實作後端需求
 
@@ -296,7 +297,7 @@
 
 | Table | 欄位（建議） | 說明 |
 |-------|-------------|------|
-| Ledger | id, name, type(personal/group), inviteCode?, createdByUserId, sort, createAt, updateAt | 帳本 |
+| Ledger | id, name, type(personal/group), currency(varchar 3), inviteCode?, createdByUserId, sort, createAt, updateAt | 帳本 |
 | LedgerMember | id, ledgerId, userId, role(owner/member), joinAt | 帳本成員（多對多） |
 
 ---

@@ -65,8 +65,10 @@ LifeApp
    │        │  ├─ 自己建立 → sheet LedgerEditView(.add)
    │        │  └─ 掃碼加入 → sheet JoinLedgerView
    │        ├─ 個人帳本 → sheet LedgerEditView(.editPersonal)
+   │        │  └─ 固定開銷 → push RecurringExpenseListView
    │        └─ 群組帳本 → push LedgerDetailView
-   │           └─ [編輯] → sheet LedgerEditView(.editGroup)
+   │           ├─ [編輯] → sheet LedgerEditView(.editGroup)
+   │           └─ 固定開銷 → push RecurringExpenseListView
    │
    └─ Tab 2：個人（NavigationStack）
       └─ ProfileView
@@ -91,7 +93,8 @@ ExpenseStore
 ├─ categories: [ExpenseCategory]  ← computed，代理到 currentLedger.categories
 ├─ expenses: [Expense]            ← computed，代理到 currentLedger.expenses
 ├─ isGroupLedger: Bool            ← computed
-└─ currentMembers: [LedgerMember] ← computed
+├─ currentMembers: [LedgerMember] ← computed
+└─ currentCurrency: Currency      ← computed
 ```
 
 各 View 透過 `store` 存取資料，不持有獨立副本。切換帳本時 `categories`/`expenses` 自動切換，現有 View 無需修改。
