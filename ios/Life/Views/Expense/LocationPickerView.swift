@@ -28,7 +28,7 @@ struct LocationPickerView: View {
         self.initialLongitude = initialLongitude
         self.onConfirm = onConfirm
 
-        let currentLocation = CLLocationManager().location?.coordinate
+        let currentLocation = locationManager.location?.coordinate
         let latitude = initialLatitude ?? currentLocation?.latitude ?? Self.defaultLatitude
         let longitude = initialLongitude ?? currentLocation?.longitude ?? Self.defaultLongitude
         let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)

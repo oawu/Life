@@ -182,11 +182,15 @@ final class CalculatorEngine {
         currentValue = isEnteringSecond ? (secondOperand ?? firstOperand) : firstOperand
     }
 
-    private func formatNumber(_ value: UInt64) -> String {
+    private static let numberFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
-        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+        return formatter
+    }()
+
+    private func formatNumber(_ value: UInt64) -> String {
+        Self.numberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
     private func digitCount(_ value: UInt64) -> Int {

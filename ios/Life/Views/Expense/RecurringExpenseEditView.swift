@@ -30,7 +30,6 @@ struct RecurringExpenseEditView: View {
     @State private var selectedMonth: Int = 1
     @State private var selectedDayOfYear: Int = 1
     @State private var memo: String = ""
-    @State private var date: Date = Date()
     @State private var locationService = LocationService(autoRequest: false)
     @State private var showDeleteConfirmation = false
 
@@ -99,7 +98,7 @@ struct RecurringExpenseEditView: View {
 
                     ExpenseDetailFields(
                         memo: $memo,
-                        date: $date,
+                        date: .constant(Date()),
                         locationService: locationService,
                         showDate: false
                     )
