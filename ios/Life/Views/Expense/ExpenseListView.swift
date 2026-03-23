@@ -137,7 +137,7 @@ struct ExpenseListView: View {
                 NavigationLink {
                     ExpenseChartView(store: store)
                 } label: {
-                    Image(systemName: "chart.pie.fill")
+                    Image(systemName: "chart.line.uptrend.xyaxis")
                 }
             }
         }
