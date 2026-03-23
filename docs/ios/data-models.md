@@ -44,6 +44,8 @@ struct Ledger: Identifiable, Equatable {
     var categories: [ExpenseCategory]
     var expenses: [Expense]
     var recurringExpenses: [RecurringExpense]
+    var settledExpenseIds: Set<UUID> = []        // 已結算開銷 ID
+    var settlementRecords: [SettlementRecord] = [] // 結算歷史紀錄
 }
 ```
 
@@ -53,6 +55,22 @@ struct Ledger: Identifiable, Equatable {
 | members | 僅「我」 | 多人 |
 | currency | 預設 .twd | 建立時選擇 |
 | categories | 個人預設（25） | 群組預設（7） |
+| settledExpenseIds | 不使用 | 重設時收集已結算開銷 ID |
+| settlementRecords | 不使用 | 結算歷史（時間 + 操作者） |
+
+---
+
+### SettlementRecord
+
+結算紀錄，記錄拆帳重設的時間和操作者。
+
+```swift
+struct SettlementRecord: Identifiable, Equatable {
+    let id: UUID
+    var date: Date
+    var settledBy: LedgerMember
+}
+```
 
 ---
 
