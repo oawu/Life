@@ -31,6 +31,13 @@ final class LocationService: NSObject {
         }
     }
 
+    func set(latitude: Double, longitude: Double, address: String?) {
+        self.latitude = latitude
+        self.longitude = longitude
+        self.currentAddress = address
+        self.isLoading = false
+    }
+
     func clear() {
         currentAddress = nil
         latitude = nil

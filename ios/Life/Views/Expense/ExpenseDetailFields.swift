@@ -5,6 +5,8 @@ struct ExpenseDetailFields: View {
     @Binding var date: Date
     @Bindable var locationService: LocationService
 
+    @State private var showLocationPicker = false
+
     var body: some View {
         VStack(spacing: 0) {
             // 備註
@@ -47,9 +49,14 @@ struct ExpenseDetailFields: View {
                     .frame(width: 72, alignment: .leading)
 
                 if let address = locationService.currentAddress {
-                    Text(address)
-                        .font(.subheadline)
-                        .lineLimit(1)
+                    Button {
+                        showLocationPicker = true
+                    } label: {
+                        Text(address)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                    }
 
                     Spacer()
 
@@ -76,8 +83,27 @@ struct ExpenseDetailFields: View {
                             Text("取得目前位置")
                                 .font(.subheadline)
                         }
-                        .foregroundStyle(.blue)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color(.tertiarySystemFill))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
+
+                    Button {
+                        showLocationPicker = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "map")
+                                .font(.caption)
+                            Text("選擇位置")
+                                .font(.subheadline)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color(.tertiarySystemFill))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+
                     Spacer()
                 }
             }
@@ -87,6 +113,14 @@ struct ExpenseDetailFields: View {
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 12)
+        .sheet(isPresented: $showLocationPicker) {
+            LocationPickerView(
+                initialLatitude: locationService.latitude,
+                initialLongitude: locationService.longitude
+            ) { latitude, longitude, address in
+                locationService.set(latitude: latitude, longitude: longitude, address: address)
+            }
+        }
     }
 }
 
