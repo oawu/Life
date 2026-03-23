@@ -57,6 +57,10 @@ final class ExpenseStore {
         currentLedger?.members ?? []
     }
 
+    var currentCurrency: Currency {
+        currentLedger?.currency ?? .twd
+    }
+
     private var currentLedger: Ledger? {
         ledgers.first { $0.id == currentLedgerId }
     }

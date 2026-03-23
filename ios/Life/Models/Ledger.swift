@@ -16,6 +16,7 @@ struct Ledger: Identifiable, Equatable {
     var type: LedgerType
     var inviteCode: String?
     var members: [LedgerMember]
+    var currency: Currency
     var categories: [ExpenseCategory]
     var expenses: [Expense]
     var recurringExpenses: [RecurringExpense]
@@ -48,6 +49,7 @@ extension Ledger {
                 type: .personal,
                 inviteCode: nil,
                 members: [me],
+                currency: .twd,
                 categories: ExpenseCategory.defaults,
                 expenses: [],
                 recurringExpenses: []
@@ -58,6 +60,7 @@ extension Ledger {
                 type: .group,
                 inviteCode: "K3XR7N",
                 members: [me, alice, bob],
+                currency: .twd,
                 categories: ExpenseCategory.groupDefaults,
                 expenses: [],
                 recurringExpenses: []
@@ -68,6 +71,7 @@ extension Ledger {
                 type: .group,
                 inviteCode: "D4YGWP",
                 members: [me, alice],
+                currency: .twd,
                 categories: ExpenseCategory.groupDefaults,
                 expenses: [],
                 recurringExpenses: []
@@ -78,6 +82,7 @@ extension Ledger {
                 type: .group,
                 inviteCode: "F7HJMC",
                 members: [me, alice],
+                currency: .twd,
                 categories: ExpenseCategory.groupDefaults,
                 expenses: [],
                 recurringExpenses: []
@@ -88,6 +93,7 @@ extension Ledger {
                 type: .group,
                 inviteCode: "T9QRVX",
                 members: [me, alice],
+                currency: .jpy,
                 categories: ExpenseCategory.groupDefaults,
                 expenses: [],
                 recurringExpenses: []

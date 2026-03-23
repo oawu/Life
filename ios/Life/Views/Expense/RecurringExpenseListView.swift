@@ -108,7 +108,7 @@ struct RecurringExpenseListView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text("$\(Int(recurring.amount))")
+                    Text("\(ledger?.currency.symbol ?? "$")\(Int(recurring.amount))")
                         .font(.body)
                         .fontWeight(.medium)
                         .foregroundStyle(recurring.isEnabled ? .primary : .tertiary)

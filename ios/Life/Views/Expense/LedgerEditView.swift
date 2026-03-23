@@ -13,6 +13,8 @@ struct LedgerEditView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String = ""
+    @State private var currency: Currency = .twd
+    @State private var hasExpenses: Bool = false
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
@@ -32,6 +34,7 @@ struct LedgerEditView: View {
             ScrollView {
                 VStack(spacing: 32) {
                     nameCard
+                    currencyCard
                 }
                 .padding(16)
             }
@@ -66,6 +69,69 @@ struct LedgerEditView: View {
         }
     }
 
+    // MARK: - Currency
+
+    private var currencyCard: some View {
+        cardSection(title: "幣別") {
+            VStack(spacing: 0) {
+                ForEach(Array(Currency.all.enumerated()), id: \.element.id) { index, item in
+                    if index > 0 {
+                        Divider()
+                            .padding(.leading, 16)
+                    }
+
+                    Button {
+                        if !hasExpenses {
+                            currency = item
+                        }
+                    } label: {
+                        HStack {
+                            Text(item.symbol)
+                                .font(.body)
+                                .fontWeight(.medium)
+                                .frame(width: 40, alignment: .leading)
+
+                            Text(item.name)
+                                .font(.body)
+
+                            Text(item.code)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Spacer()
+
+                            if currency == item {
+                                Image(systemName: "checkmark")
+                                    .font(.body)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                        .foregroundStyle(hasExpenses && currency != item ? .tertiary : .primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(hasExpenses)
+                }
+            }
+
+            if hasExpenses {
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle")
+                        .font(.caption2)
+
+                    Text("已有開銷紀錄，無法變更幣別")
+                        .font(.caption)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+            }
+        }
+    }
+
     // MARK: - Card Container
 
     private func cardSection(title: String? = nil, @ViewBuilder content: () -> some View) -> some View {
@@ -90,6 +156,8 @@ struct LedgerEditView: View {
             break
         case .editPersonal(let ledger), .editGroup(let ledger):
             name = ledger.name
+            currency = ledger.currency
+            hasExpenses = !ledger.expenses.isEmpty
         }
     }
 
@@ -104,6 +172,7 @@ struct LedgerEditView: View {
                 type: .group,
                 inviteCode: Ledger.generateInviteCode(),
                 members: [LedgerMember(id: Ledger.defaultMemberId, name: "我")],
+                currency: currency,
                 categories: ExpenseCategory.groupDefaults,
                 expenses: [],
                 recurringExpenses: []
@@ -117,6 +186,7 @@ struct LedgerEditView: View {
                 type: .personal,
                 inviteCode: nil,
                 members: existing.members,
+                currency: currency,
                 categories: existing.categories,
                 expenses: existing.expenses,
                 recurringExpenses: existing.recurringExpenses
@@ -130,6 +200,7 @@ struct LedgerEditView: View {
                 type: .group,
                 inviteCode: existing.inviteCode,
                 members: existing.members,
+                currency: currency,
                 categories: existing.categories,
                 expenses: existing.expenses,
                 recurringExpenses: existing.recurringExpenses

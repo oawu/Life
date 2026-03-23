@@ -33,7 +33,7 @@ struct AddExpenseView: View {
                     onSettingsTapped: { showLedgerSettings = true }
                 )
 
-                CalculatorView(engine: engine)
+                CalculatorView(engine: engine, currency: store.currentCurrency)
 
                 CategoryGridView(
                     categories: store.categories,

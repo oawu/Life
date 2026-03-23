@@ -3,6 +3,10 @@ import SwiftUI
 struct ExpenseListView: View {
     @Bindable var store: ExpenseStore
 
+    private var currencySymbol: String {
+        store.currentCurrency.symbol
+    }
+
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd (E)"
@@ -65,7 +69,7 @@ struct ExpenseListView: View {
             ForEach(groupedExpenses, id: \.date) { group in
                 Section {
                     ForEach(group.expenses) { expense in
-                        ExpenseRow(expense: expense, showPayer: store.isGroupLedger)
+                        ExpenseRow(expense: expense, showPayer: store.isGroupLedger, currencySymbol: currencySymbol)
                     }
                     .onDelete { offsets in
                         deleteExpenses(from: group.expenses, at: offsets)
@@ -74,7 +78,7 @@ struct ExpenseListView: View {
                     HStack {
                         Text(group.date)
                         Spacer()
-                        Text("$\(Int(group.total.rounded(.up)))")
+                        Text("\(currencySymbol)\(Int(group.total.rounded(.up)))")
                             .fontWeight(.medium)
                     }
                 }
@@ -95,6 +99,7 @@ struct ExpenseListView: View {
 private struct ExpenseRow: View {
     let expense: Expense
     var showPayer: Bool = false
+    var currencySymbol: String = "$"
 
     var body: some View {
         HStack(spacing: 12) {
@@ -137,7 +142,7 @@ private struct ExpenseRow: View {
             Spacer()
 
             // 金額
-            Text("$\(Int(expense.amount.rounded(.up)))")
+            Text("\(currencySymbol)\(Int(expense.amount.rounded(.up)))")
                 .font(.subheadline)
                 .fontWeight(.medium)
                 .monospacedDigit()

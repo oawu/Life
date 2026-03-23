@@ -81,7 +81,7 @@ struct RecurringExpenseEditView: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 32) {
-                    CalculatorView(engine: engine)
+                    CalculatorView(engine: engine, currency: ledger.currency)
 
                     CategoryGridView(
                         categories: ledger.categories,

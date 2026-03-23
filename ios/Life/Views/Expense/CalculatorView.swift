@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CalculatorView: View {
     @Bindable var engine: CalculatorEngine
+    var currency: Currency = .twd
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
 
@@ -9,7 +10,17 @@ struct CalculatorView: View {
         VStack(spacing: 12) {
             // 顯示列
             HStack {
+                Text(currency.name)
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundStyle(currency == .twd ? Color(.secondaryLabel) : .white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(currency == .twd ? Color(.tertiarySystemFill) : .orange)
+                    .clipShape(Capsule())
+
                 Spacer()
+
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     let parts = engine.displayText.components(separatedBy: " ")
                     ForEach(Array(parts.enumerated()), id: \.offset) { _, part in
@@ -24,14 +35,14 @@ struct CalculatorView: View {
                         }
                     }
 
-                    Text("元")
+                    Text(currency.unitLabel)
                         .font(.system(size: 20, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 0)
             .padding(.top, 4)
 
             Divider()

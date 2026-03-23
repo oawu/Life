@@ -189,6 +189,7 @@ struct JoinLedgerView: View {
             type: .group,
             inviteCode: code.uppercased(),
             members: [me, friend],
+            currency: .twd,
             categories: ExpenseCategory.groupDefaults,
             expenses: [],
             recurringExpenses: []
