@@ -13,6 +13,7 @@ struct AddExpenseView: View {
     @State private var showCategorySettings = false
     @State private var showLedgerSettings = false
     @State private var showSaveConfirmation = false
+    @State private var savedAmountText: String = ""
 
     private var canSave: Bool {
         guard engine.currentValue > 0 && selectedCategory != nil else {
@@ -61,7 +62,7 @@ struct AddExpenseView: View {
                 Button {
                     showExpenseList = true
                 } label: {
-                    Text("紀錄")
+                    Text("明細")
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -102,7 +103,7 @@ struct AddExpenseView: View {
                         .font(.system(size: 48))
                         .foregroundStyle(.green)
 
-                    Text("已儲存")
+                    Text("已儲存 \(savedAmountText)")
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
@@ -133,6 +134,8 @@ struct AddExpenseView: View {
         )
 
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+
+        savedAmountText = "\(store.currentCurrency.symbol)\(Int(Double(amount).rounded(.up)).formatted())"
 
         withAnimation(.easeInOut(duration: 0.2)) {
             showSaveConfirmation = true
