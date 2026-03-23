@@ -23,6 +23,7 @@
 | CalculatorView | CalculatorView.swift | engine: CalculatorEngine, currency: Currency | 4×4 計算機（金額輸入），左上幣別 badge |
 | ExpenseDetailFields | ExpenseDetailFields.swift | memo, date, locationService | 備註 + 日期 + 位置 |
 | ExpenseListView | ExpenseListView.swift | store: ExpenseStore | 開銷列表（按日期分組） |
+| SettlementDetailView | SettlementDetailView.swift | record: SettlementRecord | 結算紀錄詳情（轉帳明細） |
 
 ### 帳本
 

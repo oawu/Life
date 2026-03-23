@@ -108,7 +108,9 @@ life/
     - 拆帳計算：未結算開銷 → 人均分攤 → 貪婪配對產生轉帳明細
     - 轉帳明細：付款人 → 收款人 + 金額（橘色），千分位格式化
     - 重設：confirmationDialog 確認後標記已結算，toast 回饋「已完成結算」
-    - 結算紀錄：SettlementRecord model，重設後在開銷時間線中顯示「已經由 xxx 結算拆帳！」
+    - 結算紀錄：重設後在時間線顯示「已經由 xxx 結算拆帳！」+ 時間副標題，點擊進入詳情頁
+    - 結算詳情頁（SettlementDetailView）：結算時間、操作者、轉帳明細快照
+    - SettlementRecord 儲存轉帳明細快照（SettlementTransfer）與幣別符號
     - Ledger 新增 `settledExpenseIds`（排除已結算開銷）、`settlementRecords`（結算歷史）
 
 ---

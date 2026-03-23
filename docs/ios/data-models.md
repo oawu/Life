@@ -60,15 +60,32 @@ struct Ledger: Identifiable, Equatable {
 
 ---
 
+### SettlementTransfer
+
+結算時的轉帳明細，記錄誰付給誰多少。
+
+```swift
+struct SettlementTransfer: Identifiable, Equatable {
+    let id: UUID
+    var from: LedgerMember
+    var to: LedgerMember
+    var amount: Double
+}
+```
+
+---
+
 ### SettlementRecord
 
-結算紀錄，記錄拆帳重設的時間和操作者。
+結算紀錄，記錄拆帳重設的時間、操作者與轉帳明細快照。
 
 ```swift
 struct SettlementRecord: Identifiable, Equatable {
     let id: UUID
     var date: Date
     var settledBy: LedgerMember
+    var transfers: [SettlementTransfer]
+    var currencySymbol: String
 }
 ```
 
