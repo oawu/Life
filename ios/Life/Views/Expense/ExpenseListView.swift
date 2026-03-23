@@ -5,6 +5,14 @@ struct ExpenseListView: View {
     @State private var showSettleConfirmation = false
     @State private var showSettledToast = false
     @State private var toastTask: DispatchWorkItem?
+    @State private var scrollOpacity: Double = 0
+
+    private var headerOpacity: Double {
+        if #available(iOS 18, *) {
+            return scrollOpacity
+        }
+        return 1
+    }
 
     private var currencySymbol: String {
         store.currentCurrency.symbol
@@ -92,20 +100,31 @@ struct ExpenseListView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            LedgerSwitcher(
-                ledgers: store.ledgers,
-                selectedId: $store.currentLedgerId
-            )
-            .padding(.vertical, 8)
-
+        Group {
             if timeline.isEmpty {
                 emptyState
             } else {
                 expenseList
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                LedgerSwitcher(
+                    ledgers: store.ledgers,
+                    selectedId: $store.currentLedgerId
+                )
+                .padding(.vertical, 8)
+                Divider()
+                    .opacity(headerOpacity)
+            }
+            .background {
+                Rectangle()
+                    .fill(.bar)
+                    .opacity(headerOpacity)
+                    .ignoresSafeArea(edges: .top)
+            }
+        }
+        .toolbarBackground(.hidden, for: .navigationBar)
         .overlay(alignment: .top) {
             if showSettledToast {
                 settledToast
@@ -265,11 +284,30 @@ struct ExpenseListView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollHeaderOpacity($scrollOpacity)
     }
 
     private func deleteExpenses(from expenses: [Expense], at offsets: IndexSet) {
         for index in offsets {
             store.deleteExpense(id: expenses[index].id)
+        }
+    }
+}
+
+// MARK: - Scroll Header Opacity
+
+private extension View {
+    @ViewBuilder
+    func scrollHeaderOpacity(_ opacity: Binding<Double>) -> some View {
+        if #available(iOS 18, *) {
+            self.onScrollGeometryChange(for: Double.self) { geo in
+                let offset = geo.contentOffset.y + geo.contentInsets.top
+                return min(max(offset / 40, 0), 1)
+            } action: { _, newValue in
+                opacity.wrappedValue = newValue
+            }
+        } else {
+            self
         }
     }
 }
