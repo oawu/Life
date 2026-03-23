@@ -133,7 +133,7 @@ struct ExpenseListView: View {
         }
         .navigationTitle("開銷紀錄")
         .confirmationDialog("確定已經結算清楚了嗎？", isPresented: $showSettleConfirmation, titleVisibility: .visible) {
-            Button("重設", role: .destructive) {
+            Button("結清", role: .destructive) {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 store.settleLedger(id: store.currentLedgerId)
                 showSettleToast()
@@ -210,7 +210,7 @@ struct ExpenseListView: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showSettleConfirmation = true
                 } label: {
-                    Text("重設")
+                    Text("結清")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(.red)
@@ -223,8 +223,12 @@ struct ExpenseListView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             Spacer()
+
+            Image(systemName: "tray")
+                .font(.system(size: 36))
+                .foregroundStyle(.quaternary)
 
             Text("尚無開銷紀錄")
                 .font(.subheadline)
