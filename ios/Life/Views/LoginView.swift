@@ -54,6 +54,7 @@ struct LoginView: View {
 
                     #if LOCAL
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         showDevLogin = true
                     } label: {
                         HStack {

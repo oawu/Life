@@ -49,6 +49,7 @@ struct LedgerEditView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("儲存") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         save()
                     }
                     .disabled(!canSave)
@@ -81,6 +82,7 @@ struct LedgerEditView: View {
                     }
 
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         if !hasExpenses {
                             currency = item
                         }

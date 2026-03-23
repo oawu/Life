@@ -28,6 +28,7 @@ struct RecurringExpenseListView: View {
                     Section {
                         ForEach(recurringExpenses) { recurring in
                             Button {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 editingRecurring = recurring
                             } label: {
                                 recurringRow(recurring)
@@ -48,6 +49,7 @@ struct RecurringExpenseListView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showAddSheet = true
                 } label: {
                     Image(systemName: "plus")
@@ -93,6 +95,7 @@ struct RecurringExpenseListView: View {
     // MARK: - Row
 
     private func toggleEnabled(_ recurring: RecurringExpense) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         var updated = recurring
         updated.isEnabled.toggle()
         store.updateRecurringExpense(updated)

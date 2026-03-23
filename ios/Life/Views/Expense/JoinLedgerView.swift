@@ -101,6 +101,7 @@ struct JoinLedgerView: View {
                     }
 
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     handleCode(inputCode.trimmingCharacters(in: .whitespaces))
                 } label: {
                     Text("加入")
@@ -140,6 +141,7 @@ struct JoinLedgerView: View {
                     .foregroundStyle(.secondary)
 
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     onJoined(ledger)
                     dismiss()
                 } label: {

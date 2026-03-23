@@ -19,6 +19,7 @@ struct CategorySettingsView: View {
             Section {
                 ForEach(sortableCategories) { category in
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         editingCategory = category
                     } label: {
                         categoryRow(category)
@@ -40,6 +41,7 @@ struct CategorySettingsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showAddSheet = true
                 } label: {
                     Image(systemName: "rectangle.stack.badge.plus")

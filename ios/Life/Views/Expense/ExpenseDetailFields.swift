@@ -53,6 +53,7 @@ struct ExpenseDetailFields: View {
 
                 if let address = locationService.currentAddress {
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         showLocationPicker = true
                     } label: {
                         Text(address)
@@ -64,6 +65,7 @@ struct ExpenseDetailFields: View {
                     Spacer()
 
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         locationService.clear()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
@@ -78,6 +80,7 @@ struct ExpenseDetailFields: View {
                     Spacer()
                 } else {
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         locationService.requestLocation()
                     } label: {
                         HStack(spacing: 4) {
@@ -93,6 +96,7 @@ struct ExpenseDetailFields: View {
                     }
 
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         showLocationPicker = true
                     } label: {
                         HStack(spacing: 4) {

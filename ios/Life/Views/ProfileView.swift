@@ -31,6 +31,7 @@ struct ProfileView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("登出") {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     authManager.signOut()
                 }
             }

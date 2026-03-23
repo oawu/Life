@@ -61,6 +61,7 @@ struct LocationPickerView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     moveToCurrentLocation()
                 } label: {
                     Image(systemName: "location.fill")
@@ -89,6 +90,7 @@ struct LocationPickerView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("確認") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         onConfirm(centerCoordinate.latitude, centerCoordinate.longitude, address)
                         dismiss()
                     }

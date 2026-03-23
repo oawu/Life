@@ -122,6 +122,7 @@ struct RecurringExpenseEditView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("儲存") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         save()
                     }
                     .fontWeight(.semibold)
@@ -328,6 +329,7 @@ struct RecurringExpenseEditView: View {
 
     private var deleteButton: some View {
         Button(role: .destructive) {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             showDeleteConfirmation = true
         } label: {
             Text("刪除固定開銷")

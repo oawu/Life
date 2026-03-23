@@ -42,6 +42,7 @@ struct LedgerDetailView: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("編輯") {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             showEditSheet = true
                         }
                     }
@@ -73,6 +74,7 @@ struct LedgerDetailView: View {
                 Spacer()
 
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if let code = ledger.formattedInviteCode {
                         UIPasteboard.general.string = code
                         showToast()
@@ -184,6 +186,7 @@ struct LedgerDetailView: View {
 
     private var deleteButton: some View {
         Button(role: .destructive) {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             showDeleteConfirmation = true
         } label: {
             Text("刪除帳本")

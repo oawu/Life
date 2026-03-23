@@ -23,12 +23,14 @@ struct LedgerSettingsView: View {
             if let ledger = personalLedger {
                 Section {
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         editingLedger = ledger
                     } label: {
                         ledgerRow(ledger)
                     }
 
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         showPersonalRecurring = true
                     } label: {
                         HStack(spacing: 8) {
@@ -61,6 +63,7 @@ struct LedgerSettingsView: View {
                 Section {
                     ForEach(groupLedgers) { ledger in
                         Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             selectedLedgerId = ledger.id
                         } label: {
                             HStack {
@@ -81,11 +84,13 @@ struct LedgerSettingsView: View {
             Section {
                 Menu {
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         showCreateSheet = true
                     } label: {
                         Label("自己建立", systemImage: "plus")
                     }
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         showJoinSheet = true
                     } label: {
                         Label("掃碼加入", systemImage: "qrcode.viewfinder")

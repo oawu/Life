@@ -72,6 +72,7 @@ struct CategoryEditView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("儲存") {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         let category = ExpenseCategory(
                             id: categoryId,
                             name: name.trimmingCharacters(in: .whitespaces),
@@ -149,6 +150,7 @@ struct CategoryEditView: View {
                     }
                     .frame(width: 42, height: 42)
                     .onTapGesture {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         isCustomColor = false
                         selectedColor = color
                     }
@@ -243,6 +245,7 @@ struct CategoryEditView: View {
                         .fill(isSelected ? selectedColor.opacity(0.1) : Color(.tertiarySystemFill))
                 )
                 .onTapGesture {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     withAnimation(.easeInOut(duration: 0.3)) {
                         expandedIconGroup = index
                     }
@@ -256,6 +259,7 @@ struct CategoryEditView: View {
         let group = CategoryIcon.groups[groupIndex]
         return VStack(alignment: .leading, spacing: 12) {
             Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 withAnimation(.easeInOut(duration: 0.3)) {
                     expandedIconGroup = nil
                 }
@@ -290,6 +294,7 @@ struct CategoryEditView: View {
                                 .stroke(selectedIcon == icon ? selectedColor : .clear, lineWidth: 2)
                         )
                         .onTapGesture {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             selectedIcon = icon
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 expandedIconGroup = nil
@@ -305,6 +310,7 @@ struct CategoryEditView: View {
 
     private var deleteButton: some View {
         Button(role: .destructive) {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
             showDeleteConfirmation = true
         } label: {
             Text("刪除分類")
