@@ -9,32 +9,6 @@ struct CategorySettingsView: View {
     var body: some View {
         List {
             Section {
-                Button {
-                    showAddSheet = true
-                } label: {
-                    HStack {
-                        Spacer()
-                        Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("新增分類")
-                            .font(.subheadline.weight(.medium))
-                        Spacer()
-                    }
-                    .foregroundStyle(Color(.secondaryLabel))
-                    .padding(.vertical, 4)
-                }
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(
-                            Color(.separator),
-                            style: StrokeStyle(lineWidth: 1, dash: [6, 4])
-                        )
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                )
-            }
-
-            Section {
                 ForEach(store.categories) { category in
                     Button {
                         editingCategory = category
@@ -61,6 +35,15 @@ struct CategorySettingsView: View {
         .navigationTitle("分類設定")
         .navigationBarTitleDisplayMode(.inline)
         .environment(\.editMode, .constant(.active))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showAddSheet = true
+                } label: {
+                    Image(systemName: "rectangle.stack.badge.plus")
+                }
+            }
+        }
         .sheet(item: $editingCategory) { category in
             CategoryEditView(mode: .edit(category)) { updated in
                 store.updateCategory(updated)
