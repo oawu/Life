@@ -42,7 +42,6 @@ struct CalculatorView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
             }
-            .padding(.horizontal, 0)
             .padding(.top, 4)
 
             Divider()
