@@ -108,6 +108,34 @@ final class ExpenseStore {
         categories.move(fromOffsets: source, toOffset: destination)
     }
 
+    // MARK: - Ledger CRUD
+
+    func addLedger(_ ledger: Ledger) {
+        ledgers.append(ledger)
+    }
+
+    func updateLedger(_ ledger: Ledger) {
+        guard let index = ledgers.firstIndex(where: { $0.id == ledger.id }) else {
+            return
+        }
+        ledgers[index] = ledger
+    }
+
+    func deleteLedger(id: String) {
+        ledgers.removeAll { $0.id == id }
+        if currentLedgerId == id {
+            currentLedgerId = "personal"
+        }
+    }
+
+    func moveLedger(from source: IndexSet, to destination: Int) {
+        var group = ledgers.filter { $0.type == .group }
+        group.move(fromOffsets: source, toOffset: destination)
+
+        let personal = ledgers.filter { $0.type == .personal }
+        ledgers = personal + group
+    }
+
     // MARK: - Sample Data
 
     private func loadSampleData() {

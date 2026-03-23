@@ -11,6 +11,7 @@ struct AddExpenseView: View {
     @State private var locationService = LocationService()
     @State private var showExpenseList = false
     @State private var showCategorySettings = false
+    @State private var showLedgerSettings = false
     @State private var showSaveConfirmation = false
 
     private var canSave: Bool {
@@ -28,7 +29,8 @@ struct AddExpenseView: View {
             VStack(spacing: 32) {
                 LedgerSwitcher(
                     ledgers: store.ledgers,
-                    selectedId: $store.currentLedgerId
+                    selectedId: $store.currentLedgerId,
+                    onSettingsTapped: { showLedgerSettings = true }
                 )
 
                 CalculatorView(engine: engine)
@@ -75,6 +77,9 @@ struct AddExpenseView: View {
         }
         .navigationDestination(isPresented: $showCategorySettings) {
             CategorySettingsView(store: store)
+        }
+        .navigationDestination(isPresented: $showLedgerSettings) {
+            LedgerSettingsView(store: store)
         }
         .onChange(of: store.categories) {
             if let selected = selectedCategory,

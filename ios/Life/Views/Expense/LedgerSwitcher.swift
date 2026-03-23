@@ -3,6 +3,7 @@ import SwiftUI
 struct LedgerSwitcher: View {
     let ledgers: [Ledger]
     @Binding var selectedId: String
+    var onSettingsTapped: (() -> Void)? = nil
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -32,6 +33,21 @@ struct LedgerSwitcher: View {
                         .background(isSelected ? Color.blue : Color(.tertiarySystemFill))
                         .foregroundStyle(isSelected ? .white : .primary)
                         .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if let onSettingsTapped {
+                    Button {
+                        onSettingsTapped()
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 14))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color(.tertiarySystemFill))
+                            .foregroundStyle(.primary)
+                            .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                 }
