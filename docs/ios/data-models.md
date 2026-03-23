@@ -93,6 +93,8 @@ struct ExpenseCategory: Identifiable, Equatable, Hashable {
 }
 ```
 
+**系統預設「其他」分類**：每個帳本最後一個分類為「其他」（個人 `id: "other"`、群組 `id: "groupOther"`），不可編輯、不可刪除、不可排序。刪除分類時，所屬開銷與固定開銷自動歸類到「其他」。`isSystemOther` 屬性判斷是否為系統預設。
+
 **預設分類**：
 
 | 群組 | 個人預設 | 群組預設 |
@@ -103,7 +105,7 @@ struct ExpenseCategory: Identifiable, Equatable, Hashable {
 | 交通 | 交通、汽車、加油、停車、大眾運輸 | 交通 |
 | 休閒 | 娛樂、運動、學習 | 娛樂 |
 | 財務 | 信用卡、投資、轉帳 | — |
-| 其他 | 禮物、紅包、電話費、訂閱、3C | 其他 |
+| 其他 | 禮物、紅包、電話費、訂閱、3C、**其他**（系統預設） | **其他**（系統預設） |
 
 ---
 
