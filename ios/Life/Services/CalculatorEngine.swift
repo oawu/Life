@@ -58,6 +58,13 @@ final class CalculatorEngine {
         displayText = "0"
     }
 
+    func setInitialValue(_ value: UInt64) {
+        reset()
+        firstOperand = value
+        currentValue = value
+        updateDisplay()
+    }
+
     /// 若有未完成運算，執行計算並回傳結果
     func evaluateIfNeeded() -> UInt64 {
         if let op = pendingOperator, let second = secondOperand {

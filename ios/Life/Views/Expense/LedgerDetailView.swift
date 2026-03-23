@@ -26,6 +26,7 @@ struct LedgerDetailView: View {
                             inviteCodeCard(ledger)
                             qrCodeCard
                             membersCard(ledger)
+                            recurringExpenseCard
                             deleteButton
                         }
                         .padding(16)
@@ -142,6 +143,41 @@ struct LedgerDetailView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Recurring Expenses
+
+    private var recurringExpenseCard: some View {
+        NavigationLink {
+            RecurringExpenseListView(store: store, ledgerId: ledgerId)
+        } label: {
+            cardSection(title: "固定開銷") {
+                HStack(spacing: 8) {
+                    Image(systemName: "repeat")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.blue)
+
+                    Text("管理固定開銷")
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    let count = store.recurringExpenseCount(forLedger: ledgerId)
+                    if count > 0 {
+                        Text("\(count)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(.tertiaryLabel))
+                }
+                .padding(12)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Delete

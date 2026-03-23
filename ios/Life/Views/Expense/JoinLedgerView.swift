@@ -190,7 +190,8 @@ struct JoinLedgerView: View {
             inviteCode: code.uppercased(),
             members: [me, friend],
             categories: ExpenseCategory.groupDefaults,
-            expenses: []
+            expenses: [],
+            recurringExpenses: []
         )
 
         withAnimation(.easeInOut(duration: 0.3)) {

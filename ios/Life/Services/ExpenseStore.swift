@@ -39,6 +39,16 @@ final class ExpenseStore {
         }
     }
 
+    var recurringExpenses: [RecurringExpense] {
+        get { currentLedger?.recurringExpenses ?? [] }
+        set {
+            guard let index = currentLedgerIndex else {
+                return
+            }
+            ledgers[index].recurringExpenses = newValue
+        }
+    }
+
     var isGroupLedger: Bool {
         currentLedger?.type == .group
     }
@@ -108,6 +118,35 @@ final class ExpenseStore {
         categories.move(fromOffsets: source, toOffset: destination)
     }
 
+    // MARK: - Recurring Expense CRUD
+
+    func addRecurringExpense(_ recurring: RecurringExpense) {
+        guard let index = ledgers.firstIndex(where: { $0.id == recurring.ledgerId }) else {
+            return
+        }
+        ledgers[index].recurringExpenses.append(recurring)
+    }
+
+    func updateRecurringExpense(_ recurring: RecurringExpense) {
+        guard let ledgerIndex = ledgers.firstIndex(where: { $0.id == recurring.ledgerId }) else {
+            return
+        }
+        guard let itemIndex = ledgers[ledgerIndex].recurringExpenses.firstIndex(where: { $0.id == recurring.id }) else {
+            return
+        }
+        ledgers[ledgerIndex].recurringExpenses[itemIndex] = recurring
+    }
+
+    func deleteRecurringExpense(id: UUID) {
+        for i in ledgers.indices {
+            ledgers[i].recurringExpenses.removeAll { $0.id == id }
+        }
+    }
+
+    func recurringExpenseCount(forLedger ledgerId: String) -> Int {
+        ledgers.first { $0.id == ledgerId }?.recurringExpenses.count ?? 0
+    }
+
     // MARK: - Ledger CRUD
 
     func addLedger(_ ledger: Ledger) {
@@ -118,7 +157,23 @@ final class ExpenseStore {
         guard let index = ledgers.firstIndex(where: { $0.id == ledger.id }) else {
             return
         }
-        ledgers[index] = ledger
+
+        // 級聯刪除：移除的成員其 paidBy 對應的固定開銷一併刪除
+        let oldMembers = ledgers[index].members
+        let newMemberIds = Set(ledger.members.map { $0.id })
+        let removedMemberIds = Set(oldMembers.map { $0.id }).subtracting(newMemberIds)
+
+        var updated = ledger
+        if !removedMemberIds.isEmpty {
+            updated.recurringExpenses.removeAll { recurring in
+                if let paidBy = recurring.paidBy {
+                    return removedMemberIds.contains(paidBy.id)
+                }
+                return false
+            }
+        }
+
+        ledgers[index] = updated
     }
 
     func deleteLedger(id: String) {
@@ -155,6 +210,11 @@ final class ExpenseStore {
             Expense(id: UUID(), amount: 350,  category: personalCategories[2],  memo: "火鍋",           date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
             Expense(id: UUID(), amount: 33,   category: personalCategories[10], memo: "捷運",           date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
             Expense(id: UUID(), amount: 1200, category: personalCategories[9],  memo: "UNIQLO 外套",   date: yesterday, latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+        ]
+
+        ledgers[personalIndex].recurringExpenses = [
+            RecurringExpense(id: UUID(), amount: 15000, category: personalCategories[5], frequency: .monthly(dayOfMonth: 1),  memo: "房租",    latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
+            RecurringExpense(id: UUID(), amount: 390,   category: personalCategories[24], frequency: .monthly(dayOfMonth: 15), memo: "Netflix", latitude: nil, longitude: nil, address: nil, ledgerId: "personal", paidBy: nil),
         ]
 
         guard let roommatesIndex = ledgers.firstIndex(where: { $0.id == "roommates" }) else {

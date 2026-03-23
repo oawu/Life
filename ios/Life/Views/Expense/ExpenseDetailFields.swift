@@ -4,6 +4,7 @@ struct ExpenseDetailFields: View {
     @Binding var memo: String
     @Binding var date: Date
     @Bindable var locationService: LocationService
+    var showDate: Bool = true
 
     @State private var showLocationPicker = false
 
@@ -22,22 +23,24 @@ struct ExpenseDetailFields: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
 
-            Divider().padding(.leading, 16 + 24)
+            if showDate {
+                Divider().padding(.leading, 16 + 24)
 
-            // 時間
-            HStack {
-                Label("時間", systemImage: "clock")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 72, alignment: .leading)
+                // 時間
+                HStack {
+                    Label("時間", systemImage: "clock")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 72, alignment: .leading)
 
-                DatePicker("", selection: $date, displayedComponents: [.date, .hourAndMinute])
-                    .labelsHidden()
+                    DatePicker("", selection: $date, displayedComponents: [.date, .hourAndMinute])
+                        .labelsHidden()
 
-                Spacer()
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
 
             Divider().padding(.leading, 16 + 24)
 

@@ -105,7 +105,8 @@ struct LedgerEditView: View {
                 inviteCode: Ledger.generateInviteCode(),
                 members: [LedgerMember(id: Ledger.defaultMemberId, name: "我")],
                 categories: ExpenseCategory.groupDefaults,
-                expenses: []
+                expenses: [],
+                recurringExpenses: []
             )
             onSave(ledger)
 
@@ -117,7 +118,8 @@ struct LedgerEditView: View {
                 inviteCode: nil,
                 members: existing.members,
                 categories: existing.categories,
-                expenses: existing.expenses
+                expenses: existing.expenses,
+                recurringExpenses: existing.recurringExpenses
             )
             onSave(ledger)
 
@@ -129,7 +131,8 @@ struct LedgerEditView: View {
                 inviteCode: existing.inviteCode,
                 members: existing.members,
                 categories: existing.categories,
-                expenses: existing.expenses
+                expenses: existing.expenses,
+                recurringExpenses: existing.recurringExpenses
             )
             onSave(ledger)
         }

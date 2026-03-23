@@ -7,6 +7,7 @@ struct LedgerSettingsView: View {
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
     @State private var selectedLedgerId: String?
+    @State private var showPersonalRecurring = false
 
     private var personalLedger: Ledger? {
         store.ledgers.first { $0.type == .personal }
@@ -25,6 +26,32 @@ struct LedgerSettingsView: View {
                         editingLedger = ledger
                     } label: {
                         ledgerRow(ledger)
+                    }
+
+                    Button {
+                        showPersonalRecurring = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "repeat")
+                                .foregroundStyle(.blue)
+
+                            Text("固定開銷")
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            let count = store.recurringExpenseCount(forLedger: ledger.id)
+                            if count > 0 {
+                                Text("\(count)")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color(.tertiaryLabel))
+                        }
+                        .padding(.vertical, 2)
                     }
                 }
             }
@@ -74,6 +101,11 @@ struct LedgerSettingsView: View {
         }
         .navigationDestination(item: $selectedLedgerId) { ledgerId in
             LedgerDetailView(store: store, ledgerId: ledgerId)
+        }
+        .navigationDestination(isPresented: $showPersonalRecurring) {
+            if let ledger = personalLedger {
+                RecurringExpenseListView(store: store, ledgerId: ledger.id)
+            }
         }
         .sheet(item: $editingLedger) { ledger in
             LedgerEditView(mode: .editPersonal(ledger)) { updated in

@@ -11,8 +11,11 @@ final class LocationService: NSObject {
 
     private let locationManager = CLLocationManager()
     private let geocoder = CLGeocoder()
+    private let autoRequest: Bool
+    private var pendingRequest = false
 
-    override init() {
+    init(autoRequest: Bool = true) {
+        self.autoRequest = autoRequest
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
@@ -22,6 +25,7 @@ final class LocationService: NSObject {
     func requestLocation() {
         switch locationManager.authorizationStatus {
         case .notDetermined:
+            pendingRequest = true
             locationManager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
             isLoading = true
@@ -87,7 +91,10 @@ extension LocationService: CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorizationStatus = manager.authorizationStatus
 
-        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+        let shouldRequest = autoRequest || pendingRequest
+        pendingRequest = false
+
+        if shouldRequest && (authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways) {
             isLoading = true
             locationManager.requestLocation()
         }

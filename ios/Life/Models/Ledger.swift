@@ -18,6 +18,7 @@ struct Ledger: Identifiable, Equatable {
     var members: [LedgerMember]
     var categories: [ExpenseCategory]
     var expenses: [Expense]
+    var recurringExpenses: [RecurringExpense]
 
     var formattedInviteCode: String? {
         guard let inviteCode else {
@@ -48,7 +49,8 @@ extension Ledger {
                 inviteCode: nil,
                 members: [me],
                 categories: ExpenseCategory.defaults,
-                expenses: []
+                expenses: [],
+                recurringExpenses: []
             ),
             Ledger(
                 id: "roommates",
@@ -57,7 +59,8 @@ extension Ledger {
                 inviteCode: "K3XR7N",
                 members: [me, alice, bob],
                 categories: ExpenseCategory.groupDefaults,
-                expenses: []
+                expenses: [],
+                recurringExpenses: []
             ),
             Ledger(
                 id: "dating",
@@ -66,7 +69,8 @@ extension Ledger {
                 inviteCode: "D4YGWP",
                 members: [me, alice],
                 categories: ExpenseCategory.groupDefaults,
-                expenses: []
+                expenses: [],
+                recurringExpenses: []
             ),
             Ledger(
                 id: "family",
@@ -75,7 +79,8 @@ extension Ledger {
                 inviteCode: "F7HJMC",
                 members: [me, alice],
                 categories: ExpenseCategory.groupDefaults,
-                expenses: []
+                expenses: [],
+                recurringExpenses: []
             ),
             Ledger(
                 id: "travel",
@@ -84,7 +89,8 @@ extension Ledger {
                 inviteCode: "T9QRVX",
                 members: [me, alice],
                 categories: ExpenseCategory.groupDefaults,
-                expenses: []
+                expenses: [],
+                recurringExpenses: []
             ),
         ]
     }()
