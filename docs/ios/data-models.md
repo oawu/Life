@@ -42,6 +42,7 @@ struct Ledger: Identifiable, Equatable {
     var members: [LedgerMember]
     var categories: [ExpenseCategory]
     var expenses: [Expense]
+    var recurringExpenses: [RecurringExpense]
 }
 ```
 
@@ -106,6 +107,41 @@ struct ExpenseCategory: Identifiable, Equatable, Hashable {
 
 ---
 
+### RecurringExpense
+
+固定開銷，存在 Ledger 內。
+
+```swift
+struct RecurringExpense: Identifiable, Equatable {
+    let id: UUID
+    var amount: Double
+    var category: ExpenseCategory
+    var frequency: RecurringFrequency
+    var memo: String
+    var latitude: Double?
+    var longitude: Double?
+    var address: String?
+    var ledgerId: String
+    var paidBy: LedgerMember?
+}
+```
+
+### RecurringFrequency
+
+```swift
+enum RecurringFrequency: Equatable {
+    case daily
+    case weekly(dayOfWeek: Int)        // 1=日 ... 7=六
+    case monthly(dayOfMonth: Int)      // 1-31
+    case yearly(month: Int, day: Int)  // month 1-12, day 1-31
+}
+```
+
+- `displayLabel`：「每天」「每週三」「每月 15 日」「每年 1 月 1 日」
+- `dateWarningMessage`：月 29-31 日、年份特殊日期的警告文字
+
+---
+
 ### CategoryIcon
 
 分類圖示選擇器的資料來源。
@@ -136,10 +172,11 @@ struct CategoryIcon {
     var currentLedgerId: String
 
     // Computed（代理到 currentLedger）
-    var categories: [ExpenseCategory]    // get/set
-    var expenses: [Expense]              // get/set
-    var isGroupLedger: Bool              // get
-    var currentMembers: [LedgerMember]   // get
+    var categories: [ExpenseCategory]         // get/set
+    var expenses: [Expense]                   // get/set
+    var recurringExpenses: [RecurringExpense]  // get/set
+    var isGroupLedger: Bool                   // get
+    var currentMembers: [LedgerMember]        // get
 }
 ```
 
@@ -155,6 +192,10 @@ struct CategoryIcon {
 | updateLedger(_) | 更新帳本 |
 | deleteLedger(id:) | 刪除帳本（自動切回 personal） |
 | moveLedger(from:to:) | 排序群組帳本 |
+| addRecurringExpense(_) | 新增固定開銷 |
+| updateRecurringExpense(_) | 更新固定開銷 |
+| deleteRecurringExpense(id:) | 刪除固定開銷 |
+| recurringExpenseCount(forLedger:) | 指定帳本的固定開銷數量 |
 
 ---
 
@@ -234,9 +275,10 @@ JWT Token 安全儲存（Singleton）。
 }
 ```
 
+- `init(autoRequest: Bool = true)`：`true` 時授權後自動定位，`false` 時僅在用戶主動呼叫 `requestLocation()` 時定位
 - CLLocationManager 定位
 - CLGeocoder 反向地理編碼（組合行政區 + 路名）
-- 授權狀態管理
+- 授權狀態管理（`pendingRequest` 旗標確保首次授權後自動發起定位）
 
 ---
 

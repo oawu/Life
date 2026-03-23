@@ -86,6 +86,15 @@ life/
   - 分類編輯 Sheet（CategoryEditView）：新增/編輯/刪除分類（名稱、圖示、顏色），支援自訂顏色（彩球 ColorPicker）
     - 圖示選擇器為兩步驟：先選群組（3×3），再選圖示（6 欄），選後自動返回群組列表
     - 新增模式預設無圖示（顯示 questionmark），須選擇圖示才能儲存
+  - 固定開銷管理（RecurringExpenseListView + RecurringExpenseEditView）：
+    - 個人帳本設定頁、群組帳本詳情頁皆有入口
+    - 列表頁：顯示金額、排程描述、備註、付款人（群組），左滑刪除，右上角新增
+    - 編輯 Sheet：複用 CalculatorView、CategoryGridView、PayerChips、ExpenseDetailFields（隱藏日期）
+    - 排程選擇（frequencyCard）：每天 / 每週 / 每月 / 每年，新增時不預選
+    - 每月 29-31 日、每年特殊日期顯示橘色警告
+    - RecurringFrequency enum：daily / weekly(dayOfWeek) / monthly(dayOfMonth) / yearly(month, day)
+    - Ledger 新增 `recurringExpenses` 欄位，ExpenseStore 代理 + CRUD 方法
+    - 成員移除時級聯刪除對應的固定開銷
 
 ---
 

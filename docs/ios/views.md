@@ -51,6 +51,17 @@
 - `.add` — 新增分類（預設無圖示）
 - `.edit(ExpenseCategory)` — 編輯分類
 
+### 固定開銷
+
+| View | 檔案 | 參數 | 呈現方式 |
+|------|------|------|----------|
+| RecurringExpenseListView | RecurringExpenseListView.swift | store: ExpenseStore, ledgerId: String | push 從 LedgerSettingsView / LedgerDetailView |
+| RecurringExpenseEditView | RecurringExpenseEditView.swift | mode: Mode, ledger: Ledger, store: ExpenseStore | sheet |
+
+**RecurringExpenseEditView.Mode**：
+- `.add` — 新增固定開銷
+- `.edit(RecurringExpense)` — 編輯固定開銷
+
 ### 付款人
 
 | View | 檔案 | 參數 | 說明 |
@@ -88,8 +99,12 @@ HomeView (TabView)
 │            ├─ sheet: LedgerEditView(.add)          ← 自己建立
 │            ├─ sheet: JoinLedgerView                ← 掃碼加入
 │            ├─ sheet: LedgerEditView(.editPersonal) ← 個人帳本
+│            ├─ push: RecurringExpenseListView        ← 個人帳本固定開銷
+│            │         └─ sheet: RecurringExpenseEditView
 │            └─ push: LedgerDetailView               ← 群組帳本
-│                     └─ sheet: LedgerEditView(.editGroup)
+│                     ├─ sheet: LedgerEditView(.editGroup)
+│                     └─ push: RecurringExpenseListView
+│                               └─ sheet: RecurringExpenseEditView
 │
 └─ Tab 2: ProfileView
 ```
