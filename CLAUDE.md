@@ -114,6 +114,17 @@ life/
     - 結算詳情頁（SettlementDetailView）：結算時間、操作者、轉帳明細快照
     - SettlementRecord 儲存轉帳明細快照（SettlementTransfer）與幣別符號
     - Ledger 新增 `settledExpenseIds`（排除已結算開銷）、`settlementRecords`（結算歷史）
+  - 開銷詳情頁（ExpenseDetailView）：
+    - 開銷列表點擊 → NavigationLink push 到詳情頁
+    - 金額（36pt rounded bold）+ 分類圖示&名稱置中
+    - 詳細資訊：時間、備註（有才顯示）、付款人（群組才顯示）
+    - 位置區塊：Map + Marker（180pt）、地址、「在 Apple 地圖中開啟」按鈕（MKMapItem.openInMaps）
+    - 底部紅色刪除按鈕 + confirmationDialog 確認
+    - 右上角「編輯」→ sheet 呈現 ExpenseEditView
+  - 開銷編輯 Sheet（ExpenseEditView）：
+    - 複用 CalculatorView、CategoryGridView、PayerChips、ExpenseDetailFields
+    - onAppear 預填所有欄位（金額、分類、備註、日期、付款人、位置）
+    - ExpenseStore 新增 `updateExpense(_:)` 方法
 
 ---
 
