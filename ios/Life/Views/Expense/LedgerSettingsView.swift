@@ -76,13 +76,9 @@ struct LedgerSettingsView: View {
                     }
                 }
             }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle("帳本設定")
-        .navigationBarTitleDisplayMode(.inline)
-        .environment(\.editMode, .constant(.active))
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+
+            // 新增帳本
+            Section {
                 Menu {
                     Button {
                         showCreateSheet = true
@@ -95,10 +91,32 @@ struct LedgerSettingsView: View {
                         Label("掃碼加入", systemImage: "qrcode.viewfinder")
                     }
                 } label: {
-                    Image(systemName: "folder.badge.plus")
+                    HStack {
+                        Spacer()
+                        Image(systemName: "folder.badge.plus")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("新增帳本")
+                            .font(.subheadline.weight(.medium))
+                        Spacer()
+                    }
+                    .foregroundStyle(Color(.secondaryLabel))
+                    .padding(.vertical, 4)
                 }
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(
+                            Color(.separator),
+                            style: StrokeStyle(lineWidth: 1, dash: [6, 4])
+                        )
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                )
             }
         }
+        .listStyle(.insetGrouped)
+        .navigationTitle("帳本設定")
+        .navigationBarTitleDisplayMode(.inline)
+        .environment(\.editMode, .constant(.active))
         .navigationDestination(item: $selectedLedgerId) { ledgerId in
             LedgerDetailView(store: store, ledgerId: ledgerId)
         }
