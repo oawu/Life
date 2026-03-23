@@ -1,5 +1,4 @@
 {
-  "plansDirectory": "./.claude/plans",
   "permissions": {
     "deny": [
       "Read(backend/Config/Local/**)",
