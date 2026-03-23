@@ -132,6 +132,15 @@ struct ExpenseListView: View {
             }
         }
         .navigationTitle("開銷紀錄")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    ExpenseChartView(store: store)
+                } label: {
+                    Image(systemName: "chart.pie.fill")
+                }
+            }
+        }
         .confirmationDialog("確定已經結算清楚了嗎？", isPresented: $showSettleConfirmation, titleVisibility: .visible) {
             Button("結清", role: .destructive) {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
