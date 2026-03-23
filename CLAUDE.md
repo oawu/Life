@@ -77,7 +77,7 @@ life/
     - LedgerSwitcher 尾端齒輪按鈕進入帳本設定
     - 帳本設定頁：個人帳本（點擊 sheet 編輯名稱）、群組帳本可排序（點擊 push 到詳情頁）
     - 新增帳本：confirmationDialog 二選一（自己建立 / 掃碼加入）
-    - 帳本編輯 Sheet：三種 mode（add / editPersonal / editGroup），只編輯名稱
+    - 帳本編輯 Sheet：三種 mode（add / editPersonal / editGroup），編輯名稱 + 幣別
     - 帳本詳情頁（LedgerDetailView）：邀請碼卡片（複製 + toast）、QR Code、成員列表、刪除
     - 邀請碼：6 碼（#開頭），25 字元集（排除相似字），建立時自動生成
     - 掃碼加入（JoinLedgerView）：AVFoundation 相機掃 QR + 手動輸入邀請碼，mock 加入
@@ -97,6 +97,12 @@ life/
     - RecurringFrequency enum：daily / weekly(dayOfWeek) / monthly(dayOfMonth) / yearly(month, day)
     - Ledger 新增 `recurringExpenses` 欄位，ExpenseStore 代理 + CRUD 方法
     - 成員移除時級聯刪除對應的固定開銷
+  - 帳本幣別支援（Currency）：
+    - Currency model：14 種預設幣別（TWD、JPY、USD、EUR 等）
+    - Ledger 級幣別：每個帳本指定一種幣別，預設新台幣
+    - 帳本編輯頁可選擇幣別，已有開銷時不可變更
+    - 計算機顯示動態單位（TWD→元、JPY→円、其他→code），左上角幣別 badge（非新台幣橘色提示）
+    - 開銷列表、固定開銷列表金額前綴顯示對應幣別符號
 
 ---
 
