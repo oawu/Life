@@ -17,7 +17,8 @@
 - 邏輯錯誤、邊界條件、null/undefined 風險
 - 非同步操作是否正確處理（race condition、error handling）
 - 事件監聽器是否正確清理（memory leak）
-- DOM 操作時序是否安全
+- JS code，在 DOM 操作時序是否安全
+- Swift code，檢查是否有記憶體或者效能上的問題，動畫、效果上是否有沒注意到的問題
 
 #### ② 功能需求
 - 是否達成用戶要求的功能目標

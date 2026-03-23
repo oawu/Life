@@ -69,11 +69,14 @@ life/
     - 切換帳本自動替換分類、清空已選分類
     - 群組帳本顯示付款人選擇器（PayerChips），預設「我」
     - ExpenseStore 以 computed property 代理 `categories`/`expenses` 到 currentLedger，現有分類相關 View 無需修改
-  - 帳本管理（LedgerSettingsView + LedgerEditView）：
+  - 帳本管理（LedgerSettingsView + LedgerEditView + LedgerDetailView）：
     - LedgerSwitcher 尾端齒輪按鈕進入帳本設定
-    - 帳本設定頁：個人帳本獨立區塊（可編輯名稱/圖示）、群組帳本可排序
-    - 帳本編輯 Sheet：三種 mode（add / editPersonal / editGroup）
-    - 名稱、圖示（6 欄 flat grid）、成員管理（新增/刪除，「我」不可移除）
+    - 帳本設定頁：個人帳本（點擊 sheet 編輯名稱）、群組帳本可排序（點擊 push 到詳情頁）
+    - 新增帳本：confirmationDialog 二選一（自己建立 / 掃碼加入）
+    - 帳本編輯 Sheet：三種 mode（add / editPersonal / editGroup），只編輯名稱
+    - 帳本詳情頁（LedgerDetailView）：邀請碼卡片（複製 + toast）、QR Code、成員列表、刪除
+    - 邀請碼：6 碼（#開頭），25 字元集（排除相似字），建立時自動生成
+    - 掃碼加入（JoinLedgerView）：AVFoundation 相機掃 QR + 手動輸入邀請碼，mock 加入
     - 刪除群組帳本（確認對話框），刪除當前帳本自動切回個人帳本
   - 分類設定頁面（CategorySettingsView）：瀏覽、排序分類，頂部虛線新增按鈕
   - 分類編輯 Sheet（CategoryEditView）：新增/編輯/刪除分類（名稱、圖示、顏色），支援自訂顏色（彩球 ColorPicker）
