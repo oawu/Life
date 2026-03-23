@@ -73,7 +73,22 @@ struct LedgerEditView: View {
     // MARK: - Currency
 
     private var currencyCard: some View {
-        cardSection(title: "幣別") {
+        cardSection {
+            HStack(spacing: 6) {
+                Text("幣別")
+
+                if hasExpenses {
+                    Text("已有開銷紀錄，所以無法變更幣別")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(.systemGray))
+                        .clipShape(Capsule())
+                }
+            }
+        } content: {
             VStack(spacing: 0) {
                 ForEach(Array(Currency.all.enumerated()), id: \.element.id) { index, item in
                     if index > 0 {
@@ -118,32 +133,27 @@ struct LedgerEditView: View {
                     .disabled(hasExpenses)
                 }
             }
-
-            if hasExpenses {
-                HStack(spacing: 4) {
-                    Image(systemName: "info.circle")
-                        .font(.caption2)
-
-                    Text("已有開銷紀錄，無法變更幣別")
-                        .font(.caption)
-                }
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-            }
         }
     }
 
     // MARK: - Card Container
 
     private func cardSection(title: String? = nil, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        cardSection {
             if let title {
                 Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(Color(.secondaryLabel))
-                    .padding(.leading, 16)
             }
+        } content: {
+            content()
+        }
+    }
+
+    private func cardSection<Header: View>(@ViewBuilder header: () -> Header, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            header()
+                .font(.subheadline)
+                .foregroundStyle(Color(.secondaryLabel))
+                .padding(.leading, 16)
             content()
                 .background(Color(.secondarySystemGroupedBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
