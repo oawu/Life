@@ -12,6 +12,10 @@ struct ExpenseCategory: Identifiable, Equatable, Hashable {
 }
 
 extension ExpenseCategory {
+    /// 系統預設「其他」分類 ID
+    static let otherCategoryId = "other"
+    static let groupOtherCategoryId = "groupOther"
+
     static let defaults: [ExpenseCategory] = [
         // 餐飲
         ExpenseCategory(id: "breakfast",    name: "早餐",   icon: "sunrise.fill",               color: .orange),
@@ -46,6 +50,8 @@ extension ExpenseCategory {
         ExpenseCategory(id: "phone",        name: "電話費", icon: "phone.fill",                 color: .green),
         ExpenseCategory(id: "subscription", name: "訂閱",   icon: "repeat",                     color: .indigo),
         ExpenseCategory(id: "threeC",       name: "3C",     icon: "desktopcomputer",            color: .gray),
+        // 系統預設（不可刪除）
+        ExpenseCategory(id: otherCategoryId, name: "其他",  icon: "ellipsis.circle.fill",       color: .gray),
     ]
 
     static let groupDefaults: [ExpenseCategory] = [
@@ -55,6 +61,12 @@ extension ExpenseCategory {
         ExpenseCategory(id: "groupUtility",       name: "水電",   icon: "bolt.fill",                  color: .yellow),
         ExpenseCategory(id: "groupTransport",     name: "交通",   icon: "bus.fill",                   color: .blue),
         ExpenseCategory(id: "groupEntertainment", name: "娛樂",   icon: "gamecontroller.fill",        color: .purple),
-        ExpenseCategory(id: "groupOther",         name: "其他",   icon: "ellipsis.circle.fill",       color: .gray),
+        // 系統預設（不可刪除）
+        ExpenseCategory(id: groupOtherCategoryId, name: "其他",   icon: "ellipsis.circle.fill",       color: .gray),
     ]
+
+    /// 是否為系統預設「其他」分類（不可刪除）
+    var isSystemOther: Bool {
+        id == Self.otherCategoryId || id == Self.groupOtherCategoryId
+    }
 }

@@ -111,11 +111,40 @@ final class ExpenseStore {
     }
 
     func deleteCategory(id: String) {
+        guard let otherCategory = categories.first(where: { $0.isSystemOther }) else {
+            return
+        }
+
+        // 將所屬開銷重新指派到「其他」
+        var updatedExpenses = expenses
+        for i in updatedExpenses.indices {
+            if updatedExpenses[i].category.id == id {
+                updatedExpenses[i].category = otherCategory
+            }
+        }
+        expenses = updatedExpenses
+
+        // 將所屬固定開銷重新指派到「其他」
+        var updatedRecurring = recurringExpenses
+        for i in updatedRecurring.indices {
+            if updatedRecurring[i].category.id == id {
+                updatedRecurring[i].category = otherCategory
+            }
+        }
+        recurringExpenses = updatedRecurring
+
         categories.removeAll { $0.id == id }
     }
 
     func moveCategory(from source: IndexSet, to destination: Int) {
-        categories.move(fromOffsets: source, toOffset: destination)
+        // 排序只作用於非「其他」的分類，保持「其他」永遠在最後
+        var sortable = categories.filter { !$0.isSystemOther }
+        let other = categories.first { $0.isSystemOther }
+        sortable.move(fromOffsets: source, toOffset: destination)
+        if let other {
+            sortable.append(other)
+        }
+        categories = sortable
     }
 
     // MARK: - Recurring Expense CRUD
