@@ -36,6 +36,10 @@
 | `docs/backend/api-routes.md` | API 路由表是否完整 |
 | `docs/worker/overview.md` | HTTP 端點表、目錄結構 |
 | `docs/frontend/pages.md` | 頁面功能描述 |
+| `docs/ios/overview.md` | iOS 導航結構、狀態管理 |
+| `docs/ios/features.md` | iOS 功能模組、操作流程 |
+| `docs/ios/data-models.md` | iOS 資料模型、後端 Table 設計 |
+| `docs/ios/views.md` | iOS View 清單、參數、導航關係 |
 | `.claude/rules/*.md` | 編碼規範（僅修正錯誤） |
 
 嚴重度分級：
