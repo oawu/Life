@@ -16,6 +16,10 @@ Life 是一個 Web 應用服務（含 App 生態）。
 |------|------|----------|
 | CLAUDE.md | 入口索引 | 快速了解專案結構、功能清單 |
 | docs/architecture.md | 架構總覽 | 系統運作方式、資料流動、技術棧 |
+| docs/ios/overview.md | iOS 架構 | 導航結構、狀態管理、技術棧 |
+| docs/ios/features.md | iOS 功能 | 所有功能模組詳述、操作流程、後端需求 |
+| docs/ios/data-models.md | iOS 資料模型 | Client 模型 + 後端 Table 設計建議 |
+| docs/ios/views.md | iOS View 清單 | 所有 View 的參數、職責、導航關係 |
 | docs/backend/api-routes.md | API 路由 | 完整路由表 |
 | docs/frontend/*.md | 前端參考 | 組件 API、頁面結構、UI 工具 |
 | docs/backend/*.md | 後端參考 | ORM、路由、驗證、Controller |
