@@ -217,11 +217,14 @@ struct ExpenseListView: View {
                                 .background(currency == .twd ? Color(.tertiarySystemFill) : .red)
                                 .clipShape(Capsule())
 
-                            Text("\(formatted(item.amount)) \(currency.unitLabel)")
+                            Text(formatted(item.amount))
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .monospacedDigit()
-                                .foregroundStyle(.orange)
+
+                            Text(currency.unitLabel)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -398,10 +401,14 @@ private struct ExpenseRow: View {
                     .background(currency == .twd ? Color(.tertiarySystemFill) : .red)
                     .clipShape(Capsule())
 
-                Text("\(Int(expense.amount.rounded(.up)).formatted()) \(currency.unitLabel)")
+                Text(Int(expense.amount.rounded(.up)).formatted())
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .monospacedDigit()
+
+                Text(currency.unitLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 2)
