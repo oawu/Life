@@ -118,6 +118,7 @@ struct RecurringExpense: Identifiable, Equatable {
     var category: ExpenseCategory
     var frequency: RecurringFrequency
     var memo: String
+    var isEnabled: Bool             // 開關，關閉時排程不會建立開銷
     var latitude: Double?
     var longitude: Double?
     var address: String?
