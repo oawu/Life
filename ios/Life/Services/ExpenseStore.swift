@@ -180,6 +180,21 @@ final class ExpenseStore {
         ledgers.first { $0.id == ledgerId }?.recurringExpenses.count ?? 0
     }
 
+    // MARK: - Settlement
+
+    func settleLedger(id: String) {
+        guard let index = ledgers.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+        let expenseIds = Set(ledgers[index].expenses.map { $0.id })
+        ledgers[index].settledExpenseIds.formUnion(expenseIds)
+
+        let me = ledgers[index].members.first { $0.id == Ledger.defaultMemberId }
+            ?? LedgerMember(id: Ledger.defaultMemberId, name: "我")
+        let record = SettlementRecord(id: UUID(), date: Date(), settledBy: me)
+        ledgers[index].settlementRecords.append(record)
+    }
+
     // MARK: - Ledger CRUD
 
     func addLedger(_ ledger: Ledger) {

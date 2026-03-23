@@ -10,6 +10,12 @@ struct LedgerMember: Identifiable, Equatable, Hashable {
     var name: String
 }
 
+struct SettlementRecord: Identifiable, Equatable {
+    let id: UUID
+    var date: Date
+    var settledBy: LedgerMember
+}
+
 struct Ledger: Identifiable, Equatable {
     let id: String
     var name: String
@@ -20,6 +26,8 @@ struct Ledger: Identifiable, Equatable {
     var categories: [ExpenseCategory]
     var expenses: [Expense]
     var recurringExpenses: [RecurringExpense]
+    var settledExpenseIds: Set<UUID> = []
+    var settlementRecords: [SettlementRecord] = []
 
     var formattedInviteCode: String? {
         guard let inviteCode else {
