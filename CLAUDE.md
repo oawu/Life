@@ -125,6 +125,12 @@ life/
     - 複用 CalculatorView、CategoryGridView、PayerChips、ExpenseDetailFields
     - onAppear 預填所有欄位（金額、分類、備註、日期、付款人、位置）
     - ExpenseStore 新增 `updateExpense(_:)` 方法
+  - 開銷統計圖表（ExpenseChartView）：
+    - 開銷列表右上角 chart.pie.fill 按鈕 push 進入
+    - 月/年切換（segmented Picker）+ 左右箭頭翻頁
+    - Swift Charts 環形圖（SectorMark + innerRadius 0.618），中心顯示總金額
+    - 分類明細列表：圖示色塊 + 名稱 + 進度條 + 金額 + 百分比，按金額降序
+    - 空狀態：灰色環形圖 +「尚無開銷」
 
 ---
 
