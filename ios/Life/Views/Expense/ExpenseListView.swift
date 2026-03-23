@@ -14,8 +14,8 @@ struct ExpenseListView: View {
         return 1
     }
 
-    private var currencySymbol: String {
-        store.currentCurrency.symbol
+    private var currency: Currency {
+        store.currentCurrency
     }
 
     private func formatted(_ amount: Double) -> String {
@@ -207,11 +207,22 @@ struct ExpenseListView: View {
 
                         Spacer()
 
-                        Text("\(store.currentCurrency.symbol)\(formatted(item.amount))")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .monospacedDigit()
-                            .foregroundStyle(.orange)
+                        HStack(spacing: 4) {
+                            Text(currency.name)
+                                .font(.system(size: 9))
+                                .fontWeight(.medium)
+                                .foregroundStyle(currency == .twd ? Color(.secondaryLabel) : .white)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(currency == .twd ? Color(.tertiarySystemFill) : .red)
+                                .clipShape(Capsule())
+
+                            Text("\(formatted(item.amount)) \(currency.unitLabel)")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .monospacedDigit()
+                                .foregroundStyle(.orange)
+                        }
                     }
                 }
 
@@ -262,7 +273,7 @@ struct ExpenseListView: View {
                             NavigationLink {
                                 ExpenseDetailView(store: store, expenseId: expense.id)
                             } label: {
-                                ExpenseRow(expense: expense, showPayer: store.isGroupLedger, currencySymbol: currencySymbol)
+                                ExpenseRow(expense: expense, showPayer: store.isGroupLedger, currency: currency)
                             }
                         }
                         .onDelete { offsets in
@@ -272,7 +283,7 @@ struct ExpenseListView: View {
                         HStack {
                             Text(date)
                             Spacer()
-                            Text("\(currencySymbol)\(formatted(total))")
+                            Text("\(formatted(total)) \(currency.unitLabel)")
                                 .fontWeight(.medium)
                         }
                     }
@@ -334,7 +345,7 @@ private extension View {
 private struct ExpenseRow: View {
     let expense: Expense
     var showPayer: Bool = false
-    var currencySymbol: String = "$"
+    var currency: Currency = .twd
 
     var body: some View {
         HStack(spacing: 12) {
@@ -377,10 +388,21 @@ private struct ExpenseRow: View {
             Spacer()
 
             // 金額
-            Text("\(currencySymbol)\(Int(expense.amount.rounded(.up)).formatted())")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .monospacedDigit()
+            HStack(spacing: 4) {
+                Text(currency.name)
+                    .font(.system(size: 9))
+                    .fontWeight(.medium)
+                    .foregroundStyle(currency == .twd ? Color(.secondaryLabel) : .white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(currency == .twd ? Color(.tertiarySystemFill) : .red)
+                    .clipShape(Capsule())
+
+                Text("\(Int(expense.amount.rounded(.up)).formatted()) \(currency.unitLabel)")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .monospacedDigit()
+            }
         }
         .padding(.vertical, 2)
     }

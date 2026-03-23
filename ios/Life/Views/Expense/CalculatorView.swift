@@ -16,7 +16,7 @@ struct CalculatorView: View {
                     .foregroundStyle(currency == .twd ? Color(.secondaryLabel) : .white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(currency == .twd ? Color(.tertiarySystemFill) : .orange)
+                    .background(currency == .twd ? Color(.tertiarySystemFill) : .red)
                     .clipShape(Capsule())
 
                 Spacer()
