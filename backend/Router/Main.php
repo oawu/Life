@@ -23,8 +23,22 @@ Group::create('api')
     Group::create()
       ->middleware(\App\Middleware\Auth::class)
       ->routers(static function() {
+        // Auth
         Router::get('auth/me')
           ->controller(\App\Controller\Api\Auth::class . '@me')
           ->title('取得當前用戶');
+
+        Router::put('auth/me')
+          ->controller(\App\Controller\Api\Auth::class . '@updateProfile')
+          ->title('更新個人資料');
+
+        // Sync
+        Router::post('sync/push')
+          ->controller(\App\Controller\Api\Sync::class . '@push')
+          ->title('推送本地變更');
+
+        Router::post('sync/pull')
+          ->controller(\App\Controller\Api\Sync::class . '@pull')
+          ->title('拉取遠端變更');
       });
   });
