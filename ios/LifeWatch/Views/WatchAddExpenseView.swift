@@ -1,181 +1,130 @@
 import SwiftUI
 import WatchKit
 
+enum WatchStep: Hashable {
+    case calculator
+    case category
+    case payer
+    case memoOrSave
+    case memo
+    case timeOrSave
+    case time
+}
+
 struct WatchAddExpenseView: View {
     @Bindable var store: WatchExpenseStore
     let locationService: WatchLocationService
     let onSave: (Expense) -> Void
 
+    @State private var path: [WatchStep] = []
     @State private var amount: Int = 0
     @State private var selectedCategory: ExpenseCategory?
     @State private var selectedPayer: LedgerMember?
     @State private var memo: String = ""
     @State private var date: Date = Date()
     @State private var showSuccess: Bool = false
-
-    private var canSave: Bool {
-        amount > 0 && selectedCategory != nil
-    }
+    @State private var savedAmountText: String = ""
 
     var body: some View {
-        NavigationStack {
-            List {
-                // 帳本選擇
-                NavigationLink {
-                    WatchLedgerPickerView(
-                        ledgers: store.ledgers,
-                        selectedId: $store.selectedLedgerId
-                    )
-                } label: {
-                    HStack {
-                        Text("帳本")
-                        Spacer()
-                        Text(store.currentLedger?.name ?? "個人")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .onChange(of: store.selectedLedgerId) {
+        NavigationStack(path: $path) {
+            // Root：帳本選擇
+            WatchLedgerPickerView(
+                ledgers: store.ledgers,
+                selectedId: store.selectedLedgerId,
+                onSelect: { ledger in
+                    store.selectedLedgerId = ledger.id
+                    amount = 0
                     selectedCategory = nil
-                    selectedPayer = store.isGroupLedger
-                        ? store.currentMembers.first { $0.id == Ledger.defaultMemberId }
+                    selectedPayer = ledger.type == .group
+                        ? ledger.members.first { $0.id == Ledger.defaultMemberId }
                         : nil
+                    memo = ""
+                    date = Date()
+                    path.append(.calculator)
                 }
-
-                // 金額
-                NavigationLink {
-                    WatchAmountInputView(
+            )
+            .navigationTitle("記帳")
+            .navigationDestination(for: WatchStep.self) { step in
+                switch step {
+                case .calculator:
+                    WatchCalculatorView(
                         amount: $amount,
-                        currency: store.currentCurrency
-                    )
-                } label: {
-                    HStack {
-                        Spacer()
-                        if amount > 0 {
-                            Text(formatAmount(amount))
-                                .font(.title2.bold())
-                        } else {
-                            Text("0 \(store.currentCurrency.unitLabel)")
-                                .font(.title2)
-                                .foregroundStyle(.secondary)
+                        currency: store.currentCurrency,
+                        onConfirm: {
+                            path.append(.category)
                         }
-                        Spacer()
-                    }
-                }
+                    )
 
-                // 分類
-                NavigationLink {
+                case .category:
                     WatchCategoryPickerView(
                         categories: store.categories,
-                        selected: $selectedCategory
+                        onSelect: { category in
+                            selectedCategory = category
+                            if store.isGroupLedger {
+                                path.append(.payer)
+                            } else {
+                                path.append(.memoOrSave)
+                            }
+                        }
                     )
-                } label: {
-                    HStack {
-                        Text("分類")
-                        Spacer()
-                        if let category = selectedCategory {
-                            Image(systemName: category.icon)
-                                .foregroundStyle(category.color)
-                            Text(category.name)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("未選擇")
-                                .foregroundStyle(.secondary)
+
+                case .payer:
+                    WatchPayerPickerView(
+                        members: store.currentMembers,
+                        onSelect: { member in
+                            selectedPayer = member
+                            path.append(.memoOrSave)
                         }
-                    }
-                }
+                    )
 
-                // 付款人（群組帳本）
-                if store.isGroupLedger {
-                    NavigationLink {
-                        WatchPayerPickerView(
-                            members: store.currentMembers,
-                            selected: $selectedPayer
-                        )
-                    } label: {
-                        HStack {
-                            Text("付款人")
-                            Spacer()
-                            Text(selectedPayer?.name ?? "我")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+                case .memoOrSave:
+                    WatchMemoOrSaveView(
+                        onSave: { save() },
+                        onMemo: { path.append(.memo) }
+                    )
 
-                // 備註
-                NavigationLink {
-                    WatchMemoInputView(memo: $memo)
-                } label: {
-                    HStack {
-                        Text("備註")
-                        Spacer()
-                        Text(memo.isEmpty ? "無" : memo)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
+                case .memo:
+                    WatchMemoInputView(
+                        memo: $memo,
+                        onNext: { path.append(.timeOrSave) }
+                    )
 
-                // 時間
-                NavigationLink {
-                    WatchDatePickerView(date: $date)
-                } label: {
-                    HStack {
-                        Text("時間")
-                        Spacer()
-                        Text(date, style: .time)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                case .timeOrSave:
+                    WatchTimeOrSaveView(
+                        onSave: { save() },
+                        onAdjustTime: { path.append(.time) }
+                    )
 
-                // 位置
-                HStack {
-                    Text("位置")
-                    Spacer()
-                    if locationService.isLoading {
-                        ProgressView()
-                    } else if let address = locationService.currentAddress {
-                        Text(address)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    } else {
-                        Text("無定位")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                // 儲存按鈕
-                Button {
-                    save()
-                } label: {
-                    HStack {
-                        Spacer()
-                        Text("儲存")
-                            .bold()
-                        Spacer()
-                    }
-                }
-                .disabled(!canSave)
-                .listItemTint(canSave ? .blue : .gray)
-            }
-            .navigationTitle("記帳")
-            .overlay {
-                if showSuccess {
-                    successOverlay
+                case .time:
+                    WatchDatePickerView(
+                        date: $date,
+                        onSave: { save() }
+                    )
                 }
             }
         }
+        .overlay {
+            if showSuccess {
+                successOverlay
+            }
+        }
     }
+
+    // MARK: - Success Overlay
 
     private var successOverlay: some View {
         VStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(.green)
-            Text("已儲存 \(store.currentCurrency.symbol)\(amount)")
+            Text(savedAmountText)
                 .font(.headline)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.ultraThinMaterial)
     }
+
+    // MARK: - Save
 
     private func save() {
         guard let category = selectedCategory else {
@@ -199,10 +148,13 @@ struct WatchAddExpenseView: View {
 
         onSave(expense)
 
+        savedAmountText = "已儲存 \(store.currentCurrency.symbol)\(formatSaveAmount())"
         showSuccess = true
+        path.removeAll()
+        resetForm()
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             showSuccess = false
-            resetForm()
         }
     }
 
@@ -211,32 +163,11 @@ struct WatchAddExpenseView: View {
         selectedCategory = nil
         memo = ""
         date = Date()
-        // 保留帳本選擇和付款人
     }
 
-    private func formatAmount(_ value: Int) -> String {
+    private func formatSaveAmount() -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        let formatted = formatter.string(from: NSNumber(value: value)) ?? "\(value)"
-        return "\(formatted) \(store.currentCurrency.unitLabel)"
-    }
-}
-
-// MARK: - Memo Input View
-
-struct WatchMemoInputView: View {
-    @Binding var memo: String
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        TextField("備註", text: $memo)
-            .navigationTitle("備註")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") {
-                        dismiss()
-                    }
-                }
-            }
+        return formatter.string(from: NSNumber(value: amount)) ?? "\(amount)"
     }
 }

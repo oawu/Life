@@ -3,7 +3,7 @@ import WatchKit
 
 struct WatchDatePickerView: View {
     @Binding var date: Date
-    @Environment(\.dismiss) private var dismiss
+    let onSave: () -> Void
 
     var body: some View {
         VStack {
@@ -14,9 +14,9 @@ struct WatchDatePickerView: View {
             )
             .datePickerStyle(.automatic)
 
-            Button("確定") {
+            Button("儲存") {
                 WKInterfaceDevice.current().play(.click)
-                dismiss()
+                onSave()
             }
             .buttonStyle(.borderedProminent)
         }

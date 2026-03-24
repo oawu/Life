@@ -3,15 +3,14 @@ import WatchKit
 
 struct WatchLedgerPickerView: View {
     let ledgers: [Ledger]
-    @Binding var selectedId: String
-    @Environment(\.dismiss) private var dismiss
+    let selectedId: String
+    let onSelect: (Ledger) -> Void
 
     var body: some View {
         List(ledgers) { ledger in
             Button {
                 WKInterfaceDevice.current().play(.click)
-                selectedId = ledger.id
-                dismiss()
+                onSelect(ledger)
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {

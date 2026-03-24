@@ -3,15 +3,13 @@ import WatchKit
 
 struct WatchCategoryPickerView: View {
     let categories: [ExpenseCategory]
-    @Binding var selected: ExpenseCategory?
-    @Environment(\.dismiss) private var dismiss
+    let onSelect: (ExpenseCategory) -> Void
 
     var body: some View {
         List(categories) { category in
             Button {
                 WKInterfaceDevice.current().play(.click)
-                selected = category
-                dismiss()
+                onSelect(category)
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: category.icon)
@@ -19,10 +17,6 @@ struct WatchCategoryPickerView: View {
                         .frame(width: 24)
                     Text(category.name)
                     Spacer()
-                    if selected?.id == category.id {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(.blue)
-                    }
                 }
             }
         }

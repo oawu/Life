@@ -3,23 +3,17 @@ import WatchKit
 
 struct WatchPayerPickerView: View {
     let members: [LedgerMember]
-    @Binding var selected: LedgerMember?
-    @Environment(\.dismiss) private var dismiss
+    let onSelect: (LedgerMember) -> Void
 
     var body: some View {
         List(members) { member in
             Button {
                 WKInterfaceDevice.current().play(.click)
-                selected = member
-                dismiss()
+                onSelect(member)
             } label: {
                 HStack {
                     Text(member.name)
                     Spacer()
-                    if selected?.id == member.id {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(.blue)
-                    }
                 }
             }
         }
