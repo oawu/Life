@@ -206,6 +206,12 @@ docs/
 │   ├── features.md              # iOS 功能模組、操作流程
 │   ├── data-models.md           # iOS 資料模型、後端 Table 設計
 │   └── views.md                 # iOS View 清單、參數、導航關係
+├── test/
+│   ├── scenarios.md             # 測試情境總表（75 個情境）
+│   ├── api-tests.md             # 後端 API curl 測試腳本
+│   ├── app-log-tests.md         # App log 驗證清單
+│   ├── integration-tests.md     # 模擬器 + 後端整合測試
+│   └── mcp-setup.md             # iOS 模擬器 MCP 自動化設定
 └── worker/
     └── overview.md              # Worker 架構總覽
 

@@ -10,6 +10,7 @@
 - **網路狀態**：Online / Offline / Slow（API timeout 但 NWPathMonitor 顯示 online）
 - **後端指令**：`docker exec php zsh -c "cd ~/Workspace/32_Life/backend && php Maple.php ..."`
 - **DB 查詢**：`docker exec php zsh -c "cd ~/Workspace/32_Life/backend && php -r \"...\"`
+- **模擬器自動化**：透過 MCP Server 操控（詳見 `docs/test/mcp-setup.md`）
 
 ## 權限矩陣（總覽）
 
