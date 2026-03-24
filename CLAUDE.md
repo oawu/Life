@@ -68,144 +68,73 @@ life/
 ## 已完成功能
 
 - Apple Sign In 登入（後端 API + iOS App）
-- Auth 狀態重設計（AuthState: launching / guest / authenticated）
-  - 訪客可用個人帳本記帳，群組帳本等功能需登入
-  - AuthManager 以 `AuthState` enum 取代 `isAuthenticated: Bool`，保留 computed property 向後相容
-  - 啟動畫面（LaunchView）：品牌 Logo，背景檢查 token 後自動切到 HomeView
-  - 訪客登入提示（LoginPromptView）：可複用 sheet，接收 `message` 參數，登入成功自動 dismiss
-  - 訪客個人頁（GuestProfileView）：Tab 2 訪客模式，品牌展示 + Apple Sign In
-  - 帳本設定攔截：訪客點「自己建立」/「掃碼加入」→ LoginPromptView sheet
+- Auth 狀態機（AuthState: launching / guest / authenticated）
+  - 訪客可記帳（純本地），群組帳本/分類管理/固定開銷/個人資料需登入
+  - LaunchView：品牌 Logo，背景驗證 token 後自動切到 HomeView
+  - LoginPromptView：可複用 sheet，接收 `message` 參數
+  - GuestProfileView：Tab 2 訪客模式，品牌展示 + Apple Sign In
   - 備份提醒：訪客累積 10 筆開銷時 alert 提示登入
-  - 登出資料重設：DataManager.resetToDefaults() 清除所有資料並重建預設帳本與分類
-  - LifeApp 以 `.environment(authManager)` 注入，子 View 用 `@Environment(AuthManager.self)` 取用
-  - PhoneSessionManager 同步 `isLoggedIn` 狀態到 Watch
-- iOS 記帳功能（SwiftData 本地持久化，含計算機、分類選擇、位置記錄）
-  - 登入後直接進入新增開銷頁面（Tab 1），「明細」按鈕 push 到開銷列表
+- API-first 同步架構（Server-authoritative）
+  - Guest 模式：純本地 SwiftData（GuestExpense），靜態預設分類（不可編輯）
+  - Authenticated 模式：API call → 成功 → 更新本地快取（Cached* models）
+  - 離線：僅允許新增開銷（isSynced = false），其餘操作阻擋 → alert「無法連線」
+  - `GET /api/state`：App 回前景 / 網路恢復時重建全部快取
+  - `POST /api/auth/init`：登入時上傳 Guest 開銷（帶 categoryKey）→ 回傳完整 state
+  - 登入轉換：initAfterLogin() → 清除 GuestExpense → rebuildFromState
+  - 登出轉換：clearAllCache() → reload()
+  - @MainActor 隔離：DataManager + ExpenseStore 標記 @MainActor 確保 SwiftData 線程安全
+- iOS 記帳功能（計算機、分類選擇、位置記錄、帳本切換）
+  - Tab 1 直接進入 AddExpenseView，「明細」push 到開銷列表
   - 儲存成功顯示金額「已儲存 $150」+ 打勾動畫
-  - 開銷列表（ExpenseListView）：safeAreaInset header 內嵌 LedgerSwitcher，滾動時漸變毛玻璃（iOS 18+）
-  - 帳本切換（LedgerSwitcher）：頂部橫向滾動 pill，支援個人帳本 + 群組帳本
-    - 切換帳本自動替換分類、清空已選分類
-    - 群組帳本顯示付款人選擇器（PayerChips），預設「我」
-    - ExpenseStore 以 computed property 代理 `categories`/`expenses` 到 currentLedger，現有分類相關 View 無需修改
-  - 帳本管理（LedgerSettingsView + LedgerEditView + LedgerDetailView）：
-    - LedgerSwitcher 尾端齒輪按鈕進入帳本設定
-    - 帳本設定頁：個人帳本（點擊 sheet 編輯名稱）、群組帳本可排序（點擊 push 到詳情頁）
-    - 新增帳本：confirmationDialog 二選一（自己建立 / 掃碼加入）
-    - 帳本編輯 Sheet：三種 mode（add / editPersonal / editGroup），編輯名稱 + 幣別
-    - 帳本詳情頁（LedgerDetailView）：邀請碼卡片（複製 + toast）、QR Code、成員列表、退出
-    - 邀請碼：6 碼（#開頭），25 字元集（排除相似字），建立時自動生成
-    - 掃碼加入（JoinLedgerView）：AVFoundation 相機掃 QR + 手動輸入邀請碼，mock 加入
-    - 人員異動規則：帳本尚未結清時，任何人員無法加入或退出；已結清才允許異動
-    - 加入群組帳本：未結清時 alert 攔截，已結清時允許加入
-    - 退出群組帳本：未結清時 alert 攔截，已結清時 confirmationDialog 確認退出，自動切回個人帳本
-  - 分類設定頁面（CategorySettingsView）：瀏覽、排序分類，頂部虛線新增按鈕
-    - 系統預設「其他」分類：不可編輯、不可刪除、不可排序，永遠在最後
-    - 刪除分類時，所屬開銷與固定開銷自動歸類到「其他」
-  - 分類編輯 Sheet（CategoryEditView）：新增/編輯/刪除分類（名稱、圖示、顏色），支援自訂顏色（彩球 ColorPicker）
-    - 圖示選擇器為兩步驟：先選群組（3×3），再選圖示（6 欄），選後自動返回群組列表
-    - 新增模式預設無圖示（顯示 questionmark），須選擇圖示才能儲存
-  - 固定開銷管理（RecurringExpenseListView + RecurringExpenseEditView）：
-    - 個人帳本設定頁、群組帳本詳情頁皆有入口
-    - 列表頁：顯示金額、排程描述、備註、付款人（群組），左滑刪除，右上角新增
-    - 編輯 Sheet：複用 CalculatorView、CategoryGridView、PayerChips、ExpenseDetailFields（隱藏日期）
-    - 排程選擇（frequencyCard）：每天 / 每週 / 每月 / 每年，新增時不預選
-    - 每月 29-31 日、每年特殊日期顯示橘色警告
-    - RecurringFrequency enum：daily / weekly(dayOfWeek) / monthly(dayOfMonth) / yearly(month, day)
-    - Ledger 新增 `recurringExpenses` 欄位，ExpenseStore 代理 + CRUD 方法
-    - 成員移除時級聯刪除對應的固定開銷
-  - 帳本幣別支援（Currency）：
-    - Currency model：14 種預設幣別（TWD、JPY、USD、EUR 等）
-    - Ledger 級幣別：每個帳本指定一種幣別，預設新台幣
-    - 帳本編輯頁可選擇幣別，已有開銷時不可變更
-    - 計算機顯示動態單位（TWD→元、JPY→円、其他→code），左上角幣別 badge（非新台幣紅色提示）
-    - 開銷列表金額格式：幣別 badge（TWD 灰色、非 TWD 紅色）+ 千分位金額 + 單位（元/円/code）
-  - 拆帳功能（群組帳本）：
-    - 拆帳區塊：開銷列表頂部 Section，有差異時才顯示（持平不顯示）
-    - 拆帳計算：未結算開銷 → 人均分攤 → 貪婪配對產生轉帳明細
-    - 轉帳明細：付款人 → 收款人 + 金額（橘色），千分位格式化
-    - 結清：confirmationDialog 確認後標記已結算，toast 回饋「已完成結算」
-    - 結算紀錄：重設後在時間線顯示「已經由 xxx 結算拆帳！」+ 時間副標題，點擊進入詳情頁
-    - 結算詳情頁（SettlementDetailView）：結算時間、操作者、轉帳明細快照
-    - SettlementRecord 儲存轉帳明細快照（SettlementTransfer）與幣別符號
-    - Ledger 新增 `settledExpenseIds`（排除已結算開銷）、`settlementRecords`（結算歷史）
-  - 開銷詳情頁（ExpenseDetailView）：
-    - 開銷列表點擊 → NavigationLink push 到詳情頁
-    - 金額（36pt rounded bold）+ 分類圖示&名稱置中
-    - 詳細資訊：時間、備註（有才顯示）、付款人（群組才顯示）
-    - 位置區塊：Map + Marker（180pt）、地址、「在 Apple 地圖中開啟」按鈕（MKMapItem.openInMaps）
-    - 底部紅色刪除按鈕 + confirmationDialog 確認
-    - 右上角「編輯」→ sheet 呈現 ExpenseEditView
-  - 開銷編輯 Sheet（ExpenseEditView）：
-    - 複用 CalculatorView、CategoryGridView、PayerChips、ExpenseDetailFields
-    - onAppear 預填所有欄位（金額、分類、備註、日期、付款人、位置）
-    - ExpenseStore 新增 `updateExpense(_:)` 方法
-  - 開銷統計圖表（ExpenseChartView）：
-    - 開銷列表右上角按鈕 push 進入
-    - safeAreaInset 置中 segmented Picker（月/年），右上角 pill toggle 切換圓餅圖顯隱
-    - List + Section：每個月/年為獨立 Section，所有期間一次列出
-    - Swift Charts 環形圖（SectorMark + innerRadius 0.618），中心顯示總金額
-    - 分類明細列表：圖示色塊 + 名稱 + 進度條 + 金額 + 百分比，按金額降序
-  - 個人頁面（ProfileView）：
-    - 頭像區塊：100pt 圓形大頭照 + 「更改」按鈕，點擊 → confirmationDialog 選擇相簿/拍照
-    - 名稱：點擊切換為 TextField inline 編輯，完成後自動儲存
-    - Email：靜態顯示，不可編輯
-    - 載具號碼：NavigationLink push 到 CarrierEditView，Code 128 條碼即時預覽 + 格式驗證（/ + 7 碼）
-    - 登出按鈕：alert 確認後登出
-- Apple Watch 快速記帳（LifeWatch App）：
-  - 逐步導航 Wizard（WatchAddExpenseView）：NavigationStack(path:) + WatchStep enum
-    - 流程：帳本 → 計算機 → 分類 → [付款人(群組)] → 備註或儲存 → [備註] → 時間或儲存 → [時間] → 儲存
-    - 帳本列表為 NavigationStack root，各步驟透過 callback 推進
-    - 備註、時間為可選步驟，用戶可選擇直接儲存跳過
-  - 計算機（WatchCalculatorView）：3×4 數字鍵盤（純整數），幣別 badge（TWD 灰/非 TWD 紅）+ 千分位 + 單位
-  - 儲存成功：haptic 成功回饋 + 打勾動畫 → pop 回帳本列表 → 重置表單
-  - WatchConnectivity：iPhone → Watch 同步帳本/分類/登入狀態/網路狀態（updateApplicationContext）；Watch → iPhone 回傳開銷（sendMessage / transferUserInfo）
-  - 共用 Models（Shared/Models/）：Expense、Ledger、ExpenseCategory、Currency、RecurringExpense 由 Life 與 LifeWatch 共用
-  - PhoneSessionManager（Life/Services/）：iPhone 端 WCSession 管理
-  - WatchExpenseStore / WatchLocationService / WatchSessionManager（LifeWatch/Services/）：Watch 端狀態管理與連線
-  - 目前帳本 / 分類使用 SwiftData 本地持久化（首次安裝自動建立預設個人帳本 + 預設分類）
+  - 開銷列表（ExpenseListView）：safeAreaInset LedgerSwitcher，滾動時漸變毛玻璃（iOS 18+）
+  - 帳本切換（LedgerSwitcher）：頂部橫向滾動 pill，群組帳本顯示 PayerChips
+  - 開銷詳情頁：金額 + 分類 + 位置地圖 + 編輯/刪除
+  - 開銷編輯 Sheet：複用計算機/分類/付款人/詳細欄位，預填所有欄位
+  - 統計圖表（ExpenseChartView）：月/年切換，環形圖 + 分類進度條
+- 帳本管理（已串接後端 API）
+  - 帳本設定頁 → 個人帳本（sheet 編輯）、群組帳本（push 詳情頁）
+  - 建立群組帳本（POST /api/ledgers）：自動生成 6 碼邀請碼 + 預設分類
+  - 掃碼加入（JoinLedgerView）：AVFoundation 掃 QR + 手動輸入邀請碼
+  - 退出帳本：未結清攔截，已結清 → confirmationDialog → POST /api/ledgers/:id/leave
+  - 帳本幣別：14 種預設幣別，已有開銷時不可變更
+- 分類管理（已串接後端 API，訪客不可編輯）
+  - CategorySettingsView：瀏覽、排序，訪客點擊 → alert「登入後可編輯」
+  - CategoryEditView：兩步驟圖示選擇，自訂顏色（ColorPicker）
+  - 「其他」分類（categoryId = null）：不可編輯/刪除/排序，永遠在最後
+  - 刪除分類 → Server 級聯 Expense/RecurringExpense.categoryId → null
+- 固定開銷管理（已串接後端 API）
+  - RecurringExpenseListView + RecurringExpenseEditView
+  - 排程：daily / weekly / monthly / yearly，月 29-31 日顯示橘色警告
+- 拆帳功能（群組帳本，已串接後端 API）
+  - 拆帳區塊：未結算開銷 → 人均分攤 → 貪婪配對 → 轉帳明細
+  - 結清：POST /api/ledgers/:id/settle → 標記已結算 + 建立 Settlement 紀錄
+  - 結算詳情頁：結算時間、操作者、轉帳明細快照
+- 個人頁面（已串接 PUT /api/auth/me）
+  - 頭像更換、名稱 inline 編輯、載具號碼（Code 128 條碼預覽）、登出
+- Apple Watch 快速記帳（LifeWatch App）
+  - Wizard 逐步導航：帳本 → 計算機 → 分類 → [付款人] → [備註] → [時間] → 儲存
+  - WatchConnectivity：iPhone → Watch（帳本/分類/isLoggedIn/isOnline）；Watch → iPhone（開銷）
+  - PhoneSessionManager 收到 Watch 開銷後呼叫 API 建立 + 更新快取
+  - 訪客模式：Watch 帳本列表只顯示個人帳本
+  - 離線提示：帳本列表底部 wifi.slash +「離線中」
 - 本地持久化架構（SwiftData）
-  - `Life/Models/Persistence/`：@Model 類別（PersistentLedger, PersistentExpense, PersistentCategory, PersistentMember, PersistentRecurringExpense, PersistentSettlement）
-  - `DataManager`：Repository 層，負責 SwiftData CRUD + struct ↔ @Model 映射
-  - `ExpenseStore` 委派 `DataManager` 讀寫，每次寫入後 `reload()` 重新載入
-  - `LifeSchema`：VersionedSchema（SchemaV1）+ LifeMigrationPlan，支援未來 schema 遷移
-  - `syncStatus` 欄位管理同步狀態（pending / synced / deleted），由 SyncEngine 驅動
-  - `LedgerMember.isCurrentUser`：識別當前使用者，取代舊的固定 ID 判斷
+  - Guest：`GuestExpense`（categoryKey 識別分類）
+  - Authenticated：`Cached*`（CachedLedger, CachedExpense, CachedCategory, CachedMember, CachedRecurringExpense, CachedSettlement）
+  - `DataManager`（@MainActor）：Repository 層，Guest 方法 + Cached 快取方法
+  - `ExpenseStore`（@MainActor）：業務邏輯層，依 auth 狀態切換 Guest / Authenticated 行為
+  - `LifeSchema`：VersionedSchema（SchemaV1）+ LifeMigrationPlan
 - 網路感知 + 離線模式
-  - `NetworkMonitor`（Life/Services/）：NWPathMonitor 偵測網路狀態，`@Observable` + `isOnline`
-  - LifeApp 以 `.environment(networkMonitor)` 注入，子 View 用 `@Environment(NetworkMonitor.self)` 取用
-  - 離線攔截（已登入用戶）：建立/加入群組帳本、退出/編輯群組帳本、分類管理、個人資料編輯 → alert「無法連線」
-  - 訪客不受離線影響（純本地操作）
-  - 開銷新增/編輯/刪除不攔截（排隊同步）
-  - PhoneSessionManager 同步 `isOnline` 狀態到 Watch
-- 後端 API + 同步引擎
-  - 後端資料表：Ledger、LedgerMember、Category、Expense、RecurringExpense、Settlement（Migration 003-010）
-  - Sync Push API（POST /api/sync/push）：Client 推送本地變更，Server upsert + 回傳 serverId mapping
-  - Sync Pull API（POST /api/sync/pull）：Client 帶 lastSyncAt 拉取 Server 變更，依 serverId 合併本地
-  - 同步策略：Push-then-Pull，Server-authoritative，以 localId 做 upsert 去重
-  - iOS `SyncEngine`（Life/Services/）：fullSync() = push() + pull()，loginSync() = pull() + 清除空白預設 + push()
-  - `DataManager` 新增同步方法：buildSyncPushPayload / applySyncMappings / mergeRemoteData / removeUnsyncedEmptyPersonalLedgers
-  - 同步時機：登入成功（loginSync）、App 回前景（fullSync）、網路恢復（fullSync）
-  - 登入同步策略：先 pull 再 push，避免登出後重建的空白預設帳本覆蓋 Server 資料
-  - 登出清除 lastSyncAt + resetToDefaults
-  - 個人資料 API（PUT /api/auth/me）：更新 name / carrierNumber
-- Watch 狀態整合
-  - WatchExpenseStore 新增 `isLoggedIn`、`isOnline` 屬性 + `availableLedgers` computed property
-  - 訪客模式：Watch 帳本列表只顯示個人帳本（過濾群組帳本）
-  - 離線提示：帳本列表底部顯示 wifi.slash + 「離線中」（不阻擋操作）
-  - WatchSessionManager.handleContext() 獨立處理 isLoggedIn / isOnline / ledgers 三個欄位
-  - AuthManager 更新名稱/載具時同步呼叫 API（fire-and-forget）
-  - User table 新增 carrierNumber 欄位
-- 群組帳本後端串接
-  - 後端 Ledger Controller（Api\Ledger）：7 個 API 涵蓋建立、查看、更新、加入、退出、成員、結算
-  - 建立群組帳本（POST /api/ledgers）：自動生成 6 碼邀請碼 + 預設分類 + owner 成員
-  - 加入群組帳本（POST /api/ledgers/join）：邀請碼驗證、重複成員檢查、未結算攔截
-  - 退出群組帳本（POST /api/ledgers/:id/leave）：未結算攔截、級聯刪除固定開銷、無成員時刪除帳本
-  - 結算拆帳（POST /api/ledgers/:id/settle）：標記開銷已結算 + 建立 Settlement 紀錄
-  - iOS 群組帳本操作改為 API 呼叫（非 SyncEngine 排隊）：
-    - ExpenseStore 新增 5 個 async 方法（createGroupLedger / joinGroupLedger / leaveGroupLedger / updateGroupLedger / settleGroupLedger）
-    - DataManager 新增 `serverIdForLedger()` / `addLedgerFromAPI()` 輔助方法
-    - LedgerSettingsView、JoinLedgerView、LedgerDetailView、ExpenseListView 改為 async API + error alert
-    - JoinLedgerView 移除 mock 邏輯，改為真實 API + loading 狀態
+  - `NetworkMonitor`：NWPathMonitor 偵測網路狀態，`.environment` 注入
+  - 已登入離線攔截：群組帳本操作、分類管理、個人資料 → alert「無法連線」
+  - 離線新增開銷不攔截（isSynced = false），網路恢復時自動批次同步
+- 後端 CRUD API（完整路由表見 docs/backend/api-routes.md）
+  - 資料表：User, Ledger, LedgerMember, Category, Expense, RecurringExpense, Settlement（Migration 001-007）
+  - State API（GET /api/state）：回傳用戶所有帳本完整資料
+  - Auth Init API（POST /api/auth/init）：登入初始化 + 上傳 Guest 開銷
+  - Category CRUD（POST/PUT/DELETE + sort）
+  - Expense CRUD（POST/PUT/DELETE + batch）
+  - RecurringExpense CRUD（POST/PUT/DELETE）
+  - Ledger API（建立/查看/更新/加入/退出/成員/結算）
 
 ---
 
@@ -218,9 +147,9 @@ life/
 | User | User | 用戶（支援 Google / Apple 登入） |
 | Ledger | Ledger | 帳本（personal / group） |
 | LedgerMember | LedgerMember | 帳本成員（owner / member） |
-| Category | Category | 分類（isSystemDefault 0/1） |
-| Expense | Expense | 開銷（isSettled 0/1） |
-| RecurringExpense | RecurringExpense | 固定開銷（isEnabled 0/1） |
+| Category | Category | 分類（key 識別系統預設，categoryId=null 為「其他」） |
+| Expense | Expense | 開銷（isSettled yes/no） |
+| RecurringExpense | RecurringExpense | 固定開銷（isEnabled yes/no） |
 | Settlement | Settlement | 結算紀錄 |
 
 ### Lib 工具

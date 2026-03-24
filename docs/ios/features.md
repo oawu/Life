@@ -1,8 +1,8 @@
 # iOS App 功能模組
 
-每個模組包含：畫面描述、使用者操作流程、目前實作狀態、後端需求。
+每個模組包含：畫面描述、使用者操作流程、後端 API 串接狀態。
 
-> **目前狀態**：所有資料使用 SwiftData 本地持久化（首次安裝自動建立預設帳本與分類），尚未串接後端 API。
+> **架構**：已登入用戶採用 **API-first** 模式（Server 為唯一真實資料來源，本地為 SwiftData 快取）。訪客模式為純本地持久化。詳見 `docs/ios/overview.md`。
 
 ---
 
@@ -13,15 +13,17 @@
 **AuthState 狀態機**（AuthManager）：
 - `.launching`：App 啟動，檢查 token 中 → 顯示 LaunchView
 - `.guest`：未登入 → 訪客模式，可用個人帳本記帳
-- `.authenticated`：已登入 → 完整功能
+- `.authenticated`：已登入 → 完整功能（API-first + 本地快取）
 
 **權限矩陣**：
 
 | 功能 | 訪客 | 已登入 |
 |------|------|--------|
-| 個人帳本記帳/瀏覽/編輯/刪除 | O | O |
-| 分類新增/編輯/刪除/排序 | O | O |
-| 統計圖表、固定開銷（個人帳本） | O | O |
+| 個人帳本記帳/瀏覽/刪除 | O | O |
+| 開銷編輯 | O | O |
+| 分類新增/編輯/刪除/排序 | X（靜態預設不可編輯） | O |
+| 統計圖表 | O | O |
+| 固定開銷管理 | X | O |
 | 建立 / 掃碼加入群組帳本 | X → LoginPromptView | O |
 | 個人資料/頭像/載具 | X → Tab 2 訪客登入頁 | O |
 
@@ -41,6 +43,7 @@
 3. 取得 identityToken + fullName
 4. POST /api/auth/apple/callback → 取得 JWT + UserInfo
 5. JWT 存入 Keychain → authState = .authenticated
+6. LifeApp.handleAuthStateChange() 觸發 initAfterLogin()
 ```
 
 **開發者登入（isDev）**：
@@ -59,29 +62,39 @@
 5. 失敗 → 清除 token → authState = .guest → HomeView（訪客模式）
 ```
 
-**登出**（LifeApp.handleAuthStateChange）：
+**登入轉換（Guest → Authenticated）**：
+```
+1. Apple Sign In 成功 → authState = .authenticated
+2. LifeApp 觸發 handleAuthStateChange()
+3. 取得所有 GuestExpense
+4. expenseStore.initAfterLogin(guestExpenses:)
+   a. POST /api/auth/init（上傳 guest 開銷帶 categoryKey）
+   b. Server 建立/找到個人帳本 + 預設分類 + 建立開銷
+   c. 回傳完整 state → DataManager.rebuildFromState()
+   d. 清除 GuestExpense
+5. PhoneSessionManager 同步 isLoggedIn = true 到 Watch
+```
+
+**登出（Authenticated → Guest）**：
 ```
 1. authManager.signOut() → 清除 token + 用戶資訊
 2. authState = .guest
-3. DataManager.resetToDefaults() → 清除所有資料 + 重建預設帳本與分類
-4. ExpenseStore.reload() → 重設 currentLedgerId
+3. dataManager.clearAllCache() → 清除所有 Cached* 資料
+4. expenseStore.reload() → 重設 currentLedgerId
 5. PhoneSessionManager 同步 isLoggedIn = false 到 Watch
 ```
 
 **備份提醒**：訪客累積第 10 筆開銷時顯示 alert，提供「登入」（→ LoginPromptView）和「稍後」選項
 
-### 已實作的後端 API
+### 已串接的後端 API
 
 | Method | Path | Body | Response | 說明 |
 |--------|------|------|----------|------|
 | POST | /api/auth/apple/callback | identityToken, fullName, isDev? | { token, user } | Apple 登入 |
 | GET | /api/auth/me | — | { user } | 驗證 token |
-
-### 已實作的後端 Table
-
-| Table | 欄位 | 說明 |
-|-------|------|------|
-| User | id, email, name, avatar?, appleId, status, createAt, updateAt | 用戶 |
+| PUT | /api/auth/me | name?, carrierNumber? | { user } | 更新個人資料 |
+| POST | /api/auth/init | expenses[] | StateResponse | 登入初始化 |
+| GET | /api/state | — | StateResponse | 取得完整 state |
 
 ---
 
@@ -114,6 +127,9 @@
    └─ 位置可：取得目前位置 / 地圖選點 / 清除
 6. 點「儲存」
    └─ 驗證：金額 > 0、已選分類、群組帳本需選付款人
+   └─ Guest: DataManager.addGuestExpense()
+   └─ Authenticated + Online: POST /api/ledgers/:id/expenses → cacheExpense
+   └─ Authenticated + Offline: DataManager.addUnsyncedExpense()
    └─ 儲存成功 → 顯示金額「已儲存 $150」→ 表單重置
 ```
 
@@ -128,19 +144,14 @@
 | 日期 | 預設今天，可改 |
 | 位置 | 選填 |
 
-### 待實作後端需求
+### 已串接的後端 API
 
 | Method | Path | Body | 說明 |
 |--------|------|------|------|
-| POST | /api/expenses | amount, categoryId, memo, date, lat?, lon?, address?, ledgerId, paidByMemberId? | 新增開銷 |
-| GET | /api/expenses | ledgerId, page?, limit? | 取得開銷列表 |
+| POST | /api/ledgers/:id/expenses | categoryId?, amount, memo, date, latitude?, longitude?, address?, paidByUserId? | 新增開銷 |
+| POST | /api/ledgers/:id/expenses/batch | expenses[] | 批次新增（離線同步） |
+| PUT | /api/expenses/:id | 同上 | 更新開銷 |
 | DELETE | /api/expenses/:id | — | 刪除開銷 |
-
-### 待設計 Table
-
-| Table | 欄位（建議） | 說明 |
-|-------|-------------|------|
-| Expense | id, ledgerId, categoryId, amount, memo, date, latitude?, longitude?, address?, paidByUserId?, createdByUserId, createAt | 開銷紀錄 |
 
 ---
 
@@ -156,7 +167,7 @@
 - 列表：按日期分組（新→舊），Section header 顯示日期 + 當日小計
 - 時間線包含：開銷群組 + 結算紀錄（群組帳本）
 - 每行：分類圖示（帶顏色）+ 分類名 + 備註 + 付款人（群組帳本）+ 金額
-- 左滑刪除
+- 左滑刪除（async throws）
 
 ### 流程
 
@@ -165,7 +176,7 @@
 2. 顯示目前帳本的所有開銷
 3. 按日期分組排列
 4. 群組帳本：頂部顯示拆帳區塊（見 Section 8）
-5. 左滑某筆 → 刪除
+5. 左滑某筆 → 刪除（API → 更新快取）
 ```
 
 ---
@@ -189,7 +200,7 @@
 
 - 複用 CalculatorView、CategoryGridView、PayerChips、ExpenseDetailFields
 - onAppear 預填所有欄位（金額、分類、備註、日期、付款人、位置）
-- 取消 / 儲存按鈕
+- 取消 / 儲存按鈕（async throws）
 
 ### 流程
 
@@ -200,11 +211,11 @@
 
 編輯：
 1. 詳情頁右上角「編輯」→ sheet ExpenseEditView
-2. 修改欄位 → 儲存 → ExpenseStore.updateExpense()
+2. 修改欄位 → 儲存 → PUT /api/expenses/:id → updateCachedExpense
 
 刪除：
 1. 詳情頁底部「刪除開銷」→ confirmationDialog 確認
-2. 刪除成功 → pop back
+2. DELETE /api/expenses/:id → deleteCachedExpense → pop back
 ```
 
 ---
@@ -222,14 +233,6 @@
 | 環形圖 | Swift Charts SectorMark（innerRadius 0.618），中心顯示總金額 |
 | 分類明細 | 圖示色塊 + 名稱 + 進度條 + 金額 + 百分比，按金額降序 |
 
-### 流程
-
-```
-1. 開銷列表右上角按鈕 → push ExpenseChartView
-2. 切換月/年 segmented Picker → 重新分組統計
-3. Toggle 圓餅圖顯隱
-```
-
 ---
 
 ## 4. 分類管理（Category Management）
@@ -238,9 +241,11 @@
 
 **CategorySettingsView** — 從 AddExpenseView 分類區的「設定」push 進入
 
-- 頂部虛線「＋新增分類」按鈕
 - 分類列表：圖示（帶顏色方塊）+ 名稱，可拖曳排序
 - 點擊分類 → sheet 開啟 CategoryEditView
+- 訪客點擊分類 → alert「登入後可編輯」
+- 訪客：隱藏新增按鈕、禁用排序
+- 已登入離線：點擊 → alert「無法連線」
 
 **CategoryEditView** — Sheet 呈現
 
@@ -255,42 +260,41 @@
 ### 流程
 
 ```
-新增：
-1. 點「新增分類」→ 開啟 CategoryEditView（add mode）
+新增（已登入 + 有網路）：
+1. 點右上角新增按鈕 → 開啟 CategoryEditView（add mode）
 2. 預設無圖示（顯示 questionmark），必須選圖示才能儲存
 3. 輸入名稱 + 選顏色 + 選圖示 → 儲存
+4. POST /api/ledgers/:id/categories → cacheCategory
 
-編輯：
+編輯（已登入 + 有網路）：
 1. 點擊分類 → 開啟 CategoryEditView（edit mode）
 2. 修改名稱/顏色/圖示 → 儲存
-3. 儲存後自動更新該分類的所有開銷參考
+3. PUT /api/categories/:id → updateCachedCategory
 
 刪除：
-1. 編輯模式點「刪除分類」→ 確認 → 刪除
+1. 編輯模式點「刪除分類」→ 確認
+2. DELETE /api/categories/:id → deleteCachedCategory
+3. Server 級聯：所屬 Expense/RecurringExpense 的 categoryId → null（其他）
 
-排序：
+排序（已登入 + 有網路）：
 1. 拖曳手柄調整順序
+2. PUT /api/ledgers/:id/categories/sort → updateCategorySortOrder
 ```
 
-### 圖示群組
+### 「其他」分類
 
-9 組：餐飲、交通、購物、居住、娛樂、財務、健康、通訊、其他
+- `categoryId = null`（Server 端）對應「其他」分類
+- 不可編輯、不可刪除、不可排序，永遠在最後
+- 刪除分類時，所屬開銷與固定開銷自動歸類到「其他」
 
-### 待實作後端需求
+### 已串接的後端 API
 
 | Method | Path | Body | 說明 |
 |--------|------|------|------|
-| GET | /api/ledgers/:id/categories | — | 取得帳本的分類列表 |
-| POST | /api/ledgers/:id/categories | name, icon, color, sort | 新增分類 |
+| POST | /api/ledgers/:id/categories | name, icon, color | 建立分類 |
 | PUT | /api/categories/:id | name?, icon?, color? | 更新分類 |
 | DELETE | /api/categories/:id | — | 刪除分類 |
-| PATCH | /api/ledgers/:id/categories/sort | ids: [String] | 排序分類 |
-
-### 待設計 Table
-
-| Table | 欄位（建議） | 說明 |
-|-------|-------------|------|
-| Category | id, ledgerId, name, icon, color, sort, createAt | 分類 |
+| PUT | /api/ledgers/:id/categories/sort | categoryIds[] | 排序分類 |
 
 ---
 
@@ -310,7 +314,6 @@
 - 三種 mode：add / editPersonal / editGroup
 - 名稱 TextField + 幣別選擇器（14 種幣別）+ 取消/儲存按鈕
 - 帳本已有開銷時，幣別選擇器 disabled 並顯示提示
-- add mode 建立群組帳本：自動生成邀請碼、預設成員「我」、使用群組預設分類
 
 **LedgerDetailView** — 群組帳本詳情頁（push 進入）
 
@@ -341,66 +344,51 @@
 ### 流程
 
 ```
-建立帳本：
+建立群組帳本（已登入 + 有網路）：
 1. 點「新增帳本」→ 選「自己建立」
-2. 輸入名稱 → 儲存
-3. 自動生成邀請碼、預設成員「我」、群組預設分類
+2. 輸入名稱 + 選幣別 → 儲存
+3. POST /api/ledgers → cacheLedgerFromState
+4. Server 自動生成邀請碼 + 預設分類 + owner 成員
 
-掃碼加入：
+掃碼加入（已登入 + 有網路）：
 1. 點「新增帳本」→ 選「掃碼加入」
 2. 掃 QR Code 或手動輸入 6 碼邀請碼
-3. 成功 → 顯示成功 overlay → 完成後加入帳本列表
-（目前為 mock 邏輯，建立假的「好友帳本」）
+3. POST /api/ledgers/join → cacheLedgerFromState
+4. 成功 → 顯示成功 overlay → 完成後加入帳本列表
 
-編輯帳本：
-1. 個人帳本：點擊 → sheet 修改名稱 / 幣別
-2. 群組帳本：點擊 → push 詳情頁 → 點「編輯」→ sheet 修改名稱 / 幣別
+編輯帳本（已登入 + 有網路）：
+1. 個人帳本：點擊 → sheet 修改名稱 / 幣別 → PUT /api/ledgers/:id
+2. 群組帳本：push 詳情頁 → 點「編輯」→ sheet 修改 → PUT /api/ledgers/:id
 
-分享邀請碼：
-1. 進入群組帳本詳情頁
-2. 複製邀請碼（toast 提示「已複製邀請碼」）
-3. 或讓對方掃描 QR Code
-
-退出帳本：
+退出帳本（已登入 + 有網路）：
 1. 群組帳本詳情頁 → 點「退出帳本」
 2. 帳本尚未結清 → alert 攔截（「帳本尚未結清，無法退出」）
-3. 已結清 → confirmationDialog 確認 → 退出並自動切回個人帳本
+3. 已結清 → confirmationDialog 確認 → POST /api/ledgers/:id/leave
+4. 退出成功 → deleteCachedLedger → 自動切回個人帳本
 
 人員異動規則：
 - 帳本尚未結清時，任何人員無法加入或退出
-- 加入群組帳本：未結清時 alert 攔截
-- 退出群組帳本：未結清時 alert 攔截
-
-排序：
-1. 拖曳群組帳本調整順序（個人帳本固定在最前）
+- Server 端驗證，未結清時回傳錯誤
 ```
 
 ### 帳本類型
 
 | 類型 | 邀請碼 | 成員 | 幣別 | 分類 | 說明 |
 |------|--------|------|------|------|------|
-| personal | 無 | 僅自己 | 預設 TWD | 個人預設（25 個） | 每人一個，不可刪除 |
-| group | 有 | 多人 | 建立時選擇 | 群組預設（7 個） | 可多個，透過邀請碼加入 |
+| personal | 無 | 僅自己 | 預設 TWD | 個人預設（26 個） | 每人一個，不可刪除 |
+| group | 有 | 多人 | 建立時選擇 | 群組預設（6 個） | 可多個，透過邀請碼加入 |
 
-### 待實作後端需求
+### 已串接的後端 API
 
 | Method | Path | Body | 說明 |
 |--------|------|------|------|
-| GET | /api/ledgers | — | 取得用戶所有帳本 |
-| POST | /api/ledgers | name | 建立群組帳本（後端生成邀請碼） |
-| PUT | /api/ledgers/:id | name? | 更新帳本名稱 |
-| DELETE | /api/ledgers/:id | — | 刪除帳本（僅建立者？或所有成員？） |
-| PATCH | /api/ledgers/sort | ids: [String] | 排序帳本 |
-| POST | /api/ledgers/join | inviteCode | 以邀請碼加入帳本 |
-| GET | /api/ledgers/:id/members | — | 取得帳本成員 |
-| DELETE | /api/ledgers/:id/members/:userId | — | 移除成員 / 退出帳本 |
-
-### 待設計 Table
-
-| Table | 欄位（建議） | 說明 |
-|-------|-------------|------|
-| Ledger | id, name, type(personal/group), currency(varchar 3), inviteCode?, createdByUserId, sort, createAt, updateAt | 帳本 |
-| LedgerMember | id, ledgerId, userId, role(owner/member), joinAt | 帳本成員（多對多） |
+| POST | /api/ledgers | name, currency | 建立群組帳本 |
+| GET | /api/ledgers/:id | — | 取得帳本詳情 |
+| PUT | /api/ledgers/:id | name?, currency? | 更新帳本 |
+| POST | /api/ledgers/join | inviteCode | 加入群組帳本 |
+| POST | /api/ledgers/:id/leave | — | 退出群組帳本 |
+| GET | /api/ledgers/:id/members | — | 取得成員列表 |
+| POST | /api/ledgers/:id/settle | transfers[] | 結算拆帳 |
 
 ---
 
@@ -447,34 +435,15 @@
 | 區塊 | 說明 |
 |------|------|
 | 頭像區塊 | 100pt 圓形大頭照 + 「更改」文字按鈕，點擊 → confirmationDialog 選擇相簿/拍照 |
-| 名稱 | 點擊切換為 TextField inline 編輯，完成後自動儲存 |
+| 名稱 | 點擊切換為 TextField inline 編輯，完成後自動儲存（PUT /api/auth/me） |
 | Email | 靜態顯示，不可編輯 |
+| 載具號碼 | NavigationLink push 到 CarrierEditView |
 | 登出按鈕 | `role: .destructive`，點擊 → alert 確認後登出 |
 
-**ImagePickerView**（Views/Profile/）— UIViewControllerRepresentable
+**CarrierEditView** — 載具號碼編輯
 
-- 包裝 UIImagePickerController
-- 支援 photoLibrary 和 camera 兩種來源
-- allowsEditing: true（裁切圓形頭像）
-
-### 流程
-
-```
-更換頭像：
-1. 點擊頭像圖片或「更改」按鈕
-2. confirmationDialog：「從相簿選擇」/「拍照」
-3. ImagePickerView sheet → 選擇/拍攝照片
-4. 回傳 UIImage → authManager.avatarImage
-
-編輯名稱：
-1. 點擊名稱 → 切換為 TextField
-2. 輸入完成（鍵盤 Done 或失焦）→ authManager.updateName()
-
-登出：
-1. 點「登出」→ alert「確定要登出嗎？」
-2. 確認 → AuthManager.signOut()
-3. 清除 Keychain JWT → isAuthenticated = false → 顯示 LoginView
-```
+- Code 128 條碼即時預覽 + 格式驗證（/ + 7 碼）
+- 儲存後 PUT /api/auth/me
 
 ---
 
@@ -487,7 +456,7 @@
 | 區塊 | 說明 |
 |------|------|
 | 拆帳區塊 | 列表頂部 Section，顯示轉帳明細（有差異時才顯示） |
-| 結清按鈕 | 確認後標記所有開銷為已結算 |
+| 結清按鈕 | 確認後 POST /api/ledgers/:id/settle |
 | 結算紀錄 | 時間線中顯示「已經由 xxx 結算拆帳！」，可點擊進入詳情 |
 
 **SettlementDetailView** — 從結算紀錄 push 進入
@@ -504,20 +473,13 @@
 3. 貪婪配對產生最少筆轉帳明細
 4. 持平時不顯示拆帳區塊
 
-結清：
+結清（已登入 + 有網路）：
 1. 點「結清」→ confirmationDialog 確認
-2. 標記所有開銷為已結算
-3. 建立 SettlementRecord（含轉帳明細快照 + 幣別）
-4. toast「已完成結算」
-5. 時間線中顯示結算紀錄
+2. POST /api/ledgers/:id/settle（帶 transfers）
+3. Server 標記所有開銷為已結算 + 建立 Settlement 紀錄
+4. 回傳 settlement → cacheSettlement + refreshState
+5. toast「已完成結算」
 ```
-
-### 資料模型
-
-- `SettlementTransfer`：from（成員）→ to（成員）+ 金額
-- `SettlementRecord`：結算時間 + 操作者 + 轉帳明細快照 + 幣別符號
-- `Ledger.settledExpenseIds`：已結算開銷 ID 集合（排除於拆帳計算）
-- `Ledger.settlementRecords`：結算歷史紀錄
 
 ---
 
@@ -528,7 +490,7 @@
 **RecurringExpenseListView** — 從帳本設定 / 帳本詳情 push 進入
 
 - 列表：金額 + 排程描述 + 備註 + 付款人（群組帳本）
-- 左滑刪除
+- 左滑刪除（async throws）
 - 右上角「＋」新增按鈕
 
 **RecurringExpenseEditView** — Sheet 呈現
@@ -544,16 +506,19 @@
 ### 流程
 
 ```
-新增：
+新增（已登入 + 有網路）：
 1. 點「＋」→ sheet RecurringExpenseEditView（add mode）
 2. 輸入金額 + 選分類 + 選排程 → 儲存
+3. POST /api/ledgers/:id/recurring-expenses → cacheRecurringExpense
 
-編輯：
+編輯（已登入 + 有網路）：
 1. 點擊項目 → sheet RecurringExpenseEditView（edit mode）
 2. 修改 → 儲存
+3. PUT /api/recurring-expenses/:id → updateCachedRecurringExpense
 
-刪除：
+刪除（已登入 + 有網路）：
 1. 左滑 → 刪除
+2. DELETE /api/recurring-expenses/:id → deleteCachedRecurringExpense
 ```
 
 ### 排程規則
@@ -568,14 +533,13 @@
 - 每月 29-31 日、每年特殊日期顯示橘色警告
 - 新增時排程不預選，必須選擇才能儲存
 
-### 入口
+### 已串接的後端 API
 
-| 帳本類型 | 入口位置 |
-|----------|----------|
-| 個人帳本 | LedgerSettingsView → 固定開銷 |
-| 群組帳本 | LedgerDetailView → 固定開銷 |
-
----
+| Method | Path | Body | 說明 |
+|--------|------|------|------|
+| POST | /api/ledgers/:id/recurring-expenses | categoryId?, amount, frequencyType, frequencyValue?, memo, latitude?, longitude?, address?, paidByUserId? | 建立 |
+| PUT | /api/recurring-expenses/:id | 同上 | 更新 |
+| DELETE | /api/recurring-expenses/:id | — | 刪除 |
 
 ---
 
@@ -595,46 +559,17 @@
 | 時間 | 顯示目前選擇時間，點擊 → push WatchDatePickerView |
 | 儲存按鈕 | 驗證後儲存 |
 
-**WatchAmountInputView** — 數字鍵盤（0–9 + 清除 + 確認）
-
-**WatchCategoryPickerView** — 分類列表（圖示 + 名稱，來自 WatchExpenseStore）
-
-**WatchLedgerPickerView** — 帳本列表（來自 WatchExpenseStore）
-
-**WatchPayerPickerView** — 付款人列表（來自目前帳本成員）
-
-**WatchDatePickerView** — 日期與時間選擇（DatePicker 元件）
-
-### 流程
-
-```
-1. 選擇帳本（WatchLedgerPickerView）
-2. 輸入金額（WatchAmountInputView）
-3. 選擇分類（WatchCategoryPickerView）
-4.（群組帳本）選擇付款人（WatchPayerPickerView）
-5. 輸入備註（WatchMemoInputView，選填）
-6. 選擇時間（WatchDatePickerView，預設目前時間）
-7. 點「儲存」
-   └─ 驗證：金額 > 0、已選分類
-   └─ 儲存成功 → haptic 成功回饋 + 打勾動畫 → 重置表單
-```
-
 ### WatchConnectivity 同步機制
 
 | 方向 | 方法 | 內容 |
 |------|------|------|
-| iPhone → Watch | `updateApplicationContext` | 帳本列表、分類、成員、幣別（背景同步） |
+| iPhone → Watch | `updateApplicationContext` | 帳本列表、分類、成員、幣別、isLoggedIn、isOnline |
 | Watch → iPhone | `sendMessage` / `transferUserInfo` | 新增的開銷資料 |
 
-- iPhone 端：`PhoneSessionManager`（`Life/Services/`）負責發送 context、接收 Watch 傳來的開銷並寫入 `ExpenseStore`
-- Watch 端：`WatchSessionManager`（`LifeWatch/Services/`）接收 context 更新 `WatchExpenseStore`、儲存後回傳開銷
-
-### 目前實作狀態
-
-- Watch UI 全部完成（WatchAddExpenseView + 6 個子畫面）
-- WatchConnectivity 已實作（PhoneSessionManager + WatchSessionManager）
-- 帳本 / 分類資料：WatchExpenseStore 內建 mock 資料，等後端上線後改為從 iPhone 同步
-- 開銷儲存：儲存至 WatchExpenseStore，並透過 WCSession 傳回 iPhone
+- iPhone 端：`PhoneSessionManager` 收到 Watch 開銷後呼叫 API 建立 + 更新快取
+- Watch 端：`WatchSessionManager` 接收 context 更新 `WatchExpenseStore`
+- 訪客模式：Watch 帳本列表只顯示個人帳本（過濾群組帳本）
+- 離線提示：帳本列表底部顯示 wifi.slash +「離線中」（不阻擋操作）
 
 ---
 
@@ -646,9 +581,3 @@
 
 - 今日花費摘要
 - 快速記帳入口
-
-### 後端同步
-
-- 本地資料使用 SwiftData 持久化（App 重啟不遺失）
-- 各 @Model 預留 `syncStatus` / `serverId` 欄位，待後端 API 串接
-- 需實作後端 API 後改為網路同步（離線暫存 + 上線同步機制）

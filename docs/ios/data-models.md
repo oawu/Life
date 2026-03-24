@@ -1,176 +1,218 @@
 # iOS 資料模型
 
-Client 端資料使用 SwiftData 本地持久化（`Life/Models/Persistence/`）。View 層仍使用 `Shared/Models/` 的 struct 作為 View Model，由 `DataManager` 負責 struct ↔ @Model 映射。本文件記錄現有模型結構，並標注後端對應的 Table 設計方向。
+iOS 端分為 **Guest**（純本地 SwiftData）和 **Authenticated**（API-first + SwiftData 快取）兩種模式。View 層統一使用 `Shared/Models/` 的 struct 作為 ViewModel，由 `DataManager` 負責 SwiftData ↔ struct 映射。
 
 > **共用 Models**：`Expense`、`Ledger`、`ExpenseCategory`、`Currency`、`RecurringExpense` 位於 `Shared/Models/`，由 Life（iPhone）和 LifeWatch（Watch）兩個 target 共用。`CategoryIcon` 僅 Life 使用，保留在 `Life/Models/`。
 
 ---
 
-## Client 資料模型
+## SwiftData 持久化模型
+
+位於 `Life/Models/Persistence/`，由 `LifeSchema`（SchemaV1）定義。
+
+### GuestExpense（訪客開銷）
+
+未登入時的本地開銷儲存，登入後透過 `POST /api/auth/init` 上傳至 Server。
+
+```swift
+@Model final class GuestExpense {
+    var id: UUID = UUID()
+    var categoryKey: String    // "breakfast", "lunch", ... 對應 ExpenseCategory.defaults 的 key
+    var amount: Int
+    var memo: String
+    var date: Date
+    var latitude: Double?
+    var longitude: Double?
+    var address: String?
+}
+```
+
+### CachedLedger（帳本快取）
+
+```swift
+@Model final class CachedLedger {
+    @Attribute(.unique) var serverId: Int
+    var name: String
+    var type: String           // "personal" / "group"
+    var currencyCode: String
+    var inviteCode: String?
+    var sortOrder: Int
+    @Relationship(deleteRule: .cascade) var members: [CachedMember]
+    @Relationship(deleteRule: .cascade) var categories: [CachedCategory]
+    @Relationship(deleteRule: .cascade) var expenses: [CachedExpense]
+    @Relationship(deleteRule: .cascade) var recurringExpenses: [CachedRecurringExpense]
+    @Relationship(deleteRule: .cascade) var settlements: [CachedSettlement]
+}
+```
+
+`toViewModel()` 方法將 CachedLedger 及其所有關聯轉換為 `Ledger` struct，使用 `serverId` 產生確定性 UUID 作為 View 的 stable identity。
+
+### CachedCategory（分類快取）
+
+```swift
+@Model final class CachedCategory {
+    @Attribute(.unique) var serverId: Int
+    var key: String?           // 系統預設分類才有（如 "breakfast"）
+    var name: String
+    var icon: String
+    var colorHex: String
+    var sortOrder: Int
+    var ledger: CachedLedger?
+}
+```
+
+### CachedExpense（開銷快取）
+
+```swift
+@Model final class CachedExpense {
+    var localId: UUID = UUID()  // SwiftData 內部識別（不送 Server）
+    var serverId: Int?          // nil = 離線建立，尚未同步
+    var categoryServerId: Int?  // nil = 其他分類
+    var amount: Int
+    var memo: String
+    var date: Date
+    var latitude: Double?
+    var longitude: Double?
+    var address: String?
+    var isSettled: Bool
+    var paidByUserServerId: Int?
+    var createdByUserServerId: Int?
+    var isSynced: Bool          // false = 離線建立待同步
+    var ledger: CachedLedger?
+}
+```
+
+`isSynced = false` 代表離線建立的開銷，網路恢復時由 `ExpenseStore.syncOfflineExpenses()` 批次上傳。
+
+### CachedMember（成員快取）
+
+```swift
+@Model final class CachedMember {
+    @Attribute(.unique) var serverId: Int
+    var userId: Int
+    var name: String
+    var role: String           // "owner" / "member"
+    var isCurrentUser: Bool
+    var ledger: CachedLedger?
+}
+```
+
+### CachedRecurringExpense（固定開銷快取）
+
+```swift
+@Model final class CachedRecurringExpense {
+    @Attribute(.unique) var serverId: Int
+    var categoryServerId: Int?
+    var amount: Int
+    var frequencyType: String
+    var frequencyValue: String? // JSON 字串
+    var memo: String
+    var isEnabled: Bool
+    var latitude: Double?
+    var longitude: Double?
+    var address: String?
+    var paidByUserServerId: Int?
+    var createdByUserServerId: Int?
+    var ledger: CachedLedger?
+}
+```
+
+### CachedSettlement（結算紀錄快取）
+
+```swift
+@Model final class CachedSettlement {
+    @Attribute(.unique) var serverId: Int
+    var date: Date
+    var settledByUserId: Int
+    var transfersJson: String?  // JSON 字串
+    var currencySymbol: String
+    var ledger: CachedLedger?
+}
+```
+
+---
+
+## Shared ViewModel 模型
+
+位於 `Shared/Models/`，Life 和 LifeWatch 共用。
 
 ### Expense
-
-開銷紀錄，存在 Ledger 內。
 
 ```swift
 struct Expense: Identifiable, Equatable {
     let id: UUID
+    var serverId: Int?          // Server 端 ID（離線建立時為 nil）
     var amount: Double
-    var category: ExpenseCategory   // 完整物件（非 ID 參考）
+    var category: ExpenseCategory
     var memo: String
     var date: Date
     var latitude: Double?
     var longitude: Double?
     var address: String?
     var ledgerId: String
-    var paidBy: LedgerMember?       // 群組帳本的付款人
+    var paidBy: LedgerMember?
 }
 ```
-
-**備註**：目前 `category` 存完整物件，更新分類時需同步更新所有引用該分類的開銷。後端應改為 `categoryId` 外鍵。檔案位置：`Shared/Models/Expense.swift`（原本提取自 `Life/Services/ExpenseStore.swift`）。
-
----
 
 ### Ledger
 
-帳本，包含分類和開銷。
-
 ```swift
 struct Ledger: Identifiable, Equatable {
-    let id: String
+    let id: String              // Authenticated: String(serverId), Guest: 固定值
     var name: String
-    var type: LedgerType            // .personal | .group
-    var inviteCode: String?         // 群組帳本 6 碼邀請碼
+    var type: LedgerType        // .personal | .group
+    var inviteCode: String?
     var members: [LedgerMember]
-    var currency: Currency          // 帳本幣別
+    var currency: Currency
     var categories: [ExpenseCategory]
     var expenses: [Expense]
     var recurringExpenses: [RecurringExpense]
-    var settledExpenseIds: Set<UUID> = []        // 已結算開銷 ID
-    var settlementRecords: [SettlementRecord] = [] // 結算歷史紀錄
+    var settledExpenseIds: Set<UUID> = []
+    var settlementRecords: [SettlementRecord] = []
 }
 ```
 
-| 屬性 | personal | group |
-|------|----------|-------|
-| inviteCode | nil | 6 碼（自動生成） |
-| members | 僅「我」 | 多人 |
-| currency | 預設 .twd | 建立時選擇 |
-| categories | 個人預設（25） | 群組預設（7） |
-| settledExpenseIds | 不使用 | 重設時收集已結算開銷 ID |
-| settlementRecords | 不使用 | 結算歷史（時間 + 操作者） |
-
----
-
-### SettlementTransfer
-
-結算時的轉帳明細，記錄誰付給誰多少。
+### ExpenseCategory
 
 ```swift
-struct SettlementTransfer: Identifiable, Equatable {
-    let id: UUID
-    var from: LedgerMember
-    var to: LedgerMember
-    var amount: Double
+struct ExpenseCategory: Identifiable, Equatable, Hashable {
+    let id: String
+    var key: String?            // 系統預設分類識別碼（Guest 時 id == key）
+    var name: String
+    var icon: String            // SF Symbol
+    var color: Color
 }
 ```
 
----
-
-### SettlementRecord
-
-結算紀錄，記錄拆帳重設的時間、操作者與轉帳明細快照。
-
-```swift
-struct SettlementRecord: Identifiable, Equatable {
-    let id: UUID
-    var date: Date
-    var settledBy: LedgerMember
-    var transfers: [SettlementTransfer]
-    var currencySymbol: String
-}
-```
-
----
+- `key` 用於 Guest → Authenticated 登入轉換時配對分類
+- `categoryId = null`（Server）對應 `ExpenseCategory.otherCategory` 靜態屬性
+- `isOther` computed property 判斷是否為「其他」分類
+- 靜態預設：`ExpenseCategory.defaults`（26 個人預設）、`ExpenseCategory.groupDefaults`（6 群組預設）
 
 ### LedgerMember
-
-帳本成員。
 
 ```swift
 struct LedgerMember: Identifiable, Equatable, Hashable {
     let id: String
     var name: String
+    var isCurrentUser: Bool = false
 }
 ```
-
-**備註**：目前 `id` 為任意字串，後端應對應 `User.id`。`Ledger.defaultMemberId = "me"` 代表當前用戶。
-
----
-
-### LedgerType
-
-```swift
-enum LedgerType: Equatable {
-    case personal
-    case group
-}
-```
-
----
 
 ### Currency
-
-帳本幣別。
 
 ```swift
 struct Currency: Equatable, Hashable, Identifiable {
     let code: String      // "TWD", "JPY", "USD"
     let symbol: String    // "$", "¥", "€"
     let name: String      // "新台幣", "日幣", "美元"
-
     var unitLabel: String  // TWD→"元", JPY→"円", CNY→"元", 其他→code
 }
 ```
 
 14 種預設幣別（`Currency.all`）：TWD、JPY、USD、EUR、GBP、KRW、CNY、THB、VND、AUD、CAD、SGD、HKD、MYR。
 
-預設值 `Currency.twd`。帳本已有開銷時，幣別不可變更。
-
----
-
-### ExpenseCategory
-
-開銷分類，存在 Ledger 內。
-
-```swift
-struct ExpenseCategory: Identifiable, Equatable, Hashable {
-    let id: String
-    var name: String
-    var icon: String       // SF Symbol 名稱
-    var color: Color       // SwiftUI Color
-}
-```
-
-**系統預設「其他」分類**：每個帳本最後一個分類為「其他」（個人 `id: "other"`、群組 `id: "groupOther"`），不可編輯、不可刪除、不可排序。刪除分類時，所屬開銷與固定開銷自動歸類到「其他」。`isSystemOther` 屬性判斷是否為系統預設。
-
-**預設分類**：
-
-| 群組 | 個人預設 | 群組預設 |
-|------|---------|---------|
-| 餐飲 | 早餐、午餐、晚餐、甜點、飲料 | 聚餐 |
-| 購物 | 衣服、日用品、醫療、購物 | 採買 |
-| 居住 | 租金 | 租金、水電 |
-| 交通 | 交通、汽車、加油、停車、大眾運輸 | 交通 |
-| 休閒 | 娛樂、運動、學習 | 娛樂 |
-| 財務 | 信用卡、投資、轉帳 | — |
-| 其他 | 禮物、紅包、電話費、訂閱、3C、**其他**（系統預設） | **其他**（系統預設） |
-
----
-
 ### RecurringExpense
-
-固定開銷，存在 Ledger 內。
 
 ```swift
 struct RecurringExpense: Identifiable, Equatable {
@@ -179,7 +221,7 @@ struct RecurringExpense: Identifiable, Equatable {
     var category: ExpenseCategory
     var frequency: RecurringFrequency
     var memo: String
-    var isEnabled: Bool             // 開關，關閉時排程不會建立開銷
+    var isEnabled: Bool
     var latitude: Double?
     var longitude: Double?
     var address: String?
@@ -199,270 +241,172 @@ enum RecurringFrequency: Equatable {
 }
 ```
 
-- `displayLabel`：「每天」「每週三」「每月 15 日」「每年 1 月 1 日」
-- `dateWarningMessage`：月 29-31 日、年份特殊日期的警告文字
-
----
-
-### CategoryIcon
-
-分類圖示選擇器的資料來源。
+### SettlementTransfer / SettlementRecord
 
 ```swift
-struct CategoryIcon {
-    struct Group {
-        let name: String
-        let icons: [String]    // SF Symbol 名稱
-    }
-    static let groups: [Group]  // 9 組
+struct SettlementTransfer: Identifiable, Equatable {
+    let id: UUID
+    var from: LedgerMember
+    var to: LedgerMember
+    var amount: Double
+}
+
+struct SettlementRecord: Identifiable, Equatable {
+    let id: UUID
+    var date: Date
+    var settledBy: LedgerMember
+    var transfers: [SettlementTransfer]
+    var currencySymbol: String
 }
 ```
 
-9 個圖示群組：餐飲（8）、交通（9）、購物（8）、居住（8）、娛樂（9）、財務（6）、健康（7）、通訊（6）、其他（15）
+---
+
+## API Response 模型
+
+位於 `Life/Models/API/`。
+
+### StateResponse.swift
+
+```swift
+struct StateResponse: Decodable {
+    let ledgers: [StateLedger]
+}
+struct StateLedger: Decodable {
+    let id: Int
+    let name, type, currency: String
+    let inviteCode: String?
+    let members: [StateMember]
+    let categories: [StateCategory]
+    let expenses: [StateExpense]
+    let recurringExpenses: [StateRecurringExpense]
+    let settlements: [StateSettlement]
+}
+struct StateMember: Decodable { ... }
+struct StateCategory: Decodable { let id: Int; let key: String?; let name, icon, color: String; let sort: Int }
+struct StateExpense: Decodable { ... }
+struct StateRecurringExpense: Decodable { ... }
+struct StateSettlement: Decodable { ... }
+```
+
+### CRUDResponses.swift
+
+```swift
+struct CategoryResponse: Decodable { let category: StateCategory }
+struct ExpenseResponse: Decodable { let expense: StateExpense }
+struct ExpenseBatchResponse: Decodable { let expenses: [StateExpense] }
+struct RecurringExpenseResponse: Decodable { let recurringExpense: StateRecurringExpense }
+struct LedgerCreateResponse: Decodable { let ledger: StateLedger }
+struct LedgerJoinResponse: Decodable { let ledger: StateLedger }
+struct LedgerLeaveResponse: Decodable { let success: Bool }
+struct SettleResponse: Decodable { let settlement: StateSettlement }
+struct SuccessResponse: Decodable { let success: Bool }
+```
 
 ---
 
 ## Services
 
-### ExpenseStore
+### DataManager（@MainActor）
 
-核心狀態管理，持有所有帳本資料。
+Repository 層，管理 SwiftData 的所有讀寫操作。
 
-```swift
-@Observable final class ExpenseStore {
-    var ledgers: [Ledger]
-    var currentLedgerId: String
-
-    // Computed（代理到 currentLedger）
-    var categories: [ExpenseCategory]         // get/set
-    var expenses: [Expense]                   // get/set
-    var recurringExpenses: [RecurringExpense]  // get/set
-    var isGroupLedger: Bool                   // get
-    var currentMembers: [LedgerMember]        // get
-    var currentCurrency: Currency             // get
-}
-```
-
+**Guest 方法**：
 | 方法 | 說明 |
 |------|------|
-| addExpense(...) | 新增開銷到目前帳本 |
-| deleteExpense(id:) | 刪除開銷 |
-| addCategory(...) | 新增分類到目前帳本 |
-| updateCategory(_) | 更新分類（同步更新開銷引用） |
-| deleteCategory(id:) | 刪除分類 |
-| moveCategory(from:to:) | 排序分類 |
-| addLedger(_) | 新增帳本 |
-| updateLedger(_) | 更新帳本 |
-| deleteLedger(id:) | 刪除帳本（自動切回 personal） |
-| moveLedger(from:to:) | 排序群組帳本 |
-| addRecurringExpense(_) | 新增固定開銷 |
-| updateRecurringExpense(_) | 更新固定開銷 |
-| deleteRecurringExpense(id:) | 刪除固定開銷 |
-| recurringExpenseCount(forLedger:) | 指定帳本的固定開銷數量 |
-| updateExpense(_:) | 更新開銷 |
-| settleLedger(by:) | 結清當前帳本（標記已結算 + 建立結算紀錄） |
-| calculateTransfers() | 計算拆帳轉帳明細 |
+| `addGuestExpense(...)` | 新增訪客開銷 |
+| `fetchGuestExpenses()` | 取得所有訪客開銷 |
+| `guestExpenseCount()` | 訪客開銷數量 |
+| `updateGuestExpense(id:...)` | 更新訪客開銷 |
+| `deleteGuestExpense(id:)` | 刪除訪客開銷 |
+| `clearAllGuestData()` | 清除所有訪客資料 |
 
----
-
-### AuthManager
-
-登入狀態管理。
-
-```swift
-@Observable final class AuthManager {
-    var isAuthenticated: Bool
-    var currentUser: UserInfo?
-    var isLoading: Bool
-    var errorMessage: String?
-    var avatarImage: UIImage?
-}
-```
-
+**Authenticated 快取方法**：
 | 方法 | 說明 |
 |------|------|
-| handleAppleSignIn(authorization:) | 處理 Apple Sign In 回調 |
-| devLogin(email:) | 開發者模擬登入 |
-| signOut() | 登出、清除 token + 頭像 |
-| updateName(_:) | 更新用戶名稱 |
-| checkExistingToken() | 啟動時驗證已存 token |
+| `rebuildFromState(_:)` | 從 StateResponse 重建全部快取（保留 unsynced） |
+| `fetchCachedLedgers()` | 取得所有快取帳本（轉為 ViewModel） |
+| `cacheExpense(from:ledgerServerId:)` | 快取單筆開銷 |
+| `updateCachedExpense(serverId:from:)` | 更新快取開銷 |
+| `deleteCachedExpense(serverId:)` | 刪除快取開銷 |
+| `addUnsyncedExpense(...)` | 新增離線開銷（isSynced = false） |
+| `fetchUnsyncedExpenses()` | 取得待同步開銷 |
+| `markExpensesSynced(_:)` | 標記開銷已同步 |
+| `cacheCategory / update / delete` | 分類快取 CRUD |
+| `updateCategorySortOrder(...)` | 更新分類排序 |
+| `cacheRecurringExpense / update / delete` | 固定開銷快取 CRUD |
+| `cacheLedgerFromState(_:sortOrder:)` | 快取帳本（加入群組時） |
+| `deleteCachedLedger(serverId:)` | 刪除快取帳本 |
+| `clearAllCache()` | 清除所有 Cached* 資料 |
 
-**UserInfo**：id, email, name, avatar?, status
+### ExpenseStore（@MainActor）
 
----
-
-### CalculatorEngine
-
-計算機邏輯。
-
-```swift
-@Observable final class CalculatorEngine {
-    var displayText: String
-    var currentValue: UInt64
-}
-```
-
-- 支援四則運算（加減乘除）
-- UInt64（無負數），減法下溢回傳 0，除法向上取整
-- 最大 12 位數輸入
-- 連續運算支援
-
----
-
-### APIClient
-
-HTTP 請求工具（Singleton）。
-
-- 自動注入 Bearer token（從 KeychainService）
-- 30 秒 timeout
-- JSON 編碼/解碼
-- 錯誤型別：invalidURL、invalidResponse、serverError、decodingError、networkError
-
----
-
-### KeychainService
-
-JWT Token 安全儲存（Singleton）。
-
-- saveToken / getToken / deleteToken
-- 使用 `kSecClassGenericPassword`
-- Account: `tw.iwi.life.auth.token`
-
----
-
-### LocationService
-
-位置服務。
+核心業務邏輯層，依 auth 狀態自動切換 Guest / Authenticated 行為。
 
 ```swift
-@Observable final class LocationService {
-    var currentAddress: String?
-    var latitude: Double?
-    var longitude: Double?
-    var isLoading: Bool
-}
-```
-
-- `init(autoRequest: Bool = true)`：`true` 時授權後自動定位，`false` 時僅在用戶主動呼叫 `requestLocation()` 時定位
-- CLLocationManager 定位
-- CLGeocoder 反向地理編碼（組合行政區 + 路名）
-- 授權狀態管理（`pendingRequest` 旗標確保首次授權後自動發起定位）
-
----
-
-### WatchExpenseStore
-
-Watch 端核心狀態管理（`LifeWatch/Services/WatchExpenseStore.swift`）。
-
-```swift
-@Observable final class WatchExpenseStore {
+@MainActor @Observable final class ExpenseStore {
     var ledgers: [Ledger]
     var currentLedgerId: String
 
     // Computed（代理到 currentLedger）
     var categories: [ExpenseCategory]
-    var currentMembers: [LedgerMember]
+    var expenses: [Expense]
+    var recurringExpenses: [RecurringExpense]
     var isGroupLedger: Bool
+    var currentMembers: [LedgerMember]
     var currentCurrency: Currency
 }
 ```
 
-- 帳本 / 分類資料來自 iPhone 透過 WCSession 同步（`updateApplicationContext`）
-- 目前內建 mock 資料供開發測試用
-- `addExpense(...)` 儲存後透過 `WatchSessionManager` 回傳 iPhone
+**開銷方法**（Guest: 本地；Authenticated: API → 快取）：
+| 方法 | 說明 |
+|------|------|
+| `addExpense(...)` async | 新增開銷（離線時 addUnsyncedExpense） |
+| `updateExpense(_:)` async throws | 更新開銷 |
+| `deleteExpense(id:)` async throws | 刪除開銷 |
+
+**分類方法**（僅 Authenticated，需網路）：
+| 方法 | 說明 |
+|------|------|
+| `addCategory(...)` async throws | 新增分類 |
+| `updateCategory(_:)` async throws | 更新分類 |
+| `deleteCategory(id:)` async throws | 刪除分類 |
+| `moveCategory(from:to:)` async throws | 排序分類 |
+
+**固定開銷方法**（僅 Authenticated，需網路）：
+| 方法 | 說明 |
+|------|------|
+| `addRecurringExpense(_:)` async throws | 新增固定開銷 |
+| `updateRecurringExpense(_:)` async throws | 更新固定開銷 |
+| `deleteRecurringExpense(_:)` async throws | 刪除固定開銷 |
+
+**帳本方法**：
+| 方法 | 說明 |
+|------|------|
+| `updatePersonalLedger(...)` async throws | 更新個人帳本 |
+| `createGroupLedger(...)` async throws → String | 建立群組帳本 |
+| `joinGroupLedger(inviteCode:)` async throws | 加入群組帳本 |
+| `leaveGroupLedger(id:)` async throws | 退出群組帳本 |
+| `updateGroupLedger(_:)` async throws | 更新群組帳本 |
+| `settleGroupLedger(id:transfers:)` async throws | 結算拆帳 |
+| `moveLedger(from:to:)` | 排序帳本（本地） |
+
+**同步方法**：
+| 方法 | 說明 |
+|------|------|
+| `refreshState()` async | GET /api/state → rebuildFromState → reload |
+| `syncOfflineExpenses()` async | 批次上傳離線開銷 → markSynced |
+| `initAfterLogin(guestExpenses:)` async | POST /api/auth/init → rebuildFromState |
+| `reload()` | 從 DataManager 重新載入 ledgers |
 
 ---
 
-## 後端 Table 設計（建議）
+## 後端 Table 設計
 
-基於目前 Client 資料結構，後端建議的 Table 規劃：
+完整 Table 設計請見 `docs/architecture.md`。關鍵設計決策：
 
-```
-┌──────────┐     ┌──────────────┐     ┌──────────┐
-│   User   │────<│ LedgerMember │>────│  Ledger  │
-└──────────┘     └──────────────┘     └──────────┘
-                                          │
-                              ┌───────────┼───────────┐
-                              │           │           │
-                         ┌────┴────┐ ┌────┴────┐      │
-                         │Category │ │ Expense │──────┘
-                         └─────────┘ └─────────┘
-```
-
-### User（已建立）
-
-| 欄位 | 型別 | 說明 |
-|------|------|------|
-| id | uint | PK |
-| email | string | 唯一 |
-| name | string | 顯示名稱 |
-| avatar | image? | 頭像 |
-| appleId | string? | Apple User ID |
-| status | enum | active / disabled |
-| createAt | datetime | |
-| updateAt | datetime | |
-
-### Ledger
-
-| 欄位 | 型別 | 說明 |
-|------|------|------|
-| id | uint | PK |
-| name | string | 帳本名稱 |
-| type | enum | personal / group |
-| currency | varchar(3) | 幣別代碼（TWD、JPY 等） |
-| inviteCode | string? | 群組邀請碼（unique） |
-| createdByUserId | uint | FK → User |
-| createAt | datetime | |
-| updateAt | datetime | |
-
-- 每個用戶自動建立一個 personal 帳本（不可刪除）
-- inviteCode 需 unique index，查詢加入時使用
-
-### LedgerMember
-
-| 欄位 | 型別 | 說明 |
-|------|------|------|
-| id | uint | PK |
-| ledgerId | uint | FK → Ledger |
-| userId | uint | FK → User |
-| role | enum | owner / member |
-| sort | uint | 帳本在該用戶列表中的排序 |
-| joinAt | datetime | |
-
-- unique(ledgerId, userId)
-- personal 帳本：只有一筆 owner
-- group 帳本：建立者為 owner，加入者為 member
-
-### Category
-
-| 欄位 | 型別 | 說明 |
-|------|------|------|
-| id | uint | PK |
-| ledgerId | uint | FK → Ledger |
-| name | string | 分類名稱 |
-| icon | string | SF Symbol 名稱 |
-| color | string | 色碼（如 #FF6B6B） |
-| sort | uint | 排序 |
-| createAt | datetime | |
-
-- 建立帳本時批次建立預設分類
-
-### Expense
-
-| 欄位 | 型別 | 說明 |
-|------|------|------|
-| id | uint | PK |
-| ledgerId | uint | FK → Ledger |
-| categoryId | uint | FK → Category |
-| amount | uint | 金額（整數，單位：元） |
-| memo | string | 備註 |
-| date | date | 消費日期 |
-| latitude | decimal? | 緯度 |
-| longitude | decimal? | 經度 |
-| address | string? | 地址 |
-| paidByUserId | uint? | FK → User（群組帳本付款人） |
-| createdByUserId | uint | FK → User（建立者） |
-| createAt | datetime | |
-
-- `amount` 建議用整數存（前端 CalculatorEngine 已使用 UInt64）
-- `paidByUserId` 個人帳本為 null，群組帳本為實際付款者
+- **無 localId**：移除所有 localId 欄位，Server ID 為唯一識別
+- **categoryId nullable**：`null` 代表「其他」分類，移除 isSystemDefault
+- **Category.key**：系統預設分類帶 key（如 `breakfast`），用於 Guest 登入轉換時配對
+- **isSettled enum**：`yes`/`no` 而非 tinyint
+- **isEnabled enum**：`yes`/`no` 而非 tinyint

@@ -39,6 +39,9 @@
 | Worker 架構/模組變更 | docs/worker/overview.md |
 | iOS 新增/修改頁面或元件 | CLAUDE.md（已完成功能） |
 | iOS 架構性變更 | CLAUDE.md + docs/architecture.md |
+| iOS 資料模型/Services 變更 | docs/ios/data-models.md + docs/ios/overview.md |
+| iOS 功能模組/操作流程變更 | docs/ios/features.md |
+| iOS View 新增/修改/參數變更 | docs/ios/views.md |
 
 ### 第二階段：Git Commit
 

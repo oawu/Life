@@ -24,14 +24,18 @@ ios/
 │   ├── Environment.swift    # 環境設定（API URL、isDev 判斷）
 │   ├── Models/
 │   │   ├── CategoryIcon.swift     # 圖示群組（僅 Life 使用）
-│   │   └── Persistence/           # SwiftData @Model 類別
-│   │       ├── LifeSchema.swift   # VersionedSchema + MigrationPlan
-│   │       ├── PersistentLedger.swift
-│   │       ├── PersistentExpense.swift
-│   │       ├── PersistentCategory.swift
-│   │       ├── PersistentMember.swift
-│   │       ├── PersistentRecurringExpense.swift
-│   │       └── PersistentSettlement.swift
+│   │   ├── Persistence/           # SwiftData @Model 類別
+│   │   │   ├── LifeSchema.swift          # VersionedSchema + MigrationPlan
+│   │   │   ├── GuestExpense.swift        # 訪客開銷（純本地）
+│   │   │   ├── CachedLedger.swift        # 帳本快取
+│   │   │   ├── CachedCategory.swift      # 分類快取
+│   │   │   ├── CachedExpense.swift       # 開銷快取（含離線未同步）
+│   │   │   ├── CachedMember.swift        # 成員快取
+│   │   │   ├── CachedRecurringExpense.swift  # 固定開銷快取
+│   │   │   └── CachedSettlement.swift    # 結算紀錄快取
+│   │   └── API/                   # API Response 解碼模型
+│   │       ├── StateResponse.swift       # GET /api/state 回應
+│   │       └── CRUDResponses.swift       # CRUD API 回應
 │   ├── Services/            # 狀態管理、API、工具服務
 │   └── Views/               # UI 畫面
 │       ├── LaunchView.swift
@@ -67,11 +71,15 @@ LifeApp
 **AuthState 狀態機**：
 - `.launching`：App 啟動，正在檢查 token
 - `.guest`：未登入，可使用個人帳本記帳、分類等基本功能
-- `.authenticated`：已登入，完整功能
+- `.authenticated`：已登入，完整功能（API-first + 本地快取）
 
 **狀態轉換處理**（LifeApp.handleAuthStateChange）：
-- `.authenticated` → `.guest`（登出）：DataManager.resetToDefaults() → ExpenseStore.reload() → 重設 currentLedgerId → Watch sync
-- `.guest` → `.authenticated`（登入）：保留本地資料 → Watch sync
+- `.authenticated` → `.guest`（登出）：`dataManager.clearAllCache()` → `expenseStore.reload()` → Watch sync
+- `.guest` / `.launching` → `.authenticated`（登入）：`expenseStore.initAfterLogin(guestExpenses:)` → Watch sync
+
+**自動狀態重整**：
+- App 回前景（`scenePhase == .active`）：`expenseStore.refreshState()`
+- 網路恢復（`isOnline false → true`）：`syncOfflineExpenses()` + `refreshState()`
 
 ## 導航結構
 
@@ -118,25 +126,39 @@ LifeWatch（獨立 App）
 
 ## 狀態管理
 
-| 物件 | 類型 | 作用範圍 | 說明 |
-|------|------|----------|------|
-| `AuthManager` | @Observable | 全 App（.environment 注入） | AuthState 狀態機、JWT、用戶資訊 |
-| `DataManager` | @Observable | 全 App | SwiftData CRUD，struct ↔ @Model 映射 |
-| `ExpenseStore` | @Observable | Tab 1 | 帳本、分類、開銷（委派 DataManager 讀寫） |
-| `CalculatorEngine` | @Observable | AddExpenseView | 計算機運算邏輯 |
-| `LocationService` | @Observable | AddExpenseView | 定位與反向地理編碼 |
-| `PhoneSessionManager` | class | Life App | WCSession iPhone 端（發送資料到 Watch、接收開銷） |
-| `WatchExpenseStore` | @Observable | LifeWatch | Watch 端帳本 + 分類 + 開銷暫存 |
-| `WatchLocationService` | @Observable | LifeWatch | Watch 端定位與反向地理編碼 |
-| `WatchSessionManager` | class | LifeWatch | WCSession Watch 端（接收資料、回傳開銷） |
+| 物件 | 類型 | 說明 |
+|------|------|------|
+| `AuthManager` | @Observable | 全 App（.environment 注入），AuthState 狀態機、JWT、用戶資訊 |
+| `NetworkMonitor` | @Observable | 全 App（.environment 注入），NWPathMonitor 偵測網路狀態 |
+| `DataManager` | @MainActor @Observable | SwiftData CRUD，Guest 開銷 + Cached* 快取管理 |
+| `ExpenseStore` | @MainActor @Observable | 帳本、分類、開銷的業務邏輯（API 呼叫 + DataManager 快取） |
+| `CalculatorEngine` | @Observable | AddExpenseView 計算機運算邏輯 |
+| `LocationService` | @Observable | AddExpenseView 定位與反向地理編碼 |
+| `PhoneSessionManager` | class（非 MainActor） | WCSession iPhone 端，MainActor 隔離存取 ExpenseStore |
+| `WatchExpenseStore` | @Observable | Watch 端帳本 + 分類 + 開銷暫存 |
+| `WatchLocationService` | @Observable | Watch 端定位與反向地理編碼 |
+| `WatchSessionManager` | class | WCSession Watch 端（接收資料、回傳開銷） |
 
-### 資料流
+### 資料流（Guest 模式）
 
 ```
-SwiftData（PersistentLedger, PersistentExpense...）
-  ↕ DataManager 映射 struct ↔ @Model
-ExpenseStore（對 View 層的 API 不變）
-├─ ledgers: [Ledger]              ← 從 DataManager 讀取
+GuestExpense（SwiftData）
+  ↕ DataManager.addGuestExpense / fetchGuestExpenses
+ExpenseStore
+├─ ledgers: [Ledger]              ← 1 本隱含個人帳本
+├─ categories: [ExpenseCategory]  ← 靜態預設（ExpenseCategory.defaults，不可編輯）
+└─ expenses: [Expense]            ← 從 GuestExpense 轉換
+```
+
+### 資料流（Authenticated 模式）
+
+```
+Server（API）
+  ↕ ExpenseStore（API 呼叫 + 結果快取）
+Cached*（SwiftData 快取）
+  ↕ DataManager 映射 Cached* → ViewModel struct
+ExpenseStore（對 View 層的 API）
+├─ ledgers: [Ledger]              ← DataManager.fetchCachedLedgers()
 ├─ currentLedgerId: String        ← 目前選取的帳本
 ├─ categories: [ExpenseCategory]  ← computed，代理到 currentLedger.categories
 ├─ expenses: [Expense]            ← computed，代理到 currentLedger.expenses
@@ -146,8 +168,10 @@ ExpenseStore（對 View 層的 API 不變）
 ```
 
 各 View 透過 `store` 存取資料，不持有獨立副本。切換帳本時 `categories`/`expenses` 自動切換。
-每次寫入操作後 ExpenseStore 呼叫 `reload()` 從 SwiftData 重新載入資料。
-首次安裝時 DataManager 自動建立預設個人帳本 + 預設分類。
+
+### @MainActor 隔離
+
+`DataManager` 和 `ExpenseStore` 皆標記 `@MainActor`，確保 SwiftData `ModelContext` 的線程安全。`PhoneSessionManager` 因 WCSession delegate 在背景線程執行，不標記 `@MainActor`，改用 `Task { @MainActor [expenseStore] in }` 存取 MainActor-isolated 屬性。
 
 ## 環境設定
 

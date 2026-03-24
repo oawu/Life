@@ -18,15 +18,15 @@
 |------|------|-----------|------|
 | GET | auth/me | Api\Auth@me | 取得當前用戶 |
 | PUT | auth/me | Api\Auth@updateProfile | 更新個人資料（name / carrierNumber） |
+| POST | auth/init | Api\Auth@init | 登入初始化（上傳 guest 開銷 + 回傳完整 state） |
 
-### Sync
+### State
 
 | 方法 | 路由 | Controller | 說明 |
 |------|------|-----------|------|
-| POST | sync/push | Api\Sync@push | 推送本地變更到 Server |
-| POST | sync/pull | Api\Sync@pull | 拉取 Server 變更到本地 |
+| GET | state | Api\State@index | 取得完整 State（所有帳本 + 分類 + 開銷 + 固定開銷 + 結算紀錄） |
 
-### Ledger（群組帳本）
+### Ledger（帳本）
 
 | 方法 | 路由 | Controller | 說明 |
 |------|------|-----------|------|
@@ -38,117 +38,130 @@
 | GET | ledgers/:id/members | Api\Ledger@members | 取得成員列表 |
 | POST | ledgers/:id/settle | Api\Ledger@settle | 結算拆帳 |
 
+### Category（分類）
+
+| 方法 | 路由 | Controller | 說明 |
+|------|------|-----------|------|
+| POST | ledgers/:id/categories | Api\Category@create | 建立分類 |
+| PUT | categories/:id | Api\Category@update | 更新分類（name / icon / color） |
+| DELETE | categories/:id | Api\Category@destroy | 刪除分類（級聯 Expense/RecurringExpense.categoryId → null） |
+| PUT | ledgers/:id/categories/sort | Api\Category@sort | 排序分類 |
+
+### Expense（開銷）
+
+| 方法 | 路由 | Controller | 說明 |
+|------|------|-----------|------|
+| POST | ledgers/:id/expenses | Api\Expense@create | 建立單筆開銷 |
+| POST | ledgers/:id/expenses/batch | Api\Expense@batch | 批次建立開銷（離線同步用） |
+| PUT | expenses/:id | Api\Expense@update | 更新開銷 |
+| DELETE | expenses/:id | Api\Expense@destroy | 刪除開銷 |
+
+### RecurringExpense（固定開銷）
+
+| 方法 | 路由 | Controller | 說明 |
+|------|------|-----------|------|
+| POST | ledgers/:id/recurring-expenses | Api\RecurringExpense@create | 建立固定開銷 |
+| PUT | recurring-expenses/:id | Api\RecurringExpense@update | 更新固定開銷 |
+| DELETE | recurring-expenses/:id | Api\RecurringExpense@destroy | 刪除固定開銷 |
+
 ---
 
-## Sync API 詳細說明
+## State API 詳細說明
 
-### Push 流程（Client → Server）
+### GET /api/state
 
-Client 將本地資料推送到 Server，Server 執行 upsert 後回傳 serverId mapping。
-
-**Request：**
-```json
-{
-  "ledgers": [{
-    "localId": "uuid",
-    "name": "個人",
-    "type": "personal",
-    "currency": "TWD",
-    "categories": [{
-      "localId": "uuid",
-      "name": "早餐",
-      "icon": "fork.knife",
-      "color": "#FF6B35",
-      "sort": 0,
-      "isSystemDefault": false
-    }],
-    "expenses": [{
-      "localId": "uuid",
-      "amount": 150,
-      "categoryLocalId": "uuid",
-      "memo": "午餐",
-      "date": "2026-03-24 12:00:00",
-      "latitude": null,
-      "longitude": null,
-      "address": null
-    }],
-    "recurringExpenses": [{
-      "localId": "uuid",
-      "amount": 300,
-      "categoryLocalId": "uuid",
-      "frequencyType": "monthly",
-      "frequencyValue": {"dayOfMonth": 1},
-      "memo": "月租",
-      "isEnabled": true
-    }],
-    "deletedExpenseLocalIds": ["uuid1"],
-    "deletedCategoryLocalIds": [],
-    "deletedRecurringLocalIds": []
-  }]
-}
-```
-
-**處理邏輯：**
-1. 每個 ledger 依 `(createdByUserId, localId)` 做 upsert
-2. 新帳本自動建立 owner LedgerMember
-3. categories 依 `(ledgerId, localId)` 做 upsert（**每次送全量**，確保 categoryLocalId 可被解析）
-4. expenses / recurringExpenses 依 `(ledgerId, localId)` 做 upsert（**只送 pending**）
-5. deleted 清單依 localId 查找並刪除
-6. `categoryLocalId` → 透過 `_resolveCategoryId()` 轉為 server 端 categoryId
-
-**Response：**
-```json
-{
-  "mappings": {
-    "ledgers": [{"localId": "uuid", "serverId": 1}],
-    "categories": [{"localId": "uuid", "serverId": 10}],
-    "expenses": [{"localId": "uuid", "serverId": 100}],
-    "recurringExpenses": [{"localId": "uuid", "serverId": 50}]
-  }
-}
-```
-
-Client 收到後更新本地 `serverId` + `syncStatus = "synced"`，並清除已同步的 deleted 記錄。
-
-### Pull 流程（Server → Client）
-
-Client 帶 `lastSyncAt` 拉取 Server 端變更，Server 回傳用戶所有帳本的完整結構。
-
-**Request：**
-```json
-{"lastSyncAt": "2026-03-24 12:00:00"}
-```
-
-首次同步不帶 `lastSyncAt`（或 null），Server 回傳全量資料。
-
-**處理邏輯：**
-1. 查詢用戶所屬的所有帳本（透過 LedgerMember）
-2. 每個帳本回傳：members、categories（全量）、expenses + recurringExpenses + settlements（依 `updateAt >= lastSyncAt` 過濾）
-3. 預載所有相關 User 避免 N+1 查詢
+回傳用戶所有帳本的完整資料。用於 App 回前景時重建本地快取。
 
 **Response：**
 ```json
 {
   "ledgers": [{
-    "serverId": 1,
+    "id": 1,
     "name": "個人",
     "type": "personal",
     "currency": "TWD",
     "inviteCode": null,
     "members": [{
-      "serverId": 1,
+      "id": 1,
       "userId": 1,
       "name": "小明",
       "role": "owner",
       "isCurrentUser": true
     }],
-    "categories": [{"serverId": 10, "localId": "uuid", "name": "早餐", "icon": "fork.knife", "color": "#FF6B35", "sort": 0, "isSystemDefault": false}],
-    "expenses": [{"serverId": 100, "localId": "uuid", "categoryId": 10, "amount": 150, "memo": "午餐", "date": "2026-03-24 12:00:00", "isSettled": false, "paidByUserId": null, "createdByUserId": 1}],
-    "recurringExpenses": [],
-    "settlements": []
-  }],
-  "serverTime": "2026-03-24 18:00:00"
+    "categories": [{
+      "id": 10,
+      "key": "breakfast",
+      "name": "早餐",
+      "icon": "sunrise",
+      "color": "#FF9500",
+      "sort": 0
+    }],
+    "expenses": [{
+      "id": 100,
+      "categoryId": 10,
+      "amount": 150,
+      "memo": "",
+      "date": "2026-03-24 08:00:00",
+      "latitude": null,
+      "longitude": null,
+      "address": null,
+      "isSettled": false,
+      "paidByUserId": null,
+      "createdByUserId": 1
+    }],
+    "recurringExpenses": [{
+      "id": 50,
+      "categoryId": 10,
+      "amount": 300,
+      "frequencyType": "monthly",
+      "frequencyValue": {"dayOfMonth": 1},
+      "memo": "月租",
+      "isEnabled": true,
+      "latitude": null,
+      "longitude": null,
+      "address": null,
+      "paidByUserId": null,
+      "createdByUserId": 1
+    }],
+    "settlements": [{
+      "id": 1,
+      "settledByUserId": 1,
+      "transfers": [{"fromUserId": 2, "fromName": "小華", "toUserId": 1, "toName": "小明", "amount": 500}],
+      "currencySymbol": "$",
+      "createAt": "2026-03-24 18:00:00"
+    }]
+  }]
 }
 ```
 
-Client 依 `serverId` 合併到本地（有則更新，無則新增），並儲存 `serverTime` 作為下次 pull 的 `lastSyncAt`。
+- `categoryId = null` 表示「其他」分類
+- `paidByUserId = null` 表示個人帳本（無付款人概念）
+
+### POST /api/auth/init
+
+登入後呼叫，上傳 guest 開銷，回傳完整 state。
+
+**Request：**
+```json
+{
+  "expenses": [
+    {
+      "categoryKey": "breakfast",
+      "amount": 150,
+      "memo": "",
+      "date": "2026-03-24 08:00:00",
+      "latitude": null,
+      "longitude": null,
+      "address": null
+    }
+  ]
+}
+```
+
+**處理邏輯：**
+1. 找用戶的個人帳本（`type = personal`）
+2. 不存在 → 建立個人帳本 + owner 成員 + 預設分類（`Category::defaultPersonalCategories()`，帶 key）
+3. 每筆 guest expense → 依 categoryKey 查找分類 → 找不到則 categoryId = null → 建立 Expense
+4. 回傳完整 state（複用 State controller 的邏輯）
+
+**Response：** 同 `GET /api/state` 格式。

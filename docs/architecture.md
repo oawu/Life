@@ -49,16 +49,13 @@
 | 欄位 | 類型 | 說明 |
 |------|------|------|
 | id | int unsigned AI | 主鍵 |
-| localId | varchar(36), nullable | Client UUID（同步配對用） |
 | name | varchar(100) | 帳本名稱 |
 | type | enum(personal, group) | 類型 |
-| currency | varchar(3) | 幣別代碼（TWD / JPY 等） |
+| currency | varchar(3) DEFAULT 'TWD' | 幣別代碼 |
 | inviteCode | varchar(6), UNIQUE, nullable | 邀請碼（群組帳本） |
 | createdByUserId | int unsigned | 建立者 User ID |
 | updateAt | datetime | 更新時間 |
 | createAt | datetime | 新增時間 |
-
-- UNIQUE(createdByUserId, localId)
 
 ### LedgerMember（帳本成員）
 
@@ -78,53 +75,52 @@
 | 欄位 | 類型 | 說明 |
 |------|------|------|
 | id | int unsigned AI | 主鍵 |
-| localId | varchar(36) | Client UUID |
 | ledgerId | int unsigned | Ledger ID |
+| key | varchar(50), nullable | 系統預設分類識別碼（如 breakfast） |
 | name | varchar(50) | 分類名稱 |
 | icon | varchar(50) | SF Symbol 圖示 |
-| color | varchar(7) | 色碼 #RRGGBB |
-| sort | int unsigned | 排序 |
-| isSystemDefault | tinyint unsigned | 是否為系統預設 |
+| color | varchar(7) DEFAULT '#007AFF' | 色碼 #RRGGBB |
+| sort | int unsigned DEFAULT 0 | 排序（ASC） |
 | updateAt | datetime | 更新時間 |
 | createAt | datetime | 新增時間 |
 
-- UNIQUE(ledgerId, localId)
+- INDEX(ledgerId)
+- `key` 用於 Guest → Authenticated 登入轉換時配對分類
+- `categoryId = null` 代表「其他」分類，移除舊的 isSystemDefault 概念
 
 ### Expense（開銷）
 
 | 欄位 | 類型 | 說明 |
 |------|------|------|
 | id | int unsigned AI | 主鍵 |
-| localId | varchar(36) | Client UUID |
 | ledgerId | int unsigned | Ledger ID |
-| categoryId | int unsigned | Category ID |
+| categoryId | int unsigned, nullable | Category ID（null = 其他） |
 | amount | int unsigned | 金額（整數） |
-| memo | varchar(200) | 備註 |
+| memo | varchar(200) DEFAULT '' | 備註 |
 | date | datetime | 消費日期時間 |
 | latitude | decimal(10,7), nullable | 緯度 |
 | longitude | decimal(10,7), nullable | 經度 |
 | address | varchar(200), nullable | 地址 |
-| isSettled | tinyint unsigned | 是否已結算 |
+| isSettled | enum(yes, no) DEFAULT 'no' | 是否已結算 |
 | paidByUserId | int unsigned, nullable | 付款人 User ID |
 | createdByUserId | int unsigned | 建立者 User ID |
 | updateAt | datetime | 更新時間 |
 | createAt | datetime | 新增時間 |
 
-- UNIQUE(ledgerId, localId)
+- INDEX(ledgerId)
 
 ### RecurringExpense（固定開銷）
 
 | 欄位 | 類型 | 說明 |
 |------|------|------|
 | id | int unsigned AI | 主鍵 |
-| localId | varchar(36) | Client UUID |
 | ledgerId | int unsigned | Ledger ID |
-| categoryId | int unsigned | Category ID |
+| categoryId | int unsigned, nullable | Category ID（null = 其他） |
 | amount | int unsigned | 金額 |
 | frequencyType | varchar(10) | 頻率類型 daily/weekly/monthly/yearly |
 | frequencyValue | json, nullable | 頻率參數 |
-| memo | varchar(200) | 備註 |
-| isEnabled | tinyint unsigned | 是否啟用 |
+| memo | varchar(200) DEFAULT '' | 備註 |
+| isEnabled | enum(yes, no) DEFAULT 'yes' | 是否啟用 |
 | latitude | decimal(10,7), nullable | 緯度 |
 | longitude | decimal(10,7), nullable | 經度 |
 | address | varchar(200), nullable | 地址 |
@@ -133,7 +129,7 @@
 | updateAt | datetime | 更新時間 |
 | createAt | datetime | 新增時間 |
 
-- UNIQUE(ledgerId, localId)
+- INDEX(ledgerId)
 
 ### Settlement（結算紀錄）
 
@@ -152,36 +148,83 @@
 
 ## 資料流
 
-### 同步架構（Sync）
+### 同步架構（API-first + 本地快取）
 
-採用 **Push-then-Pull** 模式，Server-authoritative 衝突解決。
+採用 **Server-authoritative** 模式，Server 為唯一真實資料來源。iOS 端分為 Guest（純本地）和 Authenticated（API-first + 本地快取）兩種模式。
+
+```
+Guest 模式（未登入）
+├─ 分類：靜態預設（hardcoded），以 key 識別（如 breakfast）
+├─ 開銷：SwiftData 本地持久化（GuestExpense）
+├─ 無帳本概念（隱含一本個人帳本）
+└─ 無 API 呼叫
+
+Authenticated 模式（已登入）
+├─ 所有資料來自 Server，本地為 SwiftData 快取（Cached* models）
+├─ CRUD：API call → 成功 → 更新本地快取
+├─ 離線：僅允許新增開銷（isSynced = false），其餘操作阻擋
+└─ 狀態重整：App 回前景、網路恢復時 GET /api/state 重建快取
+```
+
+### 狀態重整流程
 
 ```
 Client（iOS App）                          Server
     │                                        │
-    ├─── Push（本地變更 → Server）──────────→│
-    │    · 送出所有帳本 + 分類（upsert）       │
-    │    · 送出 pending 開銷 + 固定開銷       │
-    │    · 送出 deleted 清單                  │
+    ├─── GET /api/state ──────────────────→  │
     │                                        │
-    │←── Push Response（serverId mapping）──│
-    │    · 更新本地 serverId + syncStatus     │
-    │    · 清除已同步的 deleted 記錄           │
+    │←── 完整 State Response ────────────── │
+    │    · 所有帳本 + 成員 + 分類              │
+    │    · 所有開銷 + 固定開銷 + 結算紀錄       │
     │                                        │
-    ├─── Pull（lastSyncAt → Server）────────→│
-    │                                        │
-    │←── Pull Response（遠端資料）───────────│
-    │    · 依 serverId 合併到本地             │
-    │    · 更新 lastSyncAt                   │
+    │    DataManager.rebuildFromState():      │
+    │    1. 暫存 unsynced expenses            │
+    │    2. 清除所有 Cached* 記錄             │
+    │    3. 從 Response 重建 Cached*          │
+    │    4. 恢復 unsynced expenses            │
     └────────────────────────────────────────┘
 ```
 
-**同步時機：**
-1. `guest → authenticated`（登入成功）
-2. `scenePhase == .active`（App 回到前景）
-3. `isOnline false → true`（網路恢復）
+### CRUD 操作流程（已登入 + 有網路）
 
-**去重機制：**
-- Ledger：UNIQUE(createdByUserId, localId)
-- Category / Expense / RecurringExpense：UNIQUE(ledgerId, localId)
-- Push 時以 localId 做 upsert，避免重複建立
+```
+1. iOS 呼叫 ExpenseStore 方法（async throws）
+2. ExpenseStore 發送 API 請求
+3. Server 處理 → 回傳結果
+4. 成功 → DataManager 更新本地快取
+5. 失敗 → throw error → View 顯示錯誤 alert
+```
+
+### 離線開銷同步
+
+```
+離線新增開銷：
+1. DataManager.addUnsyncedExpense() → isSynced = false
+2. 網路恢復時 → ExpenseStore.syncOfflineExpenses()
+3. POST /api/ledgers/:id/expenses/batch → 批次上傳
+4. 成功 → DataManager.markExpensesSynced()
+5. 接著 refreshState() 重整快取
+```
+
+### 登入轉換（Guest → Authenticated）
+
+```
+1. Apple Sign In → 取得 token
+2. POST /api/auth/init（上傳 guest 開銷，帶 categoryKey）
+3. Server：找到或建立個人帳本 + 預設分類 + 建立開銷
+4. Response：回傳完整 state
+5. 清除 GuestExpense → 從 response 建立 Cached* 快取
+```
+
+### 登出轉換（Authenticated → Guest）
+
+```
+1. 清除所有 Cached* 快取
+2. 清除 Keychain token
+3. 回到 Guest 模式（空白）
+```
+
+**狀態重整時機：**
+1. `guest → authenticated`（登入成功）→ `initAfterLogin()`
+2. `scenePhase == .active`（App 回到前景）→ `refreshState()`
+3. `isOnline false → true`（網路恢復）→ `syncOfflineExpenses()` + `refreshState()`
