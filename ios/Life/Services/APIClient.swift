@@ -96,4 +96,8 @@ final class APIClient {
     func post<T: Decodable>(path: String, body: [String: Any]?, responseType: T.Type) async throws -> T {
         return try await request(method: "POST", path: path, body: body, responseType: responseType)
     }
+
+    func put<T: Decodable>(path: String, body: [String: Any]?, responseType: T.Type) async throws -> T {
+        return try await request(method: "PUT", path: path, body: body, responseType: responseType)
+    }
 }

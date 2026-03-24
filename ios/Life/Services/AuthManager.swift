@@ -8,6 +8,7 @@ struct UserInfo: Codable {
     var name: String
     let avatar: String?
     let status: String
+    var carrierNumber: String?
 }
 
 struct AuthResponse: Decodable {
@@ -85,10 +86,25 @@ final class AuthManager {
 
     func updateName(_ name: String) {
         currentUser?.name = name
+        Task {
+            try? await APIClient.shared.put(
+                path: "/api/auth/me",
+                body: ["name": name],
+                responseType: MeResponse.self
+            )
+        }
     }
 
     func updateCarrierNumber(_ number: String) {
         carrierNumber = number
+        currentUser?.carrierNumber = number
+        Task {
+            try? await APIClient.shared.put(
+                path: "/api/auth/me",
+                body: ["carrierNumber": number],
+                responseType: MeResponse.self
+            )
+        }
     }
 
     // MARK: - Private
@@ -107,6 +123,7 @@ final class AuthManager {
                 )
                 await MainActor.run {
                     self.currentUser = response.user
+                    self.carrierNumber = response.user.carrierNumber ?? ""
                     self.authState = .authenticated
                 }
             } catch {
