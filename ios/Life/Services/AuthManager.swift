@@ -26,6 +26,7 @@ final class AuthManager {
     var isLoading = false
     var errorMessage: String?
     var avatarImage: UIImage?
+    var carrierNumber: String = ""
 
     init() {
         checkExistingToken()
@@ -68,12 +69,17 @@ final class AuthManager {
         isAuthenticated = false
         currentUser = nil
         avatarImage = nil
+        carrierNumber = ""
     }
 
     // MARK: - Update
 
     func updateName(_ name: String) {
         currentUser?.name = name
+    }
+
+    func updateCarrierNumber(_ number: String) {
+        carrierNumber = number
     }
 
     // MARK: - Private

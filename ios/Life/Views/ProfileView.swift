@@ -95,6 +95,20 @@ struct ProfileView: View {
                     Text(authManager.currentUser?.email ?? "")
                         .foregroundStyle(.secondary)
                 }
+
+                // 載具號碼
+                NavigationLink {
+                    CarrierEditView(authManager: authManager)
+                } label: {
+                    HStack {
+                        Text("載具號碼")
+
+                        Spacer()
+
+                        Text(authManager.carrierNumber.isEmpty ? "未設定" : authManager.carrierNumber)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
             // 登出
@@ -144,4 +158,5 @@ struct ProfileView: View {
         }
         isEditingName = false
     }
+
 }
