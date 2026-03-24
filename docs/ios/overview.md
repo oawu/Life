@@ -78,7 +78,7 @@ LifeApp
 - `.guest` / `.launching` → `.authenticated`（登入）：`expenseStore.initAfterLogin(guestExpenses:)` → Watch sync
 
 **自動狀態重整**：
-- App 回前景（`scenePhase == .active`）：`expenseStore.refreshState()`
+- App 回前景（`scenePhase == .active`）：`syncOfflineExpenses()` + `refreshState()`
 - 網路恢復（`isOnline false → true`）：`syncOfflineExpenses()` + `refreshState()`
 
 ## 導航結構

@@ -63,6 +63,7 @@ struct LifeApp: App {
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active && authManager.isAuthenticated {
                     Task {
+                        await expenseStore.syncOfflineExpenses()
                         await expenseStore.refreshState()
                     }
                 }
