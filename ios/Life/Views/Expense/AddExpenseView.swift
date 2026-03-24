@@ -3,6 +3,7 @@ import SwiftUI
 struct AddExpenseView: View {
     @Bindable var store: ExpenseStore
 
+    @Environment(AuthManager.self) private var authManager
     @State private var engine = CalculatorEngine()
     @State private var selectedCategory: ExpenseCategory?
     @State private var selectedPayer: LedgerMember?
@@ -14,6 +15,8 @@ struct AddExpenseView: View {
     @State private var showLedgerSettings = false
     @State private var showSaveConfirmation = false
     @State private var savedAmountText: String = ""
+    @State private var showBackupAlert = false
+    @State private var showLoginPrompt = false
 
     private var canSave: Bool {
         guard engine.currentValue > 0 && selectedCategory != nil else {
@@ -113,6 +116,17 @@ struct AddExpenseView: View {
                 .transition(.scale.combined(with: .opacity))
             }
         }
+        .alert("備份提醒", isPresented: $showBackupAlert) {
+            Button("登入") {
+                showLoginPrompt = true
+            }
+            Button("稍後", role: .cancel) {}
+        } message: {
+            Text("你已記錄 10 筆開銷，登入以備份資料到雲端")
+        }
+        .sheet(isPresented: $showLoginPrompt) {
+            LoginPromptView(message: "登入後即可備份資料到雲端")
+        }
     }
 
     private func save() {
@@ -147,6 +161,13 @@ struct AddExpenseView: View {
                 showSaveConfirmation = false
             }
         }
+
+        // 訪客備份提醒：第 10 筆時觸發一次
+        if authManager.isGuest && store.expenses.count == 10 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                showBackupAlert = true
+            }
+        }
     }
 
     private func resetForm() {
@@ -167,4 +188,5 @@ struct AddExpenseView: View {
     NavigationStack {
         AddExpenseView(store: ExpenseStore.preview())
     }
+    .environment(AuthManager())
 }

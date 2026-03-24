@@ -3,9 +3,11 @@ import SwiftUI
 struct LedgerSettingsView: View {
     @Bindable var store: ExpenseStore
 
+    @Environment(AuthManager.self) private var authManager
     @State private var editingLedger: Ledger?
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
+    @State private var showLoginPrompt = false
     @State private var selectedLedgerId: String?
     @State private var showPersonalRecurring = false
 
@@ -85,13 +87,21 @@ struct LedgerSettingsView: View {
                 Menu {
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        showCreateSheet = true
+                        if authManager.isGuest {
+                            showLoginPrompt = true
+                        } else {
+                            showCreateSheet = true
+                        }
                     } label: {
                         Label("自己建立", systemImage: "plus")
                     }
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        showJoinSheet = true
+                        if authManager.isGuest {
+                            showLoginPrompt = true
+                        } else {
+                            showJoinSheet = true
+                        }
                     } label: {
                         Label("掃碼加入", systemImage: "qrcode.viewfinder")
                     }
@@ -145,6 +155,9 @@ struct LedgerSettingsView: View {
                 store.addLedger(ledger)
             }
         }
+        .sheet(isPresented: $showLoginPrompt) {
+            LoginPromptView(message: "登入後即可建立群組帳本")
+        }
     }
 
     private func ledgerRow(_ ledger: Ledger) -> some View {
@@ -168,4 +181,5 @@ struct LedgerSettingsView: View {
     NavigationStack {
         LedgerSettingsView(store: ExpenseStore.preview())
     }
+    .environment(AuthManager())
 }

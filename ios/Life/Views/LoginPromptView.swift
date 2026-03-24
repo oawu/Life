@@ -1,8 +1,11 @@
 import SwiftUI
 import AuthenticationServices
 
-struct LoginView: View {
-    var authManager: AuthManager
+struct LoginPromptView: View {
+    let message: String
+
+    @Environment(AuthManager.self) private var authManager
+    @Environment(\.dismiss) private var dismiss
 
     @State private var showDevLogin = false
     @State private var devEmail = "oawu.tw@gmail.com"
@@ -11,24 +14,19 @@ struct LoginView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Logo + App 名稱
             VStack(spacing: 16) {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.pink)
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.blue)
 
-                Text("Life")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-
-                Text("記錄你的生活")
-                    .font(.subheadline)
+                Text(message)
+                    .font(.body)
+                    .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            // 按鈕區
             VStack(spacing: 12) {
                 if authManager.isLoading {
                     ProgressView()
@@ -98,9 +96,10 @@ struct LoginView: View {
             Text("輸入 Email 模擬登入")
         }
         #endif
+        .onChange(of: authManager.isAuthenticated) { _, isAuth in
+            if isAuth {
+                dismiss()
+            }
+        }
     }
-}
-
-#Preview {
-    LoginView(authManager: AuthManager())
 }

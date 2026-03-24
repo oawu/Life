@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
-    var authManager: AuthManager
+    @Environment(AuthManager.self) private var authManager
     @Bindable var expenseStore: ExpenseStore
 
     var body: some View {
@@ -14,7 +14,11 @@ struct HomeView: View {
             }
 
             NavigationStack {
-                ProfileView(authManager: authManager)
+                if authManager.isAuthenticated {
+                    ProfileView()
+                } else {
+                    GuestProfileView()
+                }
             }
             .tabItem {
                 Label("個人", systemImage: "person.fill")
@@ -24,5 +28,6 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(authManager: AuthManager(), expenseStore: ExpenseStore.preview())
+    HomeView(expenseStore: ExpenseStore.preview())
+        .environment(AuthManager())
 }

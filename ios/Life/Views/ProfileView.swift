@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ProfileView: View {
-    var authManager: AuthManager
+    @Environment(AuthManager.self) private var authManager
 
     @State private var showSignOutAlert = false
     @State private var showImageSourceDialog = false
@@ -98,7 +98,7 @@ struct ProfileView: View {
 
                 // 載具號碼
                 NavigationLink {
-                    CarrierEditView(authManager: authManager)
+                    CarrierEditView()
                 } label: {
                     HStack {
                         Text("載具號碼")

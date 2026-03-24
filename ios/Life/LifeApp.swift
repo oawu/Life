@@ -26,11 +26,16 @@ struct LifeApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if authManager.isAuthenticated {
-                    HomeView(authManager: authManager, expenseStore: expenseStore)
-                } else {
-                    LoginView(authManager: authManager)
+                switch authManager.authState {
+                case .launching:
+                    LaunchView()
+                case .guest, .authenticated:
+                    HomeView(expenseStore: expenseStore)
                 }
+            }
+            .environment(authManager)
+            .onChange(of: authManager.authState) { oldState, newState in
+                handleAuthStateChange(from: oldState, to: newState)
             }
             .onAppear {
                 if phoneSessionManager == nil {
@@ -40,6 +45,28 @@ struct LifeApp: App {
             .onChange(of: expenseStore.ledgers) {
                 phoneSessionManager?.syncLedgersToWatch()
             }
+        }
+    }
+
+    // MARK: - Private
+
+    private func handleAuthStateChange(from oldState: AuthState, to newState: AuthState) {
+        switch (oldState, newState) {
+        case (.authenticated, .guest):
+            // 登出：重設資料
+            dataManager.resetToDefaults()
+            expenseStore.reload()
+            expenseStore.currentLedgerId = expenseStore.ledgers.first?.id ?? ""
+            phoneSessionManager?.isLoggedIn = false
+            phoneSessionManager?.syncLedgersToWatch()
+
+        case (.guest, .authenticated):
+            // 登入：保留本地資料（Phase 4 再加同步）
+            phoneSessionManager?.isLoggedIn = true
+            phoneSessionManager?.syncLedgersToWatch()
+
+        default:
+            break
         }
     }
 }

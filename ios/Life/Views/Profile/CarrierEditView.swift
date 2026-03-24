@@ -2,7 +2,7 @@ import SwiftUI
 import CoreImage.CIFilterBuiltins
 
 struct CarrierEditView: View {
-    var authManager: AuthManager
+    @Environment(AuthManager.self) private var authManager
 
     @State private var carrierNumber: String = ""
     @State private var debouncedNumber: String = ""

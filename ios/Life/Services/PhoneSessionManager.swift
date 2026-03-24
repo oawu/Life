@@ -5,6 +5,7 @@ import SwiftUI
 final class PhoneSessionManager: NSObject, WCSessionDelegate {
     private let expenseStore: ExpenseStore
     private let session: WCSession
+    var isLoggedIn: Bool = false
 
     init(expenseStore: ExpenseStore) {
         self.expenseStore = expenseStore
@@ -25,7 +26,10 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         }
 
         let context = encodeLedgers(expenseStore.ledgers)
-        try? session.updateApplicationContext(["ledgers": context])
+        try? session.updateApplicationContext([
+            "ledgers": context,
+            "isLoggedIn": isLoggedIn,
+        ])
     }
 
     // MARK: - WCSessionDelegate

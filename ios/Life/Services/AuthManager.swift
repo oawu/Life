@@ -19,14 +19,23 @@ struct MeResponse: Decodable {
     let user: UserInfo
 }
 
+enum AuthState: Equatable {
+    case launching
+    case guest
+    case authenticated
+}
+
 @Observable
 final class AuthManager {
-    var isAuthenticated = false
+    var authState: AuthState = .launching
     var currentUser: UserInfo?
     var isLoading = false
     var errorMessage: String?
     var avatarImage: UIImage?
     var carrierNumber: String = ""
+
+    var isAuthenticated: Bool { authState == .authenticated }
+    var isGuest: Bool { authState == .guest }
 
     init() {
         checkExistingToken()
@@ -66,7 +75,7 @@ final class AuthManager {
 
     func signOut() {
         KeychainService.shared.deleteToken()
-        isAuthenticated = false
+        authState = .guest
         currentUser = nil
         avatarImage = nil
         carrierNumber = ""
@@ -86,6 +95,7 @@ final class AuthManager {
 
     private func checkExistingToken() {
         guard KeychainService.shared.getToken() != nil else {
+            authState = .guest
             return
         }
 
@@ -97,11 +107,14 @@ final class AuthManager {
                 )
                 await MainActor.run {
                     self.currentUser = response.user
-                    self.isAuthenticated = true
+                    self.authState = .authenticated
                 }
             } catch {
                 // token 無效，清除
                 KeychainService.shared.deleteToken()
+                await MainActor.run {
+                    self.authState = .guest
+                }
             }
         }
     }
@@ -131,7 +144,7 @@ final class AuthManager {
 
             await MainActor.run {
                 self.currentUser = response.user
-                self.isAuthenticated = true
+                self.authState = .authenticated
             }
         } catch {
             await MainActor.run {

@@ -349,6 +349,13 @@ final class DataManager {
         save()
     }
 
+    // MARK: - Reset
+
+    func resetToDefaults() {
+        clearAllData()
+        ensureDefaultData()
+    }
+
     // MARK: - Clear All Data
 
     func clearAllData() {
