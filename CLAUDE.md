@@ -80,10 +80,10 @@ life/
     - 帳本設定頁：個人帳本（點擊 sheet 編輯名稱）、群組帳本可排序（點擊 push 到詳情頁）
     - 新增帳本：confirmationDialog 二選一（自己建立 / 掃碼加入）
     - 帳本編輯 Sheet：三種 mode（add / editPersonal / editGroup），編輯名稱 + 幣別
-    - 帳本詳情頁（LedgerDetailView）：邀請碼卡片（複製 + toast）、QR Code、成員列表、刪除
+    - 帳本詳情頁（LedgerDetailView）：邀請碼卡片（複製 + toast）、QR Code、成員列表、退出
     - 邀請碼：6 碼（#開頭），25 字元集（排除相似字），建立時自動生成
     - 掃碼加入（JoinLedgerView）：AVFoundation 相機掃 QR + 手動輸入邀請碼，mock 加入
-    - 刪除群組帳本（確認對話框），刪除當前帳本自動切回個人帳本
+    - 退出群組帳本：未結清時 alert 攔截，已結清時 confirmationDialog 確認退出，自動切回個人帳本
   - 分類設定頁面（CategorySettingsView）：瀏覽、排序分類，頂部虛線新增按鈕
     - 系統預設「其他」分類：不可編輯、不可刪除、不可排序，永遠在最後
     - 刪除分類時，所屬開銷與固定開銷自動歸類到「其他」
