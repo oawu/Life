@@ -8,6 +8,8 @@ struct ExpenseListView: View {
     @State private var settleErrorMessage = ""
     @State private var toastTask: DispatchWorkItem?
     @State private var scrollOpacity: Double = 0
+    @State private var showDeleteError = false
+    @State private var deleteErrorMessage = ""
 
     private var headerOpacity: Double {
         if #available(iOS 18, *) {
@@ -175,6 +177,11 @@ struct ExpenseListView: View {
             Button("好") {}
         } message: {
             Text(settleErrorMessage)
+        }
+        .alert("刪除失敗", isPresented: $showDeleteError) {
+            Button("好") {}
+        } message: {
+            Text(deleteErrorMessage)
         }
     }
 
@@ -348,7 +355,15 @@ struct ExpenseListView: View {
 
     private func deleteExpenses(from expenses: [Expense], at offsets: IndexSet) {
         for index in offsets {
-            store.deleteExpense(id: expenses[index].id)
+            let expenseId = expenses[index].id
+            Task {
+                do {
+                    try await store.deleteExpense(id: expenseId)
+                } catch {
+                    deleteErrorMessage = error.localizedDescription
+                    showDeleteError = true
+                }
+            }
         }
     }
 }

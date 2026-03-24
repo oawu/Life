@@ -51,6 +51,7 @@ enum RecurringFrequency: Equatable {
 
 struct RecurringExpense: Identifiable, Equatable {
     let id: UUID
+    var serverId: Int?
     var amount: Double
     var category: ExpenseCategory
     var frequency: RecurringFrequency

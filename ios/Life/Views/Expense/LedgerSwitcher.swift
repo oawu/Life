@@ -43,6 +43,7 @@ struct LedgerSwitcher: View {
                     .padding(.leading, 4)
 
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     onSettingsTapped()
                 } label: {
                     Image(systemName: "gearshape")

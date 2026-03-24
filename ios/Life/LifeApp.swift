@@ -3,11 +3,10 @@ import SwiftData
 
 @main
 struct LifeApp: App {
-    @State private var authManager = AuthManager()
-    @State private var networkMonitor = NetworkMonitor()
+    @State private var authManager: AuthManager
+    @State private var networkMonitor: NetworkMonitor
     @State private var dataManager: DataManager
     @State private var expenseStore: ExpenseStore
-    @State private var syncEngine: SyncEngine?
     @State private var phoneSessionManager: PhoneSessionManager?
     @Environment(\.scenePhase) private var scenePhase
 
@@ -22,8 +21,12 @@ struct LifeApp: App {
         }
 
         let manager = DataManager(modelContainer: container)
+        let auth = AuthManager()
+        let network = NetworkMonitor()
+        _authManager = State(initialValue: auth)
+        _networkMonitor = State(initialValue: network)
         _dataManager = State(initialValue: manager)
-        _expenseStore = State(initialValue: ExpenseStore(dataManager: manager))
+        _expenseStore = State(initialValue: ExpenseStore(dataManager: manager, authManager: auth, networkMonitor: network))
     }
 
     var body: some Scene {
@@ -44,11 +47,11 @@ struct LifeApp: App {
             .onChange(of: networkMonitor.isOnline) {
                 phoneSessionManager?.isOnline = networkMonitor.isOnline
                 phoneSessionManager?.syncLedgersToWatch()
-                // 網路恢復時自動同步
+                // 網路恢復時同步離線開銷 + 重整快取
                 if networkMonitor.isOnline && authManager.isAuthenticated {
                     Task {
-                        await syncEngine?.fullSync()
-                        expenseStore.reload()
+                        await expenseStore.syncOfflineExpenses()
+                        await expenseStore.refreshState()
                     }
                 }
             }
@@ -56,15 +59,11 @@ struct LifeApp: App {
                 if phoneSessionManager == nil {
                     phoneSessionManager = PhoneSessionManager(expenseStore: expenseStore)
                 }
-                if syncEngine == nil {
-                    syncEngine = SyncEngine(dataManager: dataManager, networkMonitor: networkMonitor)
-                }
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active && authManager.isAuthenticated {
                     Task {
-                        await syncEngine?.fullSync()
-                        expenseStore.reload()
+                        await expenseStore.refreshState()
                     }
                 }
             }
@@ -79,21 +78,19 @@ struct LifeApp: App {
     private func handleAuthStateChange(from oldState: AuthState, to newState: AuthState) {
         switch (oldState, newState) {
         case (.authenticated, .guest):
-            // 登出：重設資料
-            syncEngine?.lastSyncAt = nil
-            dataManager.resetToDefaults()
+            // 登出：清除快取
+            dataManager.clearAllCache()
             expenseStore.reload()
             expenseStore.currentLedgerId = expenseStore.ledgers.first?.id ?? ""
             phoneSessionManager?.isLoggedIn = false
             phoneSessionManager?.syncLedgersToWatch()
 
-        case (.guest, .authenticated):
-            // 登入：先 pull 再 push，避免空白預設帳本覆蓋 Server 資料
+        case (.guest, .authenticated), (.launching, .authenticated):
+            // 登入：上傳 guest 開銷 + 建立快取
             phoneSessionManager?.isLoggedIn = true
+            let guestExpenses = dataManager.fetchGuestExpenses()
             Task {
-                await syncEngine?.loginSync()
-                expenseStore.reload()
-                expenseStore.currentLedgerId = expenseStore.ledgers.first?.id ?? ""
+                await expenseStore.initAfterLogin(guestExpenses: guestExpenses)
                 phoneSessionManager?.syncLedgersToWatch()
             }
 

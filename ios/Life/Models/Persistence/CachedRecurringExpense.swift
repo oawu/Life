@@ -2,10 +2,10 @@ import Foundation
 import SwiftData
 
 @Model
-final class PersistentRecurringExpense {
-    var localId: UUID
-    var serverId: Int?
-    var amount: Double
+final class CachedRecurringExpense {
+    @Attribute(.unique) var serverId: Int
+    var categoryServerId: Int?
+    var amount: Int
     var frequencyType: String
     var frequencyValue: String
     var memo: String
@@ -13,17 +13,15 @@ final class PersistentRecurringExpense {
     var latitude: Double?
     var longitude: Double?
     var address: String?
-    var syncStatus: String
-    var lastModified: Date
+    var paidByUserServerId: Int?
+    var createdByUserServerId: Int?
 
-    var ledger: PersistentLedger?
-    var category: PersistentCategory?
-    var paidBy: PersistentMember?
+    var ledger: CachedLedger?
 
     init(
-        localId: UUID = UUID(),
-        serverId: Int? = nil,
-        amount: Double,
+        serverId: Int,
+        categoryServerId: Int? = nil,
+        amount: Int,
         frequencyType: String,
         frequencyValue: String = "",
         memo: String = "",
@@ -31,14 +29,12 @@ final class PersistentRecurringExpense {
         latitude: Double? = nil,
         longitude: Double? = nil,
         address: String? = nil,
-        syncStatus: String = "pending",
-        lastModified: Date = Date(),
-        ledger: PersistentLedger? = nil,
-        category: PersistentCategory? = nil,
-        paidBy: PersistentMember? = nil
+        paidByUserServerId: Int? = nil,
+        createdByUserServerId: Int? = nil,
+        ledger: CachedLedger? = nil
     ) {
-        self.localId = localId
         self.serverId = serverId
+        self.categoryServerId = categoryServerId
         self.amount = amount
         self.frequencyType = frequencyType
         self.frequencyValue = frequencyValue
@@ -47,11 +43,9 @@ final class PersistentRecurringExpense {
         self.latitude = latitude
         self.longitude = longitude
         self.address = address
-        self.syncStatus = syncStatus
-        self.lastModified = lastModified
+        self.paidByUserServerId = paidByUserServerId
+        self.createdByUserServerId = createdByUserServerId
         self.ledger = ledger
-        self.category = category
-        self.paidBy = paidBy
     }
 
     var frequency: RecurringFrequency {
@@ -60,11 +54,9 @@ final class PersistentRecurringExpense {
             case "daily":
                 return .daily
             case "weekly":
-                let dayOfWeek = Int(frequencyValue) ?? 1
-                return .weekly(dayOfWeek: dayOfWeek)
+                return .weekly(dayOfWeek: Int(frequencyValue) ?? 1)
             case "monthly":
-                let dayOfMonth = Int(frequencyValue) ?? 1
-                return .monthly(dayOfMonth: dayOfMonth)
+                return .monthly(dayOfMonth: Int(frequencyValue) ?? 1)
             case "yearly":
                 let parts = frequencyValue.split(separator: ",")
                 let month = Int(parts.first ?? "1") ?? 1
@@ -92,11 +84,26 @@ final class PersistentRecurringExpense {
         }
     }
 
-    func toViewModel(ledgerId: String) -> RecurringExpense {
-        RecurringExpense(
-            id: localId,
-            amount: amount,
-            category: category?.toViewModel() ?? ExpenseCategory(id: "unknown", name: "?", icon: "questionmark", color: .gray),
+    func toViewModel(ledgerId: String, categoryMap: [String: ExpenseCategory], memberMap: [String: LedgerMember]) -> RecurringExpense {
+        let category: ExpenseCategory
+        if let catId = categoryServerId {
+            category = categoryMap[String(catId)] ?? ExpenseCategory.otherCategory
+        } else {
+            category = ExpenseCategory.otherCategory
+        }
+
+        let paidBy: LedgerMember?
+        if let payerId = paidByUserServerId {
+            paidBy = memberMap[String(payerId)]
+        } else {
+            paidBy = nil
+        }
+
+        return RecurringExpense(
+            id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012d", serverId))") ?? UUID(),
+            serverId: serverId,
+            amount: Double(amount),
+            category: category,
             frequency: frequency,
             memo: memo,
             isEnabled: isEnabled,
@@ -104,7 +111,7 @@ final class PersistentRecurringExpense {
             longitude: longitude,
             address: address,
             ledgerId: ledgerId,
-            paidBy: paidBy?.toViewModel()
+            paidBy: paidBy
         )
     }
 }

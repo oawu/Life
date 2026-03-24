@@ -2,45 +2,20 @@ import Foundation
 import SwiftData
 import SwiftUI
 
-// MARK: - Ledger API Models
+enum OfflineError: LocalizedError {
+    case noConnection
 
-struct LedgerAPIResponse: Decodable {
-    let serverId: Int
-    let name: String
-    let type: String
-    let currency: String
-    let inviteCode: String?
-    let members: [SyncMember]
-    let categories: [SyncCategory]
+    var errorDescription: String? {
+        "目前無法連線，請稍後再試"
+    }
 }
 
-struct LedgerCreateResponse: Decodable {
-    let ledger: LedgerAPIResponse
-}
-
-struct LedgerJoinResponse: Decodable {
-    let ledger: LedgerAPIResponse
-}
-
-struct LedgerLeaveResponse: Decodable {
-    let success: Bool
-}
-
-struct SettleResponse: Decodable {
-    let settlement: SettleResponseItem
-}
-
-struct SettleResponseItem: Decodable {
-    let serverId: Int
-    let settledByUserId: Int
-    let transfers: AnyCodable?
-    let currencySymbol: String
-    let createAt: String
-}
-
+@MainActor
 @Observable
 final class ExpenseStore {
     private let dataManager: DataManager
+    private let authManager: AuthManager
+    private let networkMonitor: NetworkMonitor
     var ledgers: [Ledger] = []
     var currentLedgerId: String = ""
 
@@ -72,110 +47,452 @@ final class ExpenseStore {
         ledgers.first { $0.id == currentLedgerId }
     }
 
-    init(dataManager: DataManager) {
+    init(dataManager: DataManager, authManager: AuthManager, networkMonitor: NetworkMonitor) {
         self.dataManager = dataManager
+        self.authManager = authManager
+        self.networkMonitor = networkMonitor
         reload()
         currentLedgerId = ledgers.first { $0.type == .personal }?.id ?? ledgers.first?.id ?? ""
     }
 
     func reload() {
-        ledgers = dataManager.fetchLedgers()
+        if authManager.isAuthenticated {
+            ledgers = dataManager.fetchCachedLedgers()
+        } else {
+            ledgers = [buildGuestLedger()]
+        }
+    }
+
+    // MARK: - Guest Ledger Builder
+
+    private func buildGuestLedger() -> Ledger {
+        let guestExpenses = dataManager.fetchGuestExpenses()
+        var categories = ExpenseCategory.defaults
+        categories.append(ExpenseCategory.otherCategory)
+        let categoryMap = Dictionary(uniqueKeysWithValues: categories.compactMap { cat -> (String, ExpenseCategory)? in
+            guard let key = cat.key else {
+                return nil
+            }
+            return (key, cat)
+        })
+
+        let expenses = guestExpenses.map { guest -> Expense in
+            let category = categoryMap[guest.categoryKey] ?? ExpenseCategory.otherCategory
+            return Expense(
+                id: guest.id,
+                amount: Double(guest.amount),
+                category: category,
+                memo: guest.memo,
+                date: guest.date,
+                latitude: guest.latitude,
+                longitude: guest.longitude,
+                address: guest.address,
+                ledgerId: "guest",
+                paidBy: nil
+            )
+        }
+
+        return Ledger(
+            id: "guest",
+            name: "個人",
+            type: .personal,
+            members: [LedgerMember(id: "me", name: "我", isCurrentUser: true)],
+            currency: .twd,
+            categories: categories,
+            expenses: expenses,
+            recurringExpenses: []
+        )
     }
 
     // MARK: - Expense CRUD
 
-    func addExpense(amount: Double, category: ExpenseCategory, memo: String, date: Date, latitude: Double?, longitude: Double?, address: String?, paidBy: LedgerMember? = nil) {
-        dataManager.addExpense(
-            ledgerId: currentLedgerId,
-            amount: amount,
-            categoryId: category.id,
+    func addExpense(amount: Double, category: ExpenseCategory, memo: String, date: Date, latitude: Double?, longitude: Double?, address: String?, paidBy: LedgerMember? = nil) async {
+        if !authManager.isAuthenticated {
+            dataManager.addGuestExpense(
+                categoryKey: category.key ?? category.id,
+                amount: Int(amount),
+                memo: memo,
+                date: date,
+                latitude: latitude,
+                longitude: longitude,
+                address: address
+            )
+            reload()
+            return
+        }
+
+        guard let ledgerServerId = Int(currentLedgerId) else {
+            return
+        }
+
+        let categoryServerId = Int(category.id)
+
+        if networkMonitor.isOnline {
+            var body: [String: Any] = [
+                "amount": Int(amount),
+                "memo": memo,
+                "date": DataManager.formatDate(date),
+            ]
+            if let catId = categoryServerId {
+                body["categoryId"] = catId
+            }
+            if let lat = latitude {
+                body["latitude"] = lat
+            }
+            if let lng = longitude {
+                body["longitude"] = lng
+            }
+            if let addr = address {
+                body["address"] = addr
+            }
+            if let payerId = paidBy?.id, let paidByUserId = Int(payerId) {
+                body["paidByUserId"] = paidByUserId
+            }
+
+            do {
+                let response = try await APIClient.shared.post(
+                    path: "/api/ledgers/\(ledgerServerId)/expenses",
+                    body: body,
+                    responseType: ExpenseResponse.self
+                )
+                dataManager.cacheExpense(from: response.expense, ledgerServerId: ledgerServerId)
+                reload()
+                return
+            } catch {
+                // API 失敗 → 降級為離線新增
+                print("[ExpenseStore] addExpense API failed, falling back to offline: \(error)")
+            }
+        }
+
+        // 離線或 API 失敗 → 本地新增
+        _ = dataManager.addUnsyncedExpense(
+            ledgerServerId: ledgerServerId,
+            categoryServerId: categoryServerId,
+            amount: Int(amount),
             memo: memo,
             date: date,
             latitude: latitude,
             longitude: longitude,
             address: address,
-            paidByMemberId: paidBy?.id
+            paidByUserServerId: paidBy.flatMap { Int($0.id) }
         )
         reload()
     }
 
-    func deleteExpense(id: UUID) {
-        dataManager.deleteExpense(id: id)
-        reload()
+    func updateExpense(_ expense: Expense) async throws {
+        if !authManager.isAuthenticated {
+            dataManager.updateGuestExpense(
+                id: expense.id,
+                categoryKey: expense.category.key ?? expense.category.id,
+                amount: Int(expense.amount),
+                memo: expense.memo,
+                date: expense.date,
+                latitude: expense.latitude,
+                longitude: expense.longitude,
+                address: expense.address
+            )
+            reload()
+            return
+        }
+
+        if let serverId = expense.serverId {
+            guard networkMonitor.isOnline else {
+                throw OfflineError.noConnection
+            }
+
+            var body: [String: Any] = [
+                "amount": Int(expense.amount),
+                "memo": expense.memo,
+                "date": DataManager.formatDate(expense.date),
+            ]
+            if let catId = Int(expense.category.id) {
+                body["categoryId"] = catId
+            }
+            if let lat = expense.latitude {
+                body["latitude"] = lat
+            }
+            if let lng = expense.longitude {
+                body["longitude"] = lng
+            }
+            if let addr = expense.address {
+                body["address"] = addr
+            }
+            if let payerId = expense.paidBy?.id, let paidByUserId = Int(payerId) {
+                body["paidByUserId"] = paidByUserId
+            }
+
+            let response = try await APIClient.shared.put(
+                path: "/api/expenses/\(serverId)",
+                body: body,
+                responseType: ExpenseResponse.self
+            )
+            dataManager.updateCachedExpense(serverId: serverId, from: response.expense)
+            reload()
+        } else {
+            // 未同步的離線開銷 → 本地更新
+            dataManager.updateUnsyncedExpense(
+                localId: expense.id,
+                categoryServerId: Int(expense.category.id),
+                amount: Int(expense.amount),
+                memo: expense.memo,
+                date: expense.date,
+                latitude: expense.latitude,
+                longitude: expense.longitude,
+                address: expense.address,
+                paidByUserServerId: expense.paidBy.flatMap { Int($0.id) }
+            )
+            reload()
+        }
     }
 
-    func updateExpense(_ expense: Expense) {
-        dataManager.updateExpense(expense)
-        reload()
+    func deleteExpense(id: UUID) async throws {
+        if !authManager.isAuthenticated {
+            dataManager.deleteGuestExpense(id: id)
+            reload()
+            return
+        }
+
+        // 從 ledgers 中找到這筆開銷
+        let expense = ledgers.flatMap { $0.expenses }.first { $0.id == id }
+
+        if let serverId = expense?.serverId {
+            guard networkMonitor.isOnline else {
+                throw OfflineError.noConnection
+            }
+            _ = try await APIClient.shared.delete(
+                path: "/api/expenses/\(serverId)",
+                responseType: SuccessResponse.self
+            )
+            dataManager.deleteCachedExpense(serverId: serverId)
+            reload()
+        } else {
+            // 未同步的離線開銷 → 本地刪除
+            dataManager.deleteUnsyncedExpense(localId: id)
+            reload()
+        }
     }
 
     // MARK: - Category CRUD
 
-    func addCategory(id: String, name: String, icon: String, color: Color) {
-        _ = dataManager.addCategory(ledgerId: currentLedgerId, name: name, icon: icon, color: color)
+    func addCategory(name: String, icon: String, color: Color) async throws {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            throw OfflineError.noConnection
+        }
+        guard let ledgerServerId = Int(currentLedgerId) else {
+            return
+        }
+
+        let response = try await APIClient.shared.post(
+            path: "/api/ledgers/\(ledgerServerId)/categories",
+            body: [
+                "name": name,
+                "icon": icon,
+                "color": color.hexString,
+            ],
+            responseType: CategoryResponse.self
+        )
+
+        dataManager.cacheCategory(from: response.category, ledgerServerId: ledgerServerId)
         reload()
     }
 
-    func updateCategory(_ category: ExpenseCategory) {
-        dataManager.updateCategory(id: category.id, name: category.name, icon: category.icon, color: category.color)
+    func updateCategory(_ category: ExpenseCategory) async throws {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            throw OfflineError.noConnection
+        }
+        guard let serverId = Int(category.id) else {
+            return
+        }
+
+        let response = try await APIClient.shared.put(
+            path: "/api/categories/\(serverId)",
+            body: [
+                "name": category.name,
+                "icon": category.icon,
+                "color": category.color.hexString,
+            ],
+            responseType: CategoryResponse.self
+        )
+
+        dataManager.updateCachedCategory(serverId: serverId, from: response.category)
         reload()
     }
 
-    func deleteCategory(id: String) {
-        dataManager.deleteCategory(id: id)
+    func deleteCategory(id: String) async throws {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            throw OfflineError.noConnection
+        }
+        guard let serverId = Int(id) else {
+            return
+        }
+
+        _ = try await APIClient.shared.delete(
+            path: "/api/categories/\(serverId)",
+            responseType: SuccessResponse.self
+        )
+
+        dataManager.deleteCachedCategory(serverId: serverId)
         reload()
     }
 
-    func moveCategory(from source: IndexSet, to destination: Int) {
-        dataManager.moveCategory(ledgerId: currentLedgerId, fromOffsets: source, toOffset: destination)
+    func moveCategory(from source: IndexSet, to destination: Int) async throws {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            throw OfflineError.noConnection
+        }
+        guard let ledger = currentLedger, let ledgerServerId = Int(ledger.id) else {
+            return
+        }
+
+        // 計算新排序
+        var sortable = ledger.categories.filter { Int($0.id) != nil }
+        sortable.move(fromOffsets: source, toOffset: destination)
+        let categoryIds = sortable.compactMap { Int($0.id) }
+
+        // 先本地更新（樂觀 UI）
+        dataManager.updateCategorySortOrder(ledgerServerId: ledgerServerId, categoryServerIds: categoryIds)
         reload()
+
+        // API 同步
+        _ = try await APIClient.shared.put(
+            path: "/api/ledgers/\(ledgerServerId)/categories/sort",
+            body: ["categoryIds": categoryIds],
+            responseType: SuccessResponse.self
+        )
     }
 
     // MARK: - Recurring Expense CRUD
 
-    func addRecurringExpense(_ recurring: RecurringExpense) {
-        dataManager.addRecurringExpense(
-            ledgerId: recurring.ledgerId,
-            amount: recurring.amount,
-            categoryId: recurring.category.id,
-            frequency: recurring.frequency,
-            memo: recurring.memo,
-            isEnabled: recurring.isEnabled,
-            latitude: recurring.latitude,
-            longitude: recurring.longitude,
-            address: recurring.address,
-            paidByMemberId: recurring.paidBy?.id
+    func addRecurringExpense(_ recurring: RecurringExpense) async throws {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            throw OfflineError.noConnection
+        }
+        guard let ledgerServerId = Int(recurring.ledgerId) else {
+            return
+        }
+
+        var body: [String: Any] = [
+            "amount": Int(recurring.amount),
+            "frequencyType": frequencyTypeString(recurring.frequency),
+            "memo": recurring.memo,
+            "isEnabled": recurring.isEnabled,
+        ]
+        if let catId = Int(recurring.category.id) {
+            body["categoryId"] = catId
+        }
+        let freqValue = frequencyValuePayload(recurring.frequency)
+        if let fv = freqValue {
+            body["frequencyValue"] = fv
+        }
+        if let lat = recurring.latitude {
+            body["latitude"] = lat
+        }
+        if let lng = recurring.longitude {
+            body["longitude"] = lng
+        }
+        if let addr = recurring.address {
+            body["address"] = addr
+        }
+        if let payerId = recurring.paidBy?.id, let paidByUserId = Int(payerId) {
+            body["paidByUserId"] = paidByUserId
+        }
+
+        let response = try await APIClient.shared.post(
+            path: "/api/ledgers/\(ledgerServerId)/recurring-expenses",
+            body: body,
+            responseType: RecurringExpenseResponse.self
         )
+
+        dataManager.cacheRecurringExpense(from: response.recurringExpense, ledgerServerId: ledgerServerId)
         reload()
     }
 
-    func updateRecurringExpense(_ recurring: RecurringExpense) {
-        dataManager.updateRecurringExpense(recurring)
+    func updateRecurringExpense(_ recurring: RecurringExpense) async throws {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            throw OfflineError.noConnection
+        }
+        guard let serverId = recurring.serverId else {
+            return
+        }
+
+        var body: [String: Any] = [
+            "amount": Int(recurring.amount),
+            "frequencyType": frequencyTypeString(recurring.frequency),
+            "memo": recurring.memo,
+            "isEnabled": recurring.isEnabled,
+        ]
+        if let catId = Int(recurring.category.id) {
+            body["categoryId"] = catId
+        }
+        let freqValue = frequencyValuePayload(recurring.frequency)
+        if let fv = freqValue {
+            body["frequencyValue"] = fv
+        }
+        if let lat = recurring.latitude {
+            body["latitude"] = lat
+        }
+        if let lng = recurring.longitude {
+            body["longitude"] = lng
+        }
+        if let addr = recurring.address {
+            body["address"] = addr
+        }
+        if let payerId = recurring.paidBy?.id, let paidByUserId = Int(payerId) {
+            body["paidByUserId"] = paidByUserId
+        }
+
+        let response = try await APIClient.shared.put(
+            path: "/api/recurring-expenses/\(serverId)",
+            body: body,
+            responseType: RecurringExpenseResponse.self
+        )
+
+        dataManager.updateCachedRecurringExpense(serverId: serverId, from: response.recurringExpense)
         reload()
     }
 
-    func deleteRecurringExpense(id: UUID) {
-        dataManager.deleteRecurringExpense(id: id)
+    func deleteRecurringExpense(_ recurring: RecurringExpense) async throws {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            throw OfflineError.noConnection
+        }
+        guard let serverId = recurring.serverId else {
+            return
+        }
+
+        _ = try await APIClient.shared.delete(
+            path: "/api/recurring-expenses/\(serverId)",
+            responseType: SuccessResponse.self
+        )
+
+        dataManager.deleteCachedRecurringExpense(serverId: serverId)
         reload()
     }
 
     func recurringExpenseCount(forLedger ledgerId: String) -> Int {
-        dataManager.recurringExpenseCount(forLedger: ledgerId)
+        ledgers.first { $0.id == ledgerId }?.recurringExpenses.count ?? 0
     }
 
     // MARK: - Settlement
 
-    func settleLedger(id: String) {
-        guard let ledger = ledgers.first(where: { $0.id == id }) else {
+    func settleGroupLedger(id: String, transfers: [SettlementTransfer]) async throws {
+        guard let ledgerServerId = Int(id) else {
             return
         }
 
-        let transfers = Self.calculateTransfers(
-            expenses: ledger.expenses.filter { !ledger.settledExpenseIds.contains($0.id) },
-            members: ledger.members
+        let transfersPayload: [[String: Any]] = transfers.map { transfer in
+            [
+                "fromUserId": Int(transfer.from.id) ?? 0,
+                "toUserId": Int(transfer.to.id) ?? 0,
+                "amount": transfer.amount,
+            ]
+        }
+
+        let response = try await APIClient.shared.post(
+            path: "/api/ledgers/\(ledgerServerId)/settle",
+            body: ["transfers": transfersPayload],
+            responseType: SettleResponse.self
         )
 
-        dataManager.settleLedger(id: id, transfers: transfers)
+        dataManager.cacheSettlement(from: response.settlement, ledgerServerId: ledgerServerId)
         reload()
     }
 
@@ -237,36 +554,25 @@ final class ExpenseStore {
 
     // MARK: - Ledger CRUD
 
-    func addLedger(_ ledger: Ledger) {
-        dataManager.addLedger(
-            name: ledger.name,
-            type: ledger.type,
-            currency: ledger.currency,
-            inviteCode: ledger.inviteCode,
-            categories: ledger.categories
-        )
-        reload()
-    }
-
-    func updateLedger(_ ledger: Ledger) {
-        dataManager.updateLedgerFull(ledger)
-        reload()
-    }
-
-    func deleteLedger(id: String) {
-        dataManager.deleteLedger(id: id)
-        if currentLedgerId == id {
-            currentLedgerId = ledgers.first { $0.type == .personal }?.id ?? ledgers.first?.id ?? ""
+    func updatePersonalLedger(id: String, name: String, currencyCode: String) async throws {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            throw OfflineError.noConnection
         }
-        reload()
-    }
+        guard let serverId = Int(id) else {
+            return
+        }
 
-    func moveLedger(from source: IndexSet, to destination: Int) {
-        dataManager.moveLedger(fromOffsets: source, toOffset: destination)
-        reload()
-    }
+        _ = try await APIClient.shared.put(
+            path: "/api/ledgers/\(serverId)",
+            body: [
+                "name": name,
+                "currency": currencyCode,
+            ],
+            responseType: LedgerCreateResponse.self
+        )
 
-    // MARK: - Group Ledger API
+        await refreshState()
+    }
 
     func createGroupLedger(name: String, currency: Currency) async throws -> String {
         let response = try await APIClient.shared.post(
@@ -278,10 +584,8 @@ final class ExpenseStore {
             responseType: LedgerCreateResponse.self
         )
 
-        await MainActor.run {
-            dataManager.addLedgerFromAPI(response.ledger)
-            reload()
-        }
+        dataManager.cacheLedgerFromState(response.ledger)
+        reload()
 
         return response.ledger.inviteCode ?? ""
     }
@@ -293,15 +597,13 @@ final class ExpenseStore {
             responseType: LedgerJoinResponse.self
         )
 
-        await MainActor.run {
-            dataManager.addLedgerFromAPI(response.ledger)
-            reload()
-        }
+        dataManager.cacheLedgerFromState(response.ledger)
+        reload()
     }
 
     func leaveGroupLedger(id: String) async throws {
-        guard let serverId = dataManager.serverIdForLedger(id: id) else {
-            throw APIError.serverError(statusCode: 0, message: "帳本尚未同步")
+        guard let serverId = Int(id) else {
+            return
         }
 
         _ = try await APIClient.shared.post(
@@ -310,18 +612,16 @@ final class ExpenseStore {
             responseType: LedgerLeaveResponse.self
         )
 
-        await MainActor.run {
-            dataManager.deleteLedger(id: id)
-            if currentLedgerId == id {
-                currentLedgerId = ledgers.first { $0.type == .personal }?.id ?? ledgers.first?.id ?? ""
-            }
-            reload()
+        dataManager.deleteCachedLedger(serverId: serverId)
+        reload()
+        if currentLedgerId == id {
+            currentLedgerId = ledgers.first { $0.type == .personal }?.id ?? ledgers.first?.id ?? ""
         }
     }
 
     func updateGroupLedger(_ ledger: Ledger) async throws {
-        guard let serverId = dataManager.serverIdForLedger(id: ledger.id) else {
-            throw APIError.serverError(statusCode: 0, message: "帳本尚未同步")
+        guard let serverId = Int(ledger.id) else {
+            return
         }
 
         _ = try await APIClient.shared.put(
@@ -333,34 +633,167 @@ final class ExpenseStore {
             responseType: LedgerCreateResponse.self
         )
 
-        await MainActor.run {
-            dataManager.updateLedgerFull(ledger)
+        await refreshState()
+    }
+
+    func moveLedger(from source: IndexSet, to destination: Int) {
+        dataManager.moveLedger(fromOffsets: source, toOffset: destination)
+        reload()
+    }
+
+    // MARK: - State Management
+
+    func refreshState() async {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            return
+        }
+
+        do {
+            let response = try await APIClient.shared.get(
+                path: "/api/state",
+                responseType: StateResponse.self
+            )
+
+            dataManager.rebuildFromState(response)
             reload()
+        } catch {
+            print("[ExpenseStore] refreshState error: \(error)")
         }
     }
 
-    func settleGroupLedger(id: String, transfers: [SettlementTransfer]) async throws {
-        guard let serverId = dataManager.serverIdForLedger(id: id) else {
-            throw APIError.serverError(statusCode: 0, message: "帳本尚未同步")
+    func syncOfflineExpenses() async {
+        guard authManager.isAuthenticated, networkMonitor.isOnline else {
+            return
         }
 
-        let transfersPayload: [[String: Any]] = transfers.map { transfer in
-            [
-                "fromUserId": transfer.from.id,
-                "toUserId": transfer.to.id,
-                "amount": transfer.amount,
+        // 讀取 @Model 屬性，序列化為純值（避免跨 await 持有 @Model 引用）
+        struct UnsyncedPayload {
+            let ledgerServerId: Int
+            let localId: UUID
+            let data: [String: Any]
+        }
+
+        let unsynced = dataManager.fetchUnsyncedExpenses()
+        let payloads: [UnsyncedPayload] = unsynced.compactMap { expense -> UnsyncedPayload? in
+            guard let ledgerServerId = expense.ledger?.serverId, ledgerServerId > 0 else {
+                return nil
+            }
+            var data: [String: Any] = [
+                "amount": expense.amount,
+                "memo": expense.memo,
+                "date": DataManager.formatDate(expense.date),
             ]
+            if let catId = expense.categoryServerId {
+                data["categoryId"] = catId
+            }
+            if let lat = expense.latitude {
+                data["latitude"] = lat
+            }
+            if let lng = expense.longitude {
+                data["longitude"] = lng
+            }
+            if let addr = expense.address {
+                data["address"] = addr
+            }
+            if let payerId = expense.paidByUserServerId {
+                data["paidByUserId"] = payerId
+            }
+            return UnsyncedPayload(ledgerServerId: ledgerServerId, localId: expense.localId, data: data)
         }
 
-        _ = try await APIClient.shared.post(
-            path: "/api/ledgers/\(serverId)/settle",
-            body: ["transfers": transfersPayload],
-            responseType: SettleResponse.self
-        )
+        guard !payloads.isEmpty else {
+            return
+        }
 
-        await MainActor.run {
-            dataManager.settleLedger(id: id, transfers: transfers)
+        // 依 ledger 分組批次上傳（純值，不涉及 @Model）
+        let grouped = Dictionary(grouping: payloads) { $0.ledgerServerId }
+
+        for (ledgerServerId, items) in grouped {
+            let expensePayloads = items.map { $0.data }
+
+            do {
+                let response = try await APIClient.shared.post(
+                    path: "/api/ledgers/\(ledgerServerId)/expenses/batch",
+                    body: ["expenses": expensePayloads],
+                    responseType: ExpenseBatchResponse.self
+                )
+
+                let mappings = zip(items, response.expenses).map { (local, remote) in
+                    (localId: local.localId, serverId: remote.id)
+                }
+                dataManager.markExpensesSynced(mappings)
+            } catch {
+                print("[ExpenseStore] syncOfflineExpenses error for ledger \(ledgerServerId): \(error)")
+            }
+        }
+    }
+
+    func initAfterLogin(guestExpenses: [GuestExpense]) async {
+        let expensesPayload: [[String: Any]] = guestExpenses.map { expense in
+            var data: [String: Any] = [
+                "categoryKey": expense.categoryKey,
+                "amount": expense.amount,
+                "memo": expense.memo,
+                "date": DataManager.formatDate(expense.date),
+            ]
+            if let lat = expense.latitude {
+                data["latitude"] = lat
+            }
+            if let lng = expense.longitude {
+                data["longitude"] = lng
+            }
+            if let addr = expense.address {
+                data["address"] = addr
+            }
+            return data
+        }
+
+        do {
+            let response = try await APIClient.shared.post(
+                path: "/api/auth/init",
+                body: ["expenses": expensesPayload],
+                responseType: StateResponse.self
+            )
+
+            dataManager.rebuildFromState(response)
+            dataManager.clearAllGuestData()
             reload()
+            currentLedgerId = ledgers.first { $0.type == .personal }?.id ?? ledgers.first?.id ?? ""
+        } catch {
+            print("[ExpenseStore] initAfterLogin error: \(error)")
+            // 即使 init 失敗，也嘗試 refreshState
+            await refreshState()
+            dataManager.clearAllGuestData()
+            reload()
+            currentLedgerId = ledgers.first { $0.type == .personal }?.id ?? ledgers.first?.id ?? ""
+        }
+    }
+
+    // MARK: - Frequency Helpers
+
+    private func frequencyTypeString(_ frequency: RecurringFrequency) -> String {
+        switch frequency {
+        case .daily:
+            return "daily"
+        case .weekly:
+            return "weekly"
+        case .monthly:
+            return "monthly"
+        case .yearly:
+            return "yearly"
+        }
+    }
+
+    private func frequencyValuePayload(_ frequency: RecurringFrequency) -> Any? {
+        switch frequency {
+        case .daily:
+            return nil
+        case .weekly(let dayOfWeek):
+            return dayOfWeek
+        case .monthly(let dayOfMonth):
+            return dayOfMonth
+        case .yearly(let month, let day):
+            return ["month": month, "day": day]
         }
     }
 
@@ -371,6 +804,8 @@ final class ExpenseStore {
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try! ModelContainer(for: schema, configurations: [configuration])
         let manager = DataManager(modelContainer: container)
-        return ExpenseStore(dataManager: manager)
+        let auth = AuthManager()
+        let network = NetworkMonitor()
+        return ExpenseStore(dataManager: manager, authManager: auth, networkMonitor: network)
     }
 }

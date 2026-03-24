@@ -26,12 +26,18 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
             return
         }
 
-        let context = encodeLedgers(expenseStore.ledgers)
-        try? session.updateApplicationContext([
-            "ledgers": context,
-            "isLoggedIn": isLoggedIn,
-            "isOnline": isOnline,
-        ])
+        let isLoggedIn = self.isLoggedIn
+        let isOnline = self.isOnline
+        let session = self.session
+
+        Task { @MainActor [expenseStore] in
+            let context = PhoneSessionManager.encodeLedgers(expenseStore.ledgers)
+            try? session.updateApplicationContext([
+                "ledgers": context,
+                "isLoggedIn": isLoggedIn,
+                "isOnline": isOnline,
+            ])
+        }
     }
 
     // MARK: - WCSessionDelegate
@@ -83,23 +89,21 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         let longitude = data["longitude"] as? Double
         let address = data["address"] as? String
 
-        // 找到對應帳本中的分類
-        guard let ledger = expenseStore.ledgers.first(where: { $0.id == ledgerId }),
-              let category = ledger.categories.first(where: { $0.id == categoryId }) else {
-            return
-        }
-
         var paidBy: LedgerMember?
         if let paidById = data["paidById"] as? String,
            let paidByName = data["paidByName"] as? String {
             paidBy = LedgerMember(id: paidById, name: paidByName)
         }
 
-        let previousLedgerId = expenseStore.currentLedgerId
+        Task { @MainActor [expenseStore] in
+            guard let ledger = expenseStore.ledgers.first(where: { $0.id == ledgerId }),
+                  let category = ledger.categories.first(where: { $0.id == categoryId }) else {
+                return
+            }
 
-        DispatchQueue.main.async {
-            self.expenseStore.currentLedgerId = ledgerId
-            self.expenseStore.addExpense(
+            let previousLedgerId = expenseStore.currentLedgerId
+            expenseStore.currentLedgerId = ledgerId
+            await expenseStore.addExpense(
                 amount: amount,
                 category: category,
                 memo: memo,
@@ -109,13 +113,13 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
                 address: address,
                 paidBy: paidBy
             )
-            self.expenseStore.currentLedgerId = previousLedgerId
+            expenseStore.currentLedgerId = previousLedgerId
         }
     }
 
     // MARK: - Encoding
 
-    private func encodeLedgers(_ ledgers: [Ledger]) -> [[String: Any]] {
+    private static func encodeLedgers(_ ledgers: [Ledger]) -> [[String: Any]] {
         return ledgers.map { ledger in
             var data: [String: Any] = [
                 "id":           ledger.id,

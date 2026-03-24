@@ -150,7 +150,14 @@ struct LedgerSettingsView: View {
         }
         .sheet(item: $editingLedger) { ledger in
             LedgerEditView(mode: .editPersonal(ledger)) { updated in
-                store.updateLedger(updated)
+                Task {
+                    do {
+                        try await store.updatePersonalLedger(id: updated.id, name: updated.name, currencyCode: updated.currency.code)
+                    } catch {
+                        errorMessage = error.localizedDescription
+                        showErrorAlert = true
+                    }
+                }
             }
         }
         .sheet(isPresented: $showCreateSheet) {

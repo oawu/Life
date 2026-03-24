@@ -8,6 +8,8 @@ struct ExpenseDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showEditSheet = false
     @State private var showDeleteConfirmation = false
+    @State private var errorMessage = ""
+    @State private var showErrorAlert = false
 
     private var ledger: Ledger? {
         store.ledgers.first { $0.expenses.contains { $0.id == expenseId } }
@@ -65,9 +67,21 @@ struct ExpenseDetailView: View {
         }
         .confirmationDialog("確定要刪除此開銷嗎？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button("刪除", role: .destructive) {
-                store.deleteExpense(id: expenseId)
-                dismiss()
+                Task {
+                    do {
+                        try await store.deleteExpense(id: expenseId)
+                        dismiss()
+                    } catch {
+                        errorMessage = error.localizedDescription
+                        showErrorAlert = true
+                    }
+                }
             }
+        }
+        .alert("錯誤", isPresented: $showErrorAlert) {
+            Button("確定", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
         }
     }
 

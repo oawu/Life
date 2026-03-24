@@ -63,6 +63,7 @@ struct AddExpenseView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showExpenseList = true
                 } label: {
                     Text("明細")
@@ -70,6 +71,7 @@ struct AddExpenseView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("儲存") {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     save()
                 }
                 .fontWeight(.semibold)
@@ -136,36 +138,42 @@ struct AddExpenseView: View {
             return
         }
 
-        store.addExpense(
-            amount: Double(amount),
-            category: category,
-            memo: memo,
-            date: date,
-            latitude: locationService.latitude,
-            longitude: locationService.longitude,
-            address: locationService.currentAddress,
-            paidBy: selectedPayer
-        )
+        let currencySymbol = store.currentCurrency.symbol
+        let currentExpenseCount = store.expenses.count
+        let isGuest = authManager.isGuest
 
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        Task {
+            await store.addExpense(
+                amount: Double(amount),
+                category: category,
+                memo: memo,
+                date: date,
+                latitude: locationService.latitude,
+                longitude: locationService.longitude,
+                address: locationService.currentAddress,
+                paidBy: selectedPayer
+            )
 
-        savedAmountText = "\(store.currentCurrency.symbol)\(Int(Double(amount).rounded(.up)).formatted())"
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
 
-        withAnimation(.easeInOut(duration: 0.2)) {
-            showSaveConfirmation = true
-            resetForm()
-        }
+            savedAmountText = "\(currencySymbol)\(Int(Double(amount).rounded(.up)).formatted())"
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            withAnimation {
-                showSaveConfirmation = false
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showSaveConfirmation = true
+                resetForm()
             }
-        }
 
-        // 訪客備份提醒：第 10 筆時觸發一次
-        if authManager.isGuest && store.expenses.count == 10 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                showBackupAlert = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                withAnimation {
+                    showSaveConfirmation = false
+                }
+            }
+
+            // 訪客備份提醒：第 10 筆時觸發一次
+            if isGuest && currentExpenseCount >= 9 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    showBackupAlert = true
+                }
             }
         }
     }

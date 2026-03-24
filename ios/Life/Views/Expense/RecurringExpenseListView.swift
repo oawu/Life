@@ -6,6 +6,8 @@ struct RecurringExpenseListView: View {
 
     @State private var editingRecurring: RecurringExpense?
     @State private var showAddSheet = false
+    @State private var errorMessage = ""
+    @State private var showErrorAlert = false
 
     private var ledger: Ledger? {
         store.ledgers.first { $0.id == ledgerId }
@@ -36,7 +38,15 @@ struct RecurringExpenseListView: View {
                         }
                         .onDelete { indexSet in
                             for index in indexSet {
-                                store.deleteRecurringExpense(id: recurringExpenses[index].id)
+                                let recurring = recurringExpenses[index]
+                                Task {
+                                    do {
+                                        try await store.deleteRecurringExpense(recurring)
+                                    } catch {
+                                        errorMessage = error.localizedDescription
+                                        showErrorAlert = true
+                                    }
+                                }
                             }
                         }
                     }
@@ -74,6 +84,11 @@ struct RecurringExpenseListView: View {
                 )
             }
         }
+        .alert("錯誤", isPresented: $showErrorAlert) {
+            Button("確定", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
     }
 
     // MARK: - Empty State
@@ -98,7 +113,14 @@ struct RecurringExpenseListView: View {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         var updated = recurring
         updated.isEnabled.toggle()
-        store.updateRecurringExpense(updated)
+        Task {
+            do {
+                try await store.updateRecurringExpense(updated)
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
+            }
+        }
     }
 
     private func recurringRow(_ recurring: RecurringExpense) -> some View {

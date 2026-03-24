@@ -32,6 +32,8 @@ struct RecurringExpenseEditView: View {
     @State private var memo: String = ""
     @State private var locationService = LocationService(autoRequest: false)
     @State private var showDeleteConfirmation = false
+    @State private var errorMessage = ""
+    @State private var showErrorAlert = false
 
     private var isGroup: Bool {
         ledger.type == .group
@@ -130,6 +132,11 @@ struct RecurringExpenseEditView: View {
             }
             .onAppear {
                 loadMode()
+            }
+            .alert("錯誤", isPresented: $showErrorAlert) {
+                Button("確定", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
             }
         }
     }
@@ -341,9 +348,16 @@ struct RecurringExpenseEditView: View {
         .confirmationDialog("確定要刪除此固定開銷嗎？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button("刪除", role: .destructive) {
                 if case .edit(let recurring) = mode {
-                    store.deleteRecurringExpense(id: recurring.id)
+                    Task {
+                        do {
+                            try await store.deleteRecurringExpense(recurring)
+                            dismiss()
+                        } catch {
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
+                        }
+                    }
                 }
-                dismiss()
             }
         }
     }
@@ -394,6 +408,7 @@ struct RecurringExpenseEditView: View {
 
         let recurring = RecurringExpense(
             id: isEditing ? editingId : UUID(),
+            serverId: editingServerId,
             amount: Double(amount),
             category: category,
             frequency: frequency,
@@ -406,13 +421,19 @@ struct RecurringExpenseEditView: View {
             paidBy: isGroup ? selectedPayer : nil
         )
 
-        if isEditing {
-            store.updateRecurringExpense(recurring)
-        } else {
-            store.addRecurringExpense(recurring)
+        Task {
+            do {
+                if isEditing {
+                    try await store.updateRecurringExpense(recurring)
+                } else {
+                    try await store.addRecurringExpense(recurring)
+                }
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
+            }
         }
-
-        dismiss()
     }
 
     private var editingId: UUID {
@@ -420,6 +441,13 @@ struct RecurringExpenseEditView: View {
             return recurring.id
         }
         return UUID()
+    }
+
+    private var editingServerId: Int? {
+        if case .edit(let recurring) = mode {
+            return recurring.serverId
+        }
+        return nil
     }
 
     private var editingIsEnabled: Bool {

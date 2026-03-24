@@ -100,4 +100,8 @@ final class APIClient {
     func put<T: Decodable>(path: String, body: [String: Any]?, responseType: T.Type) async throws -> T {
         return try await request(method: "PUT", path: path, body: body, responseType: responseType)
     }
+
+    func delete<T: Decodable>(path: String, responseType: T.Type) async throws -> T {
+        return try await request(method: "DELETE", path: path, responseType: responseType)
+    }
 }

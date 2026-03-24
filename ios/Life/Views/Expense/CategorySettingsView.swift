@@ -8,13 +8,16 @@ struct CategorySettingsView: View {
     @State private var editingCategory: ExpenseCategory?
     @State private var showAddSheet = false
     @State private var showOfflineAlert = false
+    @State private var showGuestAlert = false
+    @State private var errorMessage = ""
+    @State private var showErrorAlert = false
 
     private var sortableCategories: [ExpenseCategory] {
-        store.categories.filter { !$0.isSystemOther }
+        store.categories.filter { !$0.isOther }
     }
 
     private var otherCategory: ExpenseCategory? {
-        store.categories.first { $0.isSystemOther }
+        store.categories.first { $0.isOther }
     }
 
     var body: some View {
@@ -23,7 +26,11 @@ struct CategorySettingsView: View {
                 ForEach(sortableCategories) { category in
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        if !authManager.isGuest && !networkMonitor.isOnline {
+                        if authManager.isGuest {
+                            showGuestAlert = true
+                            return
+                        }
+                        if !networkMonitor.isOnline {
                             showOfflineAlert = true
                         } else {
                             editingCategory = category
@@ -32,8 +39,15 @@ struct CategorySettingsView: View {
                         categoryRow(category)
                     }
                 }
-                .onMove(perform: (!authManager.isGuest && !networkMonitor.isOnline) ? nil : { source, destination in
-                    store.moveCategory(from: source, to: destination)
+                .onMove(perform: authManager.isGuest || !networkMonitor.isOnline ? nil : { source, destination in
+                    Task {
+                        do {
+                            try await store.moveCategory(from: source, to: destination)
+                        } catch {
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
+                        }
+                    }
                 })
 
                 if let category = otherCategory {
@@ -47,15 +61,17 @@ struct CategorySettingsView: View {
         .environment(\.editMode, .constant(.active))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    if !authManager.isGuest && !networkMonitor.isOnline {
-                        showOfflineAlert = true
-                    } else {
-                        showAddSheet = true
+                if !authManager.isGuest {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        if !networkMonitor.isOnline {
+                            showOfflineAlert = true
+                        } else {
+                            showAddSheet = true
+                        }
+                    } label: {
+                        Image(systemName: "rectangle.stack.badge.plus")
                     }
-                } label: {
-                    Image(systemName: "rectangle.stack.badge.plus")
                 }
             }
         }
@@ -63,24 +79,56 @@ struct CategorySettingsView: View {
             CategoryEditView(
                 mode: .edit(category),
                 onSave: { updated in
-                    store.updateCategory(updated)
+                    Task {
+                        do {
+                            try await store.updateCategory(updated)
+                        } catch {
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
+                        }
+                    }
                 },
-                onDelete: category.isSystemOther ? nil : {
-                    store.deleteCategory(id: category.id)
+                onDelete: category.isOther ? nil : {
+                    Task {
+                        do {
+                            try await store.deleteCategory(id: category.id)
+                        } catch {
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
+                        }
+                    }
                 }
             )
         }
         .sheet(isPresented: $showAddSheet) {
             CategoryEditView(mode: .add) { newCategory in
-                store.addCategory(id: newCategory.id, name: newCategory.name, icon: newCategory.icon, color: newCategory.color)
+                Task {
+                    do {
+                        try await store.addCategory(name: newCategory.name, icon: newCategory.icon, color: newCategory.color)
+                    } catch {
+                        errorMessage = error.localizedDescription
+                        showErrorAlert = true
+                    }
+                }
             }
+        }
+        .alert("登入後可編輯", isPresented: $showGuestAlert) {
+            Button("好") {}
+        } message: {
+            Text("登入後即可自訂分類")
         }
         .alert("無法連線", isPresented: $showOfflineAlert) {
             Button("好") {}
         } message: {
             Text("此操作需要網路連線，請稍後再試")
         }
+        .alert("錯誤", isPresented: $showErrorAlert) {
+            Button("確定", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
     }
+
     private func categoryRow(_ category: ExpenseCategory) -> some View {
         HStack(spacing: 12) {
             Image(systemName: category.icon)

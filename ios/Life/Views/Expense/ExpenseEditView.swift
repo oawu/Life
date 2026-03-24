@@ -13,6 +13,8 @@ struct ExpenseEditView: View {
     @State private var memo: String = ""
     @State private var date: Date = Date()
     @State private var locationService = LocationService(autoRequest: false)
+    @State private var errorMessage = ""
+    @State private var showErrorAlert = false
 
     private var isGroup: Bool {
         ledger.type == .group
@@ -76,6 +78,11 @@ struct ExpenseEditView: View {
             .onAppear {
                 loadExpense()
             }
+            .alert("錯誤", isPresented: $showErrorAlert) {
+                Button("確定", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
 
@@ -103,6 +110,7 @@ struct ExpenseEditView: View {
 
         let updated = Expense(
             id: expense.id,
+            serverId: expense.serverId,
             amount: Double(amount),
             category: category,
             memo: memo,
@@ -114,7 +122,14 @@ struct ExpenseEditView: View {
             paidBy: isGroup ? selectedPayer : nil
         )
 
-        store.updateExpense(updated)
-        dismiss()
+        Task {
+            do {
+                try await store.updateExpense(updated)
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
+            }
+        }
     }
 }

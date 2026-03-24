@@ -3,46 +3,38 @@ import SwiftData
 import SwiftUI
 
 @Model
-final class PersistentCategory {
-    var localId: UUID
-    var serverId: Int?
+final class CachedCategory {
+    @Attribute(.unique) var serverId: Int
+    var key: String?
     var name: String
     var icon: String
     var colorHex: String
     var sortOrder: Int
-    var isSystemDefault: Bool
-    var syncStatus: String
-    var lastModified: Date
 
-    var ledger: PersistentLedger?
+    var ledger: CachedLedger?
 
     init(
-        localId: UUID = UUID(),
-        serverId: Int? = nil,
+        serverId: Int,
+        key: String? = nil,
         name: String,
         icon: String,
         colorHex: String,
         sortOrder: Int,
-        isSystemDefault: Bool = false,
-        syncStatus: String = "pending",
-        lastModified: Date = Date(),
-        ledger: PersistentLedger? = nil
+        ledger: CachedLedger? = nil
     ) {
-        self.localId = localId
         self.serverId = serverId
+        self.key = key
         self.name = name
         self.icon = icon
         self.colorHex = colorHex
         self.sortOrder = sortOrder
-        self.isSystemDefault = isSystemDefault
-        self.syncStatus = syncStatus
-        self.lastModified = lastModified
         self.ledger = ledger
     }
 
     func toViewModel() -> ExpenseCategory {
         ExpenseCategory(
-            id: localId.uuidString,
+            id: String(serverId),
+            key: key,
             name: name,
             icon: icon,
             color: Color(hex: colorHex)
