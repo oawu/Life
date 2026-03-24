@@ -2,25 +2,26 @@
 
 return [
   'up' => "CREATE TABLE `User` (
-    `id`        int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
-    `name`      varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '名稱',
-    `email`     varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Email',
-    `avatar`    text COLLATE utf8mb4_unicode_ci COMMENT '頭像 URL',
-    `googleId`  varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Google ID',
-    `appleId`   varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Apple ID',
-    `status`    enum('active', 'disabled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active' COMMENT '狀態',
-    `updateAt`  datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-    `createAt`  datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '新增時間',
+    `id`             int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
+    `name`           varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '名稱',
+    `email`          varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Email',
+    `avatar`         text COLLATE utf8mb4_unicode_ci COMMENT '頭像 URL',
+    `googleId`       varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Google ID',
+    `appleId`        varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Apple ID',
+    `status`         enum('active', 'disabled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active' COMMENT '狀態',
+    `token`          varchar(512) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'JWT Token',
+    `carrierNumber`  varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '載具號碼',
+    `updateAt`       datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
+    `createAt`       datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '新增時間',
     PRIMARY KEY (`id`),
     UNIQUE KEY `googleId_unique` (`googleId`),
     UNIQUE KEY `appleId_unique` (`appleId`),
-    KEY `email_index` (`email`),
-    KEY `status_index` (`status`)
+    KEY `email_index` (`email`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用戶';",
 
   'down' => "DROP TABLE IF EXISTS `User`;",
 
-  'at' => "2026-03-20 16:04:20"
+  'at' => "2026-03-24 18:00:00"
 ];
 
 # 欄位格式
