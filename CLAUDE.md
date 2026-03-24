@@ -158,7 +158,7 @@ life/
     - 備註、時間為可選步驟，用戶可選擇直接儲存跳過
   - 計算機（WatchCalculatorView）：3×4 數字鍵盤（純整數），幣別 badge（TWD 灰/非 TWD 紅）+ 千分位 + 單位
   - 儲存成功：haptic 成功回饋 + 打勾動畫 → pop 回帳本列表 → 重置表單
-  - WatchConnectivity：iPhone → Watch 同步帳本/分類（updateApplicationContext）；Watch → iPhone 回傳開銷（sendMessage / transferUserInfo）
+  - WatchConnectivity：iPhone → Watch 同步帳本/分類/登入狀態/網路狀態（updateApplicationContext）；Watch → iPhone 回傳開銷（sendMessage / transferUserInfo）
   - 共用 Models（Shared/Models/）：Expense、Ledger、ExpenseCategory、Currency、RecurringExpense 由 Life 與 LifeWatch 共用
   - PhoneSessionManager（Life/Services/）：iPhone 端 WCSession 管理
   - WatchExpenseStore / WatchLocationService / WatchSessionManager（LifeWatch/Services/）：Watch 端狀態管理與連線
@@ -187,6 +187,11 @@ life/
   - 同步時機：登入成功、App 回前景、網路恢復
   - 登出清除 lastSyncAt + resetToDefaults
   - 個人資料 API（PUT /api/auth/me）：更新 name / carrierNumber
+- Watch 狀態整合
+  - WatchExpenseStore 新增 `isLoggedIn`、`isOnline` 屬性 + `availableLedgers` computed property
+  - 訪客模式：Watch 帳本列表只顯示個人帳本（過濾群組帳本）
+  - 離線提示：帳本列表底部顯示 wifi.slash + 「離線中」（不阻擋操作）
+  - WatchSessionManager.handleContext() 獨立處理 isLoggedIn / isOnline / ledgers 三個欄位
   - AuthManager 更新名稱/載具時同步呼叫 API（fire-and-forget）
   - User table 新增 carrierNumber 欄位
 
