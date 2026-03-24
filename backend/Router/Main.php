@@ -32,14 +32,14 @@ Group::create('api')
           ->controller(\App\Controller\Api\Auth::class . '@updateProfile')
           ->title('更新個人資料');
 
-        // Sync
-        Router::post('sync/push')
-          ->controller(\App\Controller\Api\Sync::class . '@push')
-          ->title('推送本地變更');
+        Router::post('auth/init')
+          ->controller(\App\Controller\Api\Auth::class . '@init')
+          ->title('登入初始化');
 
-        Router::post('sync/pull')
-          ->controller(\App\Controller\Api\Sync::class . '@pull')
-          ->title('拉取遠端變更');
+        // State
+        Router::get('state')
+          ->controller(\App\Controller\Api\State::class . '@index')
+          ->title('取得完整狀態');
 
         // Ledger（群組帳本）
         Router::post('ledgers')
@@ -69,5 +69,52 @@ Group::create('api')
         Router::post('ledgers/{{ id: uint }}/settle')
           ->controller(\App\Controller\Api\Ledger::class . '@settle')
           ->title('結算拆帳');
+
+        // Category
+        Router::post('ledgers/{{ id: uint }}/categories')
+          ->controller(\App\Controller\Api\Category::class . '@create')
+          ->title('建立分類');
+
+        Router::put('categories/{{ id: uint }}')
+          ->controller(\App\Controller\Api\Category::class . '@update')
+          ->title('更新分類');
+
+        Router::delete('categories/{{ id: uint }}')
+          ->controller(\App\Controller\Api\Category::class . '@destroy')
+          ->title('刪除分類');
+
+        Router::put('ledgers/{{ id: uint }}/categories/sort')
+          ->controller(\App\Controller\Api\Category::class . '@sort')
+          ->title('排序分類');
+
+        // Expense
+        Router::post('ledgers/{{ id: uint }}/expenses')
+          ->controller(\App\Controller\Api\Expense::class . '@create')
+          ->title('建立開銷');
+
+        Router::post('ledgers/{{ id: uint }}/expenses/batch')
+          ->controller(\App\Controller\Api\Expense::class . '@batch')
+          ->title('批次建立開銷');
+
+        Router::put('expenses/{{ id: uint }}')
+          ->controller(\App\Controller\Api\Expense::class . '@update')
+          ->title('更新開銷');
+
+        Router::delete('expenses/{{ id: uint }}')
+          ->controller(\App\Controller\Api\Expense::class . '@destroy')
+          ->title('刪除開銷');
+
+        // RecurringExpense
+        Router::post('ledgers/{{ id: uint }}/recurring-expenses')
+          ->controller(\App\Controller\Api\RecurringExpense::class . '@create')
+          ->title('建立固定開銷');
+
+        Router::put('recurring-expenses/{{ id: uint }}')
+          ->controller(\App\Controller\Api\RecurringExpense::class . '@update')
+          ->title('更新固定開銷');
+
+        Router::delete('recurring-expenses/{{ id: uint }}')
+          ->controller(\App\Controller\Api\RecurringExpense::class . '@destroy')
+          ->title('刪除固定開銷');
       });
   });

@@ -13,16 +13,6 @@ use \App\Model\RecurringExpense;
 use \App\Model\Settlement;
 
 class Ledger {
-  private static $_defaultGroupCategories = [
-    ['name' => '聚餐', 'icon' => 'fork.knife',           'color' => '#FF9500', 'sort' => 0],
-    ['name' => '採買', 'icon' => 'cart.fill',             'color' => '#FF2D55', 'sort' => 1],
-    ['name' => '租金', 'icon' => 'building.2.fill',       'color' => '#34C759', 'sort' => 2],
-    ['name' => '水電', 'icon' => 'bolt.fill',             'color' => '#FFCC00', 'sort' => 3],
-    ['name' => '交通', 'icon' => 'bus.fill',              'color' => '#007AFF', 'sort' => 4],
-    ['name' => '娛樂', 'icon' => 'gamecontroller.fill',   'color' => '#AF52DE', 'sort' => 5],
-    ['name' => '其他', 'icon' => 'ellipsis.circle.fill',  'color' => '#8E8E93', 'sort' => 6, 'isSystemDefault' => true],
-  ];
-
   public function create() {
     $user = User::current();
 
@@ -51,15 +41,15 @@ class Ledger {
         'role'     => LedgerMember::ROLE_OWNER,
       ]) ?? error('建立成員失敗');
 
-      foreach (self::$_defaultGroupCategories as $cat) {
+      $defaults = Category::defaultGroupCategories();
+      foreach ($defaults as $index => $cat) {
         Category::create([
-          'localId'         => self::_generateUUID(),
-          'ledgerId'        => $ledger->id,
-          'name'            => $cat['name'],
-          'icon'            => $cat['icon'],
-          'color'           => $cat['color'],
-          'sort'            => $cat['sort'],
-          'isSystemDefault' => !empty($cat['isSystemDefault']) ? Category::IS_SYSTEM_DEFAULT_YES : Category::IS_SYSTEM_DEFAULT_NO,
+          'ledgerId' => $ledger->id,
+          'key'      => $cat['key'],
+          'name'     => $cat['name'],
+          'icon'     => $cat['icon'],
+          'color'    => $cat['color'],
+          'sort'     => $index,
         ]) ?? error('建立分類失敗');
       }
 
@@ -165,7 +155,7 @@ class Ledger {
       error('帳本尚未結清，無法退出', 400);
     }
 
-    transaction(static function () use ($member, $id, $user) {
+    $shouldDeleteLedger = transaction(static function () use ($member, $id, $user) {
       // 刪除該成員的固定開銷
       $recurringExpenses = RecurringExpense::where('ledgerId', $id)->where('paidByUserId', $user->id)->all();
       foreach ($recurringExpenses as $recurring) {
@@ -173,12 +163,13 @@ class Ledger {
       }
 
       $member->delete() ?? error('退出失敗');
-      return true;
+
+      // 在 transaction 內檢查殘餘成員（避免 race condition）
+      $remainingMembers = (int)LedgerMember::where('ledgerId', $id)->count();
+      return $remainingMembers == 0;
     });
 
-    // 若帳本無成員，刪除整個帳本
-    $remainingMembers = LedgerMember::where('ledgerId', $id)->count();
-    if ($remainingMembers === 0) {
+    if ($shouldDeleteLedger) {
       self::_deleteLedgerCompletely($id);
     }
 
@@ -203,7 +194,7 @@ class Ledger {
     return ['members' => array_map(static function ($member) use ($user, $userMap) {
       $memberUser = $userMap[$member->userId] ?? null;
       return [
-        'serverId'      => $member->id,
+        'id'            => $member->id,
         'userId'        => $member->userId,
         'name'          => $memberUser ? $memberUser->name : '',
         'role'          => $member->role,
@@ -239,7 +230,7 @@ class Ledger {
     });
 
     return ['settlement' => [
-      'serverId'        => $settlement->id,
+      'id'              => $settlement->id,
       'settledByUserId' => $user->id,
       'transfers'       => $settlement->transfers,
       'currencySymbol'  => $settlement->currencySymbol,
@@ -278,7 +269,7 @@ class Ledger {
     }
 
     return [
-      'serverId'   => $ledger->id,
+      'id'         => $ledger->id,
       'name'       => $ledger->name,
       'type'       => $ledger->type,
       'currency'   => $ledger->currency,
@@ -286,7 +277,7 @@ class Ledger {
       'members'    => array_values(array_map(static function ($member) use ($user, $userMap) {
         $memberUser = $userMap[$member->userId] ?? null;
         return [
-          'serverId'      => $member->id,
+          'id'            => $member->id,
           'userId'        => $member->userId,
           'name'          => $memberUser ? $memberUser->name : '',
           'role'          => $member->role,
@@ -294,15 +285,7 @@ class Ledger {
         ];
       }, $members)),
       'categories' => array_map(static function ($category) {
-        return [
-          'serverId'        => $category->id,
-          'localId'         => $category->localId,
-          'name'            => $category->name,
-          'icon'            => $category->icon,
-          'color'           => $category->color,
-          'sort'            => $category->sort,
-          'isSystemDefault' => $category->isSystemDefault == Category::IS_SYSTEM_DEFAULT_YES,
-        ];
+        return State::formatCategory($category);
       }, $categories),
     ];
   }
@@ -336,13 +319,6 @@ class Ledger {
 
       return true;
     });
-  }
-
-  private static function _generateUUID(): string {
-    $data = random_bytes(16);
-    $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
-    $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
-    return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
   }
 
   private static function _currencySymbol(string $code): string {

@@ -7,6 +7,10 @@ use \Valid;
 use \Request\Payload;
 use \App\Lib\Jwt;
 use \App\Model\User;
+use \App\Model\Ledger;
+use \App\Model\LedgerMember;
+use \App\Model\Category;
+use \App\Model\Expense;
 
 class Auth {
   public function appleCallback() {
@@ -169,6 +173,104 @@ class Auth {
     });
 
     return ['user' => $user->toSafeArray()];
+  }
+
+  public function init() {
+    $user = User::current();
+
+    list(
+      'expenses' => $guestExpenses,
+    ) = Valid::check(Payload::getJson(), [
+      'expenses' => Valid::array_('開銷', Valid::any('開銷項目'))->nullOrNoKey([]),
+    ]);
+
+    // 找用戶的個人帳本
+    $ledger = Ledger::where('createdByUserId', $user->id)->where('type', Ledger::TYPE_PERSONAL)->one();
+
+    if (!$ledger) {
+      // 建立個人帳本 + owner 成員 + 預設分類
+      $ledger = transaction(static function () use ($user) {
+        $ledger = Ledger::create([
+          'name'            => '個人',
+          'type'            => Ledger::TYPE_PERSONAL,
+          'currency'        => 'TWD',
+          'createdByUserId' => $user->id,
+        ]) ?? error('建立帳本失敗');
+
+        LedgerMember::create([
+          'ledgerId' => $ledger->id,
+          'userId'   => $user->id,
+          'role'     => LedgerMember::ROLE_OWNER,
+        ]) ?? error('建立成員失敗');
+
+        $defaults = Category::defaultPersonalCategories();
+        foreach ($defaults as $index => $cat) {
+          Category::create([
+            'ledgerId' => $ledger->id,
+            'key'      => $cat['key'],
+            'name'     => $cat['name'],
+            'icon'     => $cat['icon'],
+            'color'    => $cat['color'],
+            'sort'     => $index,
+          ]) ?? error('建立分類失敗');
+        }
+
+        return $ledger;
+      });
+    }
+
+    // 建立 guest 開銷
+    if (!empty($guestExpenses)) {
+      // 取得分類 key → id 映射
+      $categories = Category::where('ledgerId', $ledger->id)->all();
+      $keyMap = [];
+      foreach ($categories as $category) {
+        if ($category->key) {
+          $keyMap[$category->key] = $category->id;
+        }
+      }
+
+      // 驗證並準備參數
+      $validatedItems = [];
+      foreach ($guestExpenses as $expenseData) {
+        if (!is_array($expenseData)) {
+          continue;
+        }
+
+        $amount = isset($expenseData['amount']) && is_numeric($expenseData['amount']) ? (int)$expenseData['amount'] : 0;
+        if ($amount <= 0) {
+          continue;
+        }
+
+        $categoryKey = $expenseData['categoryKey'] ?? null;
+        $categoryId  = $categoryKey ? ($keyMap[$categoryKey] ?? null) : null;
+
+        $validatedItems[] = [
+          'ledgerId'        => $ledger->id,
+          'categoryId'      => $categoryId,
+          'amount'          => $amount,
+          'memo'            => isset($expenseData['memo']) && is_string($expenseData['memo']) ? mb_substr($expenseData['memo'], 0, 200) : '',
+          'date'            => isset($expenseData['date']) && is_string($expenseData['date']) ? $expenseData['date'] : date('Y-m-d H:i:s'),
+          'latitude'        => isset($expenseData['latitude']) && is_numeric($expenseData['latitude']) ? $expenseData['latitude'] : null,
+          'longitude'       => isset($expenseData['longitude']) && is_numeric($expenseData['longitude']) ? $expenseData['longitude'] : null,
+          'address'         => isset($expenseData['address']) && is_string($expenseData['address']) ? mb_substr($expenseData['address'], 0, 200) : null,
+          'isSettled'       => Expense::IS_SETTLED_NO,
+          'createdByUserId' => $user->id,
+        ];
+      }
+
+      if (!empty($validatedItems)) {
+        transaction(static function () use ($validatedItems) {
+          foreach ($validatedItems as $param) {
+            Expense::create($param) ?? error('建立開銷失敗');
+          }
+
+          return true;
+        });
+      }
+    }
+
+    return State::buildFullState();
   }
 
   private static function _devLogin(string $email): array {

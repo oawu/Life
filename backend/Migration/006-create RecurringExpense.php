@@ -3,9 +3,8 @@
 return [
   'up' => "CREATE TABLE `RecurringExpense` (
     `id`              int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
-    `localId`         varchar(36) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'Client UUID',
     `ledgerId`        int(10) unsigned NOT NULL COMMENT 'Ledger ID',
-    `categoryId`      int(10) unsigned NOT NULL COMMENT 'Category ID',
+    `categoryId`      int(10) unsigned DEFAULT NULL COMMENT 'Category ID（null = 其他）',
     `amount`          int(10) unsigned NOT NULL DEFAULT 0 COMMENT '金額',
     `frequencyType`   varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '頻率類型 daily/weekly/monthly/yearly',
     `frequencyValue`  json DEFAULT NULL COMMENT '頻率參數',
@@ -19,7 +18,7 @@ return [
     `updateAt`        datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
     `createAt`        datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '新增時間',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `ledgerId_localId_unique` (`ledgerId`, `localId`)
+    KEY `ledgerId` (`ledgerId`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='固定開銷';",
 
   'down' => "DROP TABLE IF EXISTS `RecurringExpense`;",
