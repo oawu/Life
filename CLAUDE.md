@@ -168,7 +168,7 @@ life/
   - `DataManager`：Repository 層，負責 SwiftData CRUD + struct ↔ @Model 映射
   - `ExpenseStore` 委派 `DataManager` 讀寫，每次寫入後 `reload()` 重新載入
   - `LifeSchema`：VersionedSchema（SchemaV1）+ LifeMigrationPlan，支援未來 schema 遷移
-  - `syncStatus` 欄位預留同步狀態（pending / synced / deleted），待後端串接
+  - `syncStatus` 欄位管理同步狀態（pending / synced / deleted），由 SyncEngine 驅動
   - `LedgerMember.isCurrentUser`：識別當前使用者，取代舊的固定 ID 判斷
 - 網路感知 + 離線模式
   - `NetworkMonitor`（Life/Services/）：NWPathMonitor 偵測網路狀態，`@Observable` + `isOnline`
@@ -177,6 +177,18 @@ life/
   - 訪客不受離線影響（純本地操作）
   - 開銷新增/編輯/刪除不攔截（排隊同步）
   - PhoneSessionManager 同步 `isOnline` 狀態到 Watch
+- 後端 API + 同步引擎
+  - 後端資料表：Ledger、LedgerMember、Category、Expense、RecurringExpense、Settlement（Migration 003-010）
+  - Sync Push API（POST /api/sync/push）：Client 推送本地變更，Server upsert + 回傳 serverId mapping
+  - Sync Pull API（POST /api/sync/pull）：Client 帶 lastSyncAt 拉取 Server 變更，依 serverId 合併本地
+  - 同步策略：Push-then-Pull，Server-authoritative，以 localId 做 upsert 去重
+  - iOS `SyncEngine`（Life/Services/）：fullSync() = push() + pull()，guard 離線 + 防重入
+  - `DataManager` 新增同步方法：buildSyncPushPayload / applySyncMappings / mergeRemoteData
+  - 同步時機：登入成功、App 回前景、網路恢復
+  - 登出清除 lastSyncAt + resetToDefaults
+  - 個人資料 API（PUT /api/auth/me）：更新 name / carrierNumber
+  - AuthManager 更新名稱/載具時同步呼叫 API（fire-and-forget）
+  - User table 新增 carrierNumber 欄位
 
 ---
 
@@ -187,6 +199,12 @@ life/
 | Model | 表名 | 說明 |
 |-------|------|------|
 | User | User | 用戶（支援 Google / Apple 登入） |
+| Ledger | Ledger | 帳本（personal / group） |
+| LedgerMember | LedgerMember | 帳本成員（owner / member） |
+| Category | Category | 分類（isSystemDefault 0/1） |
+| Expense | Expense | 開銷（isSettled 0/1） |
+| RecurringExpense | RecurringExpense | 固定開銷（isEnabled 0/1） |
+| Settlement | Settlement | 結算紀錄 |
 
 ### Lib 工具
 
