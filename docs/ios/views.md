@@ -140,21 +140,28 @@ HomeView (TabView)
 
 | View | 檔案 | 參數 | 說明 |
 |------|------|------|------|
-| WatchAddExpenseView | WatchAddExpenseView.swift | store: WatchExpenseStore | Watch 主表單（捲動 List），整合所有記帳欄位，包含內嵌的 WatchMemoInputView |
-| WatchAmountInputView | WatchAmountInputView.swift | amount: Binding\<Int\>, onConfirm | 數字鍵盤金額輸入（0–9 + 清除 + 確認） |
-| WatchCategoryPickerView | WatchCategoryPickerView.swift | categories, selected: Binding | 分類列表選擇（圖示 + 名稱） |
-| WatchLedgerPickerView | WatchLedgerPickerView.swift | ledgers, selectedId: Binding | 帳本列表選擇 |
-| WatchPayerPickerView | WatchPayerPickerView.swift | members, selected: Binding | 付款人列表選擇（群組帳本） |
-| WatchDatePickerView | WatchDatePickerView.swift | date: Binding\<Date\> | 日期與時間選擇 |
+| WatchAddExpenseView | WatchAddExpenseView.swift | store: WatchExpenseStore | Wizard 協調器，NavigationStack(path:) + WatchStep enum 控制逐步導航 |
+| WatchCalculatorView | WatchCalculatorView.swift | amount: Binding\<Int\>, currency, onConfirm | 3×4 數字計算機（純整數），幣別 badge + 千分位 + 單位 |
+| WatchCategoryPickerView | WatchCategoryPickerView.swift | categories, onSelect | 分類列表選擇（圖示 + 名稱），點擊觸發 callback |
+| WatchLedgerPickerView | WatchLedgerPickerView.swift | ledgers, selectedId, onSelect | 帳本列表選擇，點擊觸發 callback |
+| WatchPayerPickerView | WatchPayerPickerView.swift | members, onSelect | 付款人列表選擇（群組帳本），點擊觸發 callback |
+| WatchMemoOrSaveView | WatchMemoOrSaveView.swift | onSave, onMemo | 備註或儲存二選一（List 按鈕） |
+| WatchMemoInputView | WatchMemoInputView.swift | memo: Binding\<String\>, onNext | 備註文字輸入 + 下一步按鈕 |
+| WatchTimeOrSaveView | WatchTimeOrSaveView.swift | onSave, onAdjustTime | 時間或儲存二選一（List 按鈕） |
+| WatchDatePickerView | WatchDatePickerView.swift | date: Binding\<Date\>, onSave | 日期與時間選擇 + 儲存按鈕 |
 
-### Watch 導航結構
+### Watch 導航結構（Wizard）
 
 ```
-WatchAddExpenseView（主表單）
-├─ push: WatchLedgerPickerView    ← 帳本列
-├─ push: WatchAmountInputView     ← 金額列
-├─ push: WatchCategoryPickerView  ← 分類列
-├─ push: WatchPayerPickerView     ← 付款人列（群組帳本）
-├─ 嵌入: WatchMemoInputView       ← 備註列
-└─ push: WatchDatePickerView      ← 時間列
+WatchAddExpenseView（NavigationStack root = 帳本列表）
+├─ .calculator: WatchCalculatorView       ← 3×4 數字鍵盤
+├─ .category: WatchCategoryPickerView     ← 分類選擇
+├─ .payer: WatchPayerPickerView           ← 付款人（群組帳本限定）
+├─ .memoOrSave: WatchMemoOrSaveView       ← 儲存 / 輸入備註
+├─ .memo: WatchMemoInputView              ← 備註輸入
+├─ .timeOrSave: WatchTimeOrSaveView       ← 儲存 / 調整時間
+└─ .time: WatchDatePickerView             ← 時間選擇 → 儲存
+
+流程：帳本 → 計算機 → 分類 → [付款人] → 備註或儲存 → [備註] → 時間或儲存 → [時間] → 儲存
+儲存後 path.removeAll() pop 回帳本列表 + 成功動畫
 ```

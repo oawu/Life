@@ -140,8 +140,12 @@ life/
     - 載具號碼：NavigationLink push 到 CarrierEditView，Code 128 條碼即時預覽 + 格式驗證（/ + 7 碼）
     - 登出按鈕：alert 確認後登出
 - Apple Watch 快速記帳（LifeWatch App）：
-  - 主表單（WatchAddExpenseView）：捲動 List，各欄位 push 到子頁面（帳本、金額、分類、付款人、備註、時間）
-  - 儲存成功：haptic 成功回饋 + 打勾動畫 → 重置表單
+  - 逐步導航 Wizard（WatchAddExpenseView）：NavigationStack(path:) + WatchStep enum
+    - 流程：帳本 → 計算機 → 分類 → [付款人(群組)] → 備註或儲存 → [備註] → 時間或儲存 → [時間] → 儲存
+    - 帳本列表為 NavigationStack root，各步驟透過 callback 推進
+    - 備註、時間為可選步驟，用戶可選擇直接儲存跳過
+  - 計算機（WatchCalculatorView）：3×4 數字鍵盤（純整數），幣別 badge（TWD 灰/非 TWD 紅）+ 千分位 + 單位
+  - 儲存成功：haptic 成功回饋 + 打勾動畫 → pop 回帳本列表 → 重置表單
   - WatchConnectivity：iPhone → Watch 同步帳本/分類（updateApplicationContext）；Watch → iPhone 回傳開銷（sendMessage / transferUserInfo）
   - 共用 Models（Shared/Models/）：Expense、Ledger、ExpenseCategory、Currency、RecurringExpense 由 Life 與 LifeWatch 共用
   - PhoneSessionManager（Life/Services/）：iPhone 端 WCSession 管理
