@@ -7,7 +7,9 @@ struct LifeApp: App {
     @State private var networkMonitor = NetworkMonitor()
     @State private var dataManager: DataManager
     @State private var expenseStore: ExpenseStore
+    @State private var syncEngine: SyncEngine?
     @State private var phoneSessionManager: PhoneSessionManager?
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         let schema = Schema(SchemaV1.models)
@@ -42,10 +44,28 @@ struct LifeApp: App {
             .onChange(of: networkMonitor.isOnline) {
                 phoneSessionManager?.isOnline = networkMonitor.isOnline
                 phoneSessionManager?.syncLedgersToWatch()
+                // 網路恢復時自動同步
+                if networkMonitor.isOnline && authManager.isAuthenticated {
+                    Task {
+                        await syncEngine?.fullSync()
+                        expenseStore.reload()
+                    }
+                }
             }
             .onAppear {
                 if phoneSessionManager == nil {
                     phoneSessionManager = PhoneSessionManager(expenseStore: expenseStore)
+                }
+                if syncEngine == nil {
+                    syncEngine = SyncEngine(dataManager: dataManager, networkMonitor: networkMonitor)
+                }
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active && authManager.isAuthenticated {
+                    Task {
+                        await syncEngine?.fullSync()
+                        expenseStore.reload()
+                    }
                 }
             }
             .onChange(of: expenseStore.ledgers) {
@@ -60,6 +80,7 @@ struct LifeApp: App {
         switch (oldState, newState) {
         case (.authenticated, .guest):
             // 登出：重設資料
+            syncEngine?.lastSyncAt = nil
             dataManager.resetToDefaults()
             expenseStore.reload()
             expenseStore.currentLedgerId = expenseStore.ledgers.first?.id ?? ""
@@ -67,9 +88,13 @@ struct LifeApp: App {
             phoneSessionManager?.syncLedgersToWatch()
 
         case (.guest, .authenticated):
-            // 登入：保留本地資料（Phase 4 再加同步）
+            // 登入：同步本地資料到 Server
             phoneSessionManager?.isLoggedIn = true
-            phoneSessionManager?.syncLedgersToWatch()
+            Task {
+                await syncEngine?.fullSync()
+                expenseStore.reload()
+                phoneSessionManager?.syncLedgersToWatch()
+            }
 
         default:
             break

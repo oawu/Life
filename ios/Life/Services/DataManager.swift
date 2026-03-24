@@ -349,6 +349,400 @@ final class DataManager {
         save()
     }
 
+    // MARK: - Sync Push
+
+    func buildSyncPushPayload() -> [[String: Any]] {
+        let descriptor = FetchDescriptor<PersistentLedger>(
+            sortBy: [SortDescriptor(\.sortOrder)]
+        )
+        let ledgers = (try? context.fetch(descriptor)) ?? []
+
+        return ledgers.map { ledger in
+            let pendingCategories = ledger.categories.map { category -> [String: Any] in
+                return [
+                    "localId":         category.localId.uuidString,
+                    "name":            category.name,
+                    "icon":            category.icon,
+                    "color":           category.colorHex,
+                    "sort":            category.sortOrder,
+                    "isSystemDefault": category.isSystemDefault,
+                ]
+            }
+
+            let pendingExpenses = ledger.expenses.filter { $0.syncStatus == "pending" }.map { expense -> [String: Any] in
+                var data: [String: Any] = [
+                    "localId":         expense.localId.uuidString,
+                    "amount":          Int(expense.amount),
+                    "categoryLocalId": expense.category?.localId.uuidString ?? "",
+                    "memo":            expense.memo,
+                    "date":            Self.formatDate(expense.date),
+                ]
+                if let latitude = expense.latitude {
+                    data["latitude"] = latitude
+                }
+                if let longitude = expense.longitude {
+                    data["longitude"] = longitude
+                }
+                if let address = expense.address {
+                    data["address"] = address
+                }
+                return data
+            }
+
+            let pendingRecurring = ledger.recurringExpenses.filter { $0.syncStatus == "pending" }.map { recurring -> [String: Any] in
+                var data: [String: Any] = [
+                    "localId":         recurring.localId.uuidString,
+                    "amount":          Int(recurring.amount),
+                    "categoryLocalId": recurring.category?.localId.uuidString ?? "",
+                    "frequencyType":   recurring.frequencyType,
+                    "memo":            recurring.memo,
+                    "isEnabled":       recurring.isEnabled,
+                ]
+                if !recurring.frequencyValue.isEmpty {
+                    data["frequencyValue"] = recurring.frequencyValue
+                }
+                if let latitude = recurring.latitude {
+                    data["latitude"] = latitude
+                }
+                if let longitude = recurring.longitude {
+                    data["longitude"] = longitude
+                }
+                if let address = recurring.address {
+                    data["address"] = address
+                }
+                return data
+            }
+
+            let deletedExpenseIds = ledger.expenses
+                .filter { $0.syncStatus == "deleted" }
+                .map { $0.localId.uuidString }
+
+            let deletedCategoryIds = ledger.categories
+                .filter { $0.syncStatus == "deleted" }
+                .map { $0.localId.uuidString }
+
+            let deletedRecurringIds = ledger.recurringExpenses
+                .filter { $0.syncStatus == "deleted" }
+                .map { $0.localId.uuidString }
+
+            var result: [String: Any] = [
+                "localId":    ledger.localId.uuidString,
+                "name":       ledger.name,
+                "type":       ledger.type,
+                "currency":   ledger.currencyCode,
+                "categories": pendingCategories,
+                "expenses":   pendingExpenses,
+                "recurringExpenses": pendingRecurring,
+            ]
+
+            if !deletedExpenseIds.isEmpty {
+                result["deletedExpenseLocalIds"] = deletedExpenseIds
+            }
+            if !deletedCategoryIds.isEmpty {
+                result["deletedCategoryLocalIds"] = deletedCategoryIds
+            }
+            if !deletedRecurringIds.isEmpty {
+                result["deletedRecurringLocalIds"] = deletedRecurringIds
+            }
+
+            return result
+        }
+    }
+
+    func applySyncMappings(_ mappings: SyncMappings) {
+        // 更新 Ledger serverId + syncStatus
+        for mapping in mappings.ledgers {
+            if let ledger = findLedger(id: mapping.localId) {
+                ledger.serverId = mapping.serverId
+                ledger.syncStatus = "synced"
+            }
+        }
+
+        // 更新 Category serverId + syncStatus
+        for mapping in mappings.categories {
+            if let category = findCategory(byViewModelId: mapping.localId) {
+                category.serverId = mapping.serverId
+                category.syncStatus = "synced"
+            }
+        }
+
+        // 更新 Expense serverId + syncStatus
+        for mapping in mappings.expenses {
+            if let uuid = UUID(uuidString: mapping.localId),
+               let expense = findExpense(id: uuid) {
+                expense.serverId = mapping.serverId
+                expense.syncStatus = "synced"
+            }
+        }
+
+        // 更新 RecurringExpense serverId + syncStatus
+        for mapping in mappings.recurringExpenses {
+            if let uuid = UUID(uuidString: mapping.localId),
+               let recurring = findRecurringExpense(id: uuid) {
+                recurring.serverId = mapping.serverId
+                recurring.syncStatus = "synced"
+            }
+        }
+
+        // 清除標記為 deleted 且已同步的資料
+        cleanupDeletedRecords()
+        save()
+    }
+
+    func mergeRemoteData(_ remoteLedgers: [SyncLedger]) {
+        for remoteLedger in remoteLedgers {
+            // 用 serverId 查找本地帳本
+            let localLedger = findLedgerByServerId(remoteLedger.serverId)
+
+            if let localLedger {
+                // 更新本地帳本
+                localLedger.name = remoteLedger.name
+                localLedger.currencyCode = remoteLedger.currency
+                localLedger.inviteCode = remoteLedger.inviteCode
+                localLedger.syncStatus = "synced"
+
+                // 同步成員
+                mergeMembersForLedger(localLedger, remote: remoteLedger.members)
+                // 同步分類
+                mergeCategoriesForLedger(localLedger, remote: remoteLedger.categories)
+                // 同步開銷
+                mergeExpensesForLedger(localLedger, remote: remoteLedger.expenses)
+            } else {
+                // 建立新本地帳本
+                let newLedger = PersistentLedger(
+                    serverId: remoteLedger.serverId,
+                    name: remoteLedger.name,
+                    type: remoteLedger.type,
+                    currencyCode: remoteLedger.currency,
+                    inviteCode: remoteLedger.inviteCode,
+                    sortOrder: nextLedgerSortOrder(),
+                    syncStatus: "synced"
+                )
+                context.insert(newLedger)
+
+                // 建立成員
+                for member in remoteLedger.members {
+                    let persistentMember = PersistentMember(
+                        serverId: member.serverId,
+                        name: member.name,
+                        isCurrentUser: member.isCurrentUser,
+                        syncStatus: "synced",
+                        ledger: newLedger
+                    )
+                    context.insert(persistentMember)
+                }
+
+                // 建立分類
+                for category in remoteLedger.categories {
+                    let localId = UUID(uuidString: category.localId) ?? UUID()
+                    let persistentCategory = PersistentCategory(
+                        localId: localId,
+                        serverId: category.serverId,
+                        name: category.name,
+                        icon: category.icon,
+                        colorHex: category.color,
+                        sortOrder: category.sort,
+                        isSystemDefault: category.isSystemDefault,
+                        syncStatus: "synced",
+                        ledger: newLedger
+                    )
+                    context.insert(persistentCategory)
+                }
+
+                // 建立開銷
+                for expense in remoteLedger.expenses {
+                    let localId = UUID(uuidString: expense.localId) ?? UUID()
+                    let category = newLedger.categories.first { $0.serverId == expense.categoryId }
+                    let paidBy = expense.paidByUserId != nil
+                        ? newLedger.members.first { $0.serverId == expense.paidByUserId }
+                        : nil
+
+                    let persistentExpense = PersistentExpense(
+                        localId: localId,
+                        serverId: expense.serverId,
+                        amount: Double(expense.amount),
+                        memo: expense.memo,
+                        date: Self.parseDate(expense.date) ?? Date(),
+                        latitude: expense.latitude,
+                        longitude: expense.longitude,
+                        address: expense.address,
+                        isSettled: expense.isSettled,
+                        syncStatus: "synced",
+                        ledger: newLedger,
+                        category: category,
+                        paidBy: paidBy
+                    )
+                    context.insert(persistentExpense)
+                }
+            }
+        }
+
+        save()
+    }
+
+    func hasPendingData() -> Bool {
+        let descriptor = FetchDescriptor<PersistentExpense>(
+            predicate: #Predicate { $0.syncStatus == "pending" }
+        )
+        let count = (try? context.fetchCount(descriptor)) ?? 0
+        return count > 0
+    }
+
+    // MARK: - Sync Private Helpers
+
+    private func findLedgerByServerId(_ serverId: Int) -> PersistentLedger? {
+        let descriptor = FetchDescriptor<PersistentLedger>(
+            predicate: #Predicate { $0.serverId == serverId }
+        )
+        return try? context.fetch(descriptor).first
+    }
+
+    private func mergeMembersForLedger(_ ledger: PersistentLedger, remote: [SyncMember]) {
+        let existingByServerId = Dictionary(uniqueKeysWithValues: ledger.members.compactMap { member -> (Int, PersistentMember)? in
+            guard let serverId = member.serverId else {
+                return nil
+            }
+            return (serverId, member)
+        })
+
+        for remoteMember in remote {
+            if let existing = existingByServerId[remoteMember.serverId] {
+                existing.name = remoteMember.name
+                existing.isCurrentUser = remoteMember.isCurrentUser
+            } else {
+                let newMember = PersistentMember(
+                    serverId: remoteMember.serverId,
+                    name: remoteMember.name,
+                    isCurrentUser: remoteMember.isCurrentUser,
+                    syncStatus: "synced",
+                    ledger: ledger
+                )
+                context.insert(newMember)
+            }
+        }
+    }
+
+    private func mergeCategoriesForLedger(_ ledger: PersistentLedger, remote: [SyncCategory]) {
+        let existingByServerId = Dictionary(uniqueKeysWithValues: ledger.categories.compactMap { cat -> (Int, PersistentCategory)? in
+            guard let serverId = cat.serverId else {
+                return nil
+            }
+            return (serverId, cat)
+        })
+
+        for remoteCategory in remote {
+            if let existing = existingByServerId[remoteCategory.serverId] {
+                existing.name = remoteCategory.name
+                existing.icon = remoteCategory.icon
+                existing.colorHex = remoteCategory.color
+                existing.sortOrder = remoteCategory.sort
+                existing.syncStatus = "synced"
+            } else {
+                let localId = UUID(uuidString: remoteCategory.localId) ?? UUID()
+                let newCategory = PersistentCategory(
+                    localId: localId,
+                    serverId: remoteCategory.serverId,
+                    name: remoteCategory.name,
+                    icon: remoteCategory.icon,
+                    colorHex: remoteCategory.color,
+                    sortOrder: remoteCategory.sort,
+                    isSystemDefault: remoteCategory.isSystemDefault,
+                    syncStatus: "synced",
+                    ledger: ledger
+                )
+                context.insert(newCategory)
+            }
+        }
+    }
+
+    private func mergeExpensesForLedger(_ ledger: PersistentLedger, remote: [SyncExpense]) {
+        let existingByServerId = Dictionary(uniqueKeysWithValues: ledger.expenses.compactMap { exp -> (Int, PersistentExpense)? in
+            guard let serverId = exp.serverId else {
+                return nil
+            }
+            return (serverId, exp)
+        })
+
+        for remoteExpense in remote {
+            let category = ledger.categories.first { $0.serverId == remoteExpense.categoryId }
+            let paidBy = remoteExpense.paidByUserId != nil
+                ? ledger.members.first { $0.serverId == remoteExpense.paidByUserId }
+                : nil
+
+            if let existing = existingByServerId[remoteExpense.serverId] {
+                existing.amount = Double(remoteExpense.amount)
+                existing.memo = remoteExpense.memo
+                existing.date = Self.parseDate(remoteExpense.date) ?? existing.date
+                existing.latitude = remoteExpense.latitude
+                existing.longitude = remoteExpense.longitude
+                existing.address = remoteExpense.address
+                existing.isSettled = remoteExpense.isSettled
+                existing.category = category
+                existing.paidBy = paidBy
+                existing.syncStatus = "synced"
+            } else {
+                let localId = UUID(uuidString: remoteExpense.localId) ?? UUID()
+                let newExpense = PersistentExpense(
+                    localId: localId,
+                    serverId: remoteExpense.serverId,
+                    amount: Double(remoteExpense.amount),
+                    memo: remoteExpense.memo,
+                    date: Self.parseDate(remoteExpense.date) ?? Date(),
+                    latitude: remoteExpense.latitude,
+                    longitude: remoteExpense.longitude,
+                    address: remoteExpense.address,
+                    isSettled: remoteExpense.isSettled,
+                    syncStatus: "synced",
+                    ledger: ledger,
+                    category: category,
+                    paidBy: paidBy
+                )
+                context.insert(newExpense)
+            }
+        }
+    }
+
+    private func cleanupDeletedRecords() {
+        let expDescriptor = FetchDescriptor<PersistentExpense>(
+            predicate: #Predicate { $0.syncStatus == "deleted" }
+        )
+        let deletedExpenses = (try? context.fetch(expDescriptor)) ?? []
+        for expense in deletedExpenses {
+            context.delete(expense)
+        }
+
+        let catDescriptor = FetchDescriptor<PersistentCategory>(
+            predicate: #Predicate { $0.syncStatus == "deleted" }
+        )
+        let deletedCategories = (try? context.fetch(catDescriptor)) ?? []
+        for category in deletedCategories {
+            context.delete(category)
+        }
+
+        let recDescriptor = FetchDescriptor<PersistentRecurringExpense>(
+            predicate: #Predicate { $0.syncStatus == "deleted" }
+        )
+        let deletedRecurring = (try? context.fetch(recDescriptor)) ?? []
+        for recurring in deletedRecurring {
+            context.delete(recurring)
+        }
+    }
+
+    private static let syncDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
+
+    private static func formatDate(_ date: Date) -> String {
+        syncDateFormatter.string(from: date)
+    }
+
+    private static func parseDate(_ string: String) -> Date? {
+        syncDateFormatter.date(from: string)
+    }
+
     // MARK: - Reset
 
     func resetToDefaults() {
