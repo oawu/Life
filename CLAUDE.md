@@ -182,9 +182,10 @@ life/
   - Sync Push API（POST /api/sync/push）：Client 推送本地變更，Server upsert + 回傳 serverId mapping
   - Sync Pull API（POST /api/sync/pull）：Client 帶 lastSyncAt 拉取 Server 變更，依 serverId 合併本地
   - 同步策略：Push-then-Pull，Server-authoritative，以 localId 做 upsert 去重
-  - iOS `SyncEngine`（Life/Services/）：fullSync() = push() + pull()，guard 離線 + 防重入
-  - `DataManager` 新增同步方法：buildSyncPushPayload / applySyncMappings / mergeRemoteData
-  - 同步時機：登入成功、App 回前景、網路恢復
+  - iOS `SyncEngine`（Life/Services/）：fullSync() = push() + pull()，loginSync() = pull() + 清除空白預設 + push()
+  - `DataManager` 新增同步方法：buildSyncPushPayload / applySyncMappings / mergeRemoteData / removeUnsyncedEmptyPersonalLedgers
+  - 同步時機：登入成功（loginSync）、App 回前景（fullSync）、網路恢復（fullSync）
+  - 登入同步策略：先 pull 再 push，避免登出後重建的空白預設帳本覆蓋 Server 資料
   - 登出清除 lastSyncAt + resetToDefaults
   - 個人資料 API（PUT /api/auth/me）：更新 name / carrierNumber
 - Watch 狀態整合
