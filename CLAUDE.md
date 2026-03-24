@@ -83,6 +83,8 @@ life/
     - 帳本詳情頁（LedgerDetailView）：邀請碼卡片（複製 + toast）、QR Code、成員列表、退出
     - 邀請碼：6 碼（#開頭），25 字元集（排除相似字），建立時自動生成
     - 掃碼加入（JoinLedgerView）：AVFoundation 相機掃 QR + 手動輸入邀請碼，mock 加入
+    - 人員異動規則：帳本尚未結清時，任何人員無法加入或退出；已結清才允許異動
+    - 加入群組帳本：未結清時 alert 攔截，已結清時允許加入
     - 退出群組帳本：未結清時 alert 攔截，已結清時 confirmationDialog 確認退出，自動切回個人帳本
   - 分類設定頁面（CategorySettingsView）：瀏覽、排序分類，頂部虛線新增按鈕
     - 系統預設「其他」分類：不可編輯、不可刪除、不可排序，永遠在最後
