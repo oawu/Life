@@ -29,7 +29,8 @@ struct WatchAddExpenseView: View {
         NavigationStack(path: $path) {
             // Root：帳本選擇
             WatchLedgerPickerView(
-                ledgers: store.ledgers,
+                ledgers: store.availableLedgers,
+                isOnline: store.isOnline,
                 selectedId: store.selectedLedgerId,
                 onSelect: { ledger in
                     store.selectedLedgerId = ledger.id

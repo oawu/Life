@@ -51,13 +51,20 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
     // MARK: - Private
 
     private func handleContext(_ context: [String: Any]) {
-        guard let ledgersData = context["ledgers"] as? [[String: Any]] else {
-            return
-        }
+        let isLoggedIn = context["isLoggedIn"] as? Bool
+        let isOnline = context["isOnline"] as? Bool
+        let ledgersData = context["ledgers"] as? [[String: Any]]
 
-        let ledgers = ledgersData.compactMap { decodeLedger($0) }
-        if !ledgers.isEmpty {
-            DispatchQueue.main.async {
+        let ledgers = ledgersData?.compactMap { decodeLedger($0) }
+
+        DispatchQueue.main.async {
+            if let isLoggedIn = isLoggedIn {
+                self.store.isLoggedIn = isLoggedIn
+            }
+            if let isOnline = isOnline {
+                self.store.isOnline = isOnline
+            }
+            if let ledgers = ledgers, !ledgers.isEmpty {
                 self.store.updateFromPhone(ledgers: ledgers)
             }
         }
