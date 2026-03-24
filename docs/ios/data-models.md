@@ -1,6 +1,6 @@
 # iOS 資料模型
 
-目前所有資料為 Client 端記憶體儲存。本文件記錄現有模型結構，並標注後端對應的 Table 設計方向。
+Client 端資料使用 SwiftData 本地持久化（`Life/Models/Persistence/`）。View 層仍使用 `Shared/Models/` 的 struct 作為 View Model，由 `DataManager` 負責 struct ↔ @Model 映射。本文件記錄現有模型結構，並標注後端對應的 Table 設計方向。
 
 > **共用 Models**：`Expense`、`Ledger`、`ExpenseCategory`、`Currency`、`RecurringExpense` 位於 `Shared/Models/`，由 Life（iPhone）和 LifeWatch（Watch）兩個 target 共用。`CategoryIcon` 僅 Life 使用，保留在 `Life/Models/`。
 

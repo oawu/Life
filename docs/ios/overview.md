@@ -6,6 +6,7 @@
 |------|------|
 | 語言 | Swift 5.9+ |
 | UI 框架 | SwiftUI（iOS 17.0+） |
+| 本地儲存 | SwiftData（VersionedSchema + MigrationPlan） |
 | 狀態管理 | `@Observable`（Observation framework） |
 | 專案管理 | XcodeGen（`project.yml` → `.xcodeproj`） |
 | Target | Life（iOS）、LifeWatch（watchOS）、LifeWidget |
@@ -16,11 +17,21 @@
 ```
 ios/
 ├── Shared/                  # 兩個 target 共用
-│   └── Models/              # Expense, Ledger, ExpenseCategory, Currency, RecurringExpense
+│   ├── Models/              # Expense, Ledger, ExpenseCategory, Currency, RecurringExpense
+│   └── Extensions/          # Color+Hex 等跨平台擴展
 ├── Life/                    # 主 App
-│   ├── LifeApp.swift        # App 入口
+│   ├── LifeApp.swift        # App 入口（含 ModelContainer 初始化）
 │   ├── Environment.swift    # 環境設定（API URL、isDev 判斷）
-│   ├── Models/              # CategoryIcon（僅 Life 使用）
+│   ├── Models/
+│   │   ├── CategoryIcon.swift     # 圖示群組（僅 Life 使用）
+│   │   └── Persistence/           # SwiftData @Model 類別
+│   │       ├── LifeSchema.swift   # VersionedSchema + MigrationPlan
+│   │       ├── PersistentLedger.swift
+│   │       ├── PersistentExpense.swift
+│   │       ├── PersistentCategory.swift
+│   │       ├── PersistentMember.swift
+│   │       ├── PersistentRecurringExpense.swift
+│   │       └── PersistentSettlement.swift
 │   ├── Services/            # 狀態管理、API、工具服務
 │   └── Views/               # UI 畫面
 │       ├── LoginView.swift
@@ -100,7 +111,8 @@ LifeWatch（獨立 App）
 | 物件 | 類型 | 作用範圍 | 說明 |
 |------|------|----------|------|
 | `AuthManager` | @Observable | 全 App | 登入狀態、JWT、用戶資訊 |
-| `ExpenseStore` | @Observable | Tab 1 | 帳本、分類、開銷（所有記帳資料） |
+| `DataManager` | @Observable | 全 App | SwiftData CRUD，struct ↔ @Model 映射 |
+| `ExpenseStore` | @Observable | Tab 1 | 帳本、分類、開銷（委派 DataManager 讀寫） |
 | `CalculatorEngine` | @Observable | AddExpenseView | 計算機運算邏輯 |
 | `LocationService` | @Observable | AddExpenseView | 定位與反向地理編碼 |
 | `PhoneSessionManager` | class | Life App | WCSession iPhone 端（發送資料到 Watch、接收開銷） |
@@ -111,9 +123,11 @@ LifeWatch（獨立 App）
 ### 資料流
 
 ```
-ExpenseStore
-├─ ledgers: [Ledger]           ← 所有帳本（含分類、開銷）
-├─ currentLedgerId: String     ← 目前選取的帳本
+SwiftData（PersistentLedger, PersistentExpense...）
+  ↕ DataManager 映射 struct ↔ @Model
+ExpenseStore（對 View 層的 API 不變）
+├─ ledgers: [Ledger]              ← 從 DataManager 讀取
+├─ currentLedgerId: String        ← 目前選取的帳本
 ├─ categories: [ExpenseCategory]  ← computed，代理到 currentLedger.categories
 ├─ expenses: [Expense]            ← computed，代理到 currentLedger.expenses
 ├─ isGroupLedger: Bool            ← computed
@@ -121,7 +135,9 @@ ExpenseStore
 └─ currentCurrency: Currency      ← computed
 ```
 
-各 View 透過 `store` 存取資料，不持有獨立副本。切換帳本時 `categories`/`expenses` 自動切換，現有 View 無需修改。
+各 View 透過 `store` 存取資料，不持有獨立副本。切換帳本時 `categories`/`expenses` 自動切換。
+每次寫入操作後 ExpenseStore 呼叫 `reload()` 從 SwiftData 重新載入資料。
+首次安裝時 DataManager 自動建立預設個人帳本 + 預設分類。
 
 ## 環境設定
 

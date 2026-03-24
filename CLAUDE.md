@@ -43,10 +43,11 @@ life/
 │   ├── Migration/     # 資料庫遷移
 │   ├── Public/        # Web 入口 + 靜態檔案
 │   └── System/        # 框架核心（勿修改）
-├── ios/               # iOS App（XcodeGen + SwiftUI）
+├── ios/               # iOS App（XcodeGen + SwiftUI + SwiftData）
 │   ├── Life/          # 主 App（iPhone / iPad）
 │   ├── LifeWatch/     # watchOS App
 │   ├── LifeWidget/    # Widget Extension
+│   ├── Shared/        # 共用 Models + Extensions（Life & Watch）
 │   ├── Config/        # 環境設定（Local / Beta / Prod）
 │   └── project.yml    # XcodeGen 設定（產生 .xcodeproj）
 ├── worker/            # Node.js Worker 常駐服務（pm2）
@@ -67,7 +68,7 @@ life/
 ## 已完成功能
 
 - Apple Sign In 登入（後端 API + iOS App）
-- iOS 記帳功能（純記憶體儲存，含計算機、分類選擇、位置記錄）
+- iOS 記帳功能（SwiftData 本地持久化，含計算機、分類選擇、位置記錄）
   - 登入後直接進入新增開銷頁面（Tab 1），「明細」按鈕 push 到開銷列表
   - 儲存成功顯示金額「已儲存 $150」+ 打勾動畫
   - 開銷列表（ExpenseListView）：safeAreaInset header 內嵌 LedgerSwitcher，滾動時漸變毛玻璃（iOS 18+）
@@ -150,7 +151,14 @@ life/
   - 共用 Models（Shared/Models/）：Expense、Ledger、ExpenseCategory、Currency、RecurringExpense 由 Life 與 LifeWatch 共用
   - PhoneSessionManager（Life/Services/）：iPhone 端 WCSession 管理
   - WatchExpenseStore / WatchLocationService / WatchSessionManager（LifeWatch/Services/）：Watch 端狀態管理與連線
-  - 目前帳本 / 分類使用 mock 資料，WatchConnectivity 已實作待後端串接
+  - 目前帳本 / 分類使用 SwiftData 本地持久化（首次安裝自動建立預設個人帳本 + 預設分類）
+- 本地持久化架構（SwiftData）
+  - `Life/Models/Persistence/`：@Model 類別（PersistentLedger, PersistentExpense, PersistentCategory, PersistentMember, PersistentRecurringExpense, PersistentSettlement）
+  - `DataManager`：Repository 層，負責 SwiftData CRUD + struct ↔ @Model 映射
+  - `ExpenseStore` 委派 `DataManager` 讀寫，每次寫入後 `reload()` 重新載入
+  - `LifeSchema`：VersionedSchema（SchemaV1）+ LifeMigrationPlan，支援未來 schema 遷移
+  - `syncStatus` 欄位預留同步狀態（pending / synced / deleted），待後端串接
+  - `LedgerMember.isCurrentUser`：識別當前使用者，取代舊的固定 ID 判斷
 
 ---
 
