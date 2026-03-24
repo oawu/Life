@@ -8,7 +8,8 @@ struct LedgerDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showEditSheet = false
-    @State private var showDeleteConfirmation = false
+    @State private var showLeaveConfirmation = false
+    @State private var showUnsettledAlert = false
     @State private var showCopiedToast = false
     @State private var qrImage: UIImage?
     @State private var toastTask: DispatchWorkItem?
@@ -27,7 +28,7 @@ struct LedgerDetailView: View {
                             qrCodeCard
                             membersCard(ledger)
                             recurringExpenseCard
-                            deleteButton
+                            leaveButton
                         }
                         .padding(16)
                     }
@@ -182,21 +183,35 @@ struct LedgerDetailView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Delete
+    // MARK: - Leave
 
-    private var deleteButton: some View {
+    private var hasUnsettledExpenses: Bool {
+        guard let ledger else { return false }
+        return ledger.expenses.contains { !ledger.settledExpenseIds.contains($0.id) }
+    }
+
+    private var leaveButton: some View {
         Button(role: .destructive) {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            showDeleteConfirmation = true
+            if hasUnsettledExpenses {
+                showUnsettledAlert = true
+            } else {
+                showLeaveConfirmation = true
+            }
         } label: {
-            Text("刪除帳本")
+            Text("退出帳本")
                 .frame(maxWidth: .infinity)
                 .padding(12)
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .confirmationDialog("確定要刪除此帳本嗎？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-            Button("刪除", role: .destructive) {
+        .alert("帳本尚未結清", isPresented: $showUnsettledAlert) {
+            Button("好") {}
+        } message: {
+            Text("請先完成結算後再退出帳本")
+        }
+        .confirmationDialog("確定要退出此帳本嗎？", isPresented: $showLeaveConfirmation, titleVisibility: .visible) {
+            Button("退出", role: .destructive) {
                 store.deleteLedger(id: ledgerId)
                 dismiss()
             }
