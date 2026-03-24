@@ -170,6 +170,13 @@ life/
   - `LifeSchema`：VersionedSchema（SchemaV1）+ LifeMigrationPlan，支援未來 schema 遷移
   - `syncStatus` 欄位預留同步狀態（pending / synced / deleted），待後端串接
   - `LedgerMember.isCurrentUser`：識別當前使用者，取代舊的固定 ID 判斷
+- 網路感知 + 離線模式
+  - `NetworkMonitor`（Life/Services/）：NWPathMonitor 偵測網路狀態，`@Observable` + `isOnline`
+  - LifeApp 以 `.environment(networkMonitor)` 注入，子 View 用 `@Environment(NetworkMonitor.self)` 取用
+  - 離線攔截（已登入用戶）：建立/加入群組帳本、退出/編輯群組帳本、分類管理、個人資料編輯 → alert「無法連線」
+  - 訪客不受離線影響（純本地操作）
+  - 開銷新增/編輯/刪除不攔截（排隊同步）
+  - PhoneSessionManager 同步 `isOnline` 狀態到 Watch
 
 ---
 
