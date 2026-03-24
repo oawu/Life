@@ -9,6 +9,7 @@ struct JoinLedgerView: View {
     @State private var inputCode: String = ""
     @State private var joinedLedger: Ledger?
     @State private var cameraPermission: AVAuthorizationStatus = .notDetermined
+    @State private var showUnsettledAlert = false
 
     private var canJoin: Bool {
         inputCode.trimmingCharacters(in: .whitespaces).count == 6
@@ -38,6 +39,11 @@ struct JoinLedgerView: View {
             }
             .onAppear {
                 checkCameraPermission()
+            }
+            .alert("此帳本尚未結清", isPresented: $showUnsettledAlert) {
+                Button("好") {}
+            } message: {
+                Text("帳本需要先完成結算才能加入新成員")
             }
         }
     }
@@ -180,6 +186,15 @@ struct JoinLedgerView: View {
             return
         }
 
+        let upperCode = code.uppercased()
+
+        // Mock: "XXXXXX" 模擬帳本尚未結清
+        // 真實環境由 API 回傳帳本結算狀態
+        if upperCode == "XXXXXX" {
+            showUnsettledAlert = true
+            return
+        }
+
         UINotificationFeedbackGenerator().notificationOccurred(.success)
 
         let me = LedgerMember(id: Ledger.defaultMemberId, name: "我")
@@ -189,7 +204,7 @@ struct JoinLedgerView: View {
             id: UUID().uuidString,
             name: "好友帳本",
             type: .group,
-            inviteCode: code.uppercased(),
+            inviteCode: upperCode,
             members: [me, friend],
             currency: .twd,
             categories: ExpenseCategory.groupDefaults,
