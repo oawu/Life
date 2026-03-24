@@ -133,3 +133,28 @@ HomeView (TabView)
 - `push` = NavigationStack push（有返回按鈕）
 - `sheet` = Modal sheet（有取消/關閉按鈕）
 - `嵌入` = 直接嵌在父 View 中（非導航）
+
+---
+
+## Watch Views（LifeWatch/Views/）
+
+| View | 檔案 | 參數 | 說明 |
+|------|------|------|------|
+| WatchAddExpenseView | WatchAddExpenseView.swift | store: WatchExpenseStore | Watch 主表單（捲動 List），整合所有記帳欄位，包含內嵌的 WatchMemoInputView |
+| WatchAmountInputView | WatchAmountInputView.swift | amount: Binding\<Int\>, onConfirm | 數字鍵盤金額輸入（0–9 + 清除 + 確認） |
+| WatchCategoryPickerView | WatchCategoryPickerView.swift | categories, selected: Binding | 分類列表選擇（圖示 + 名稱） |
+| WatchLedgerPickerView | WatchLedgerPickerView.swift | ledgers, selectedId: Binding | 帳本列表選擇 |
+| WatchPayerPickerView | WatchPayerPickerView.swift | members, selected: Binding | 付款人列表選擇（群組帳本） |
+| WatchDatePickerView | WatchDatePickerView.swift | date: Binding\<Date\> | 日期與時間選擇 |
+
+### Watch 導航結構
+
+```
+WatchAddExpenseView（主表單）
+├─ push: WatchLedgerPickerView    ← 帳本列
+├─ push: WatchAmountInputView     ← 金額列
+├─ push: WatchCategoryPickerView  ← 分類列
+├─ push: WatchPayerPickerView     ← 付款人列（群組帳本）
+├─ 嵌入: WatchMemoInputView       ← 備註列
+└─ push: WatchDatePickerView      ← 時間列
+```

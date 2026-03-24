@@ -15,10 +15,12 @@
 
 ```
 ios/
+├── Shared/                  # 兩個 target 共用
+│   └── Models/              # Expense, Ledger, ExpenseCategory, Currency, RecurringExpense
 ├── Life/                    # 主 App
 │   ├── LifeApp.swift        # App 入口
 │   ├── Environment.swift    # 環境設定（API URL、isDev 判斷）
-│   ├── Models/              # 資料模型
+│   ├── Models/              # CategoryIcon（僅 Life 使用）
 │   ├── Services/            # 狀態管理、API、工具服務
 │   └── Views/               # UI 畫面
 │       ├── LoginView.swift
@@ -26,10 +28,12 @@ ios/
 │       ├── ProfileView.swift
 │       ├── Profile/         # 個人頁面相關
 │       └── Expense/         # 記帳功能群組
-├── LifeWatch/               # watchOS App（待開發）
+├── LifeWatch/               # watchOS App（快速記帳）
+│   ├── Services/            # WatchExpenseStore, WatchLocationService, WatchSessionManager
+│   └── Views/               # Watch UI 畫面
 ├── LifeWidget/              # Widget Extension（待開發）
 ├── Config/                  # 環境 xcconfig
-└── project.yml              # XcodeGen 設定
+└── project.yml              # XcodeGen 設定（Life + LifeWatch 皆引用 Shared）
 ```
 
 ## App 啟動流程
@@ -80,6 +84,15 @@ LifeApp
          ├─ 頭像/「更改」→ confirmationDialog → sheet ImagePickerView
          ├─ 名稱 → inline TextField 編輯
          └─ [登出] → alert 確認 → 清除 token → 返回 LoginView
+
+LifeWatch（獨立 App）
+└─ WatchAddExpenseView（主表單，捲動 List）
+   ├─ 帳本 → push WatchLedgerPickerView
+   ├─ 金額 → push WatchAmountInputView
+   ├─ 分類 → push WatchCategoryPickerView
+   ├─ 付款人 → push WatchPayerPickerView（群組帳本）
+   ├─ 備註 → WatchMemoInputView（內嵌於主表單）
+   └─ 時間 → push WatchDatePickerView
 ```
 
 ## 狀態管理
@@ -90,6 +103,10 @@ LifeApp
 | `ExpenseStore` | @Observable | Tab 1 | 帳本、分類、開銷（所有記帳資料） |
 | `CalculatorEngine` | @Observable | AddExpenseView | 計算機運算邏輯 |
 | `LocationService` | @Observable | AddExpenseView | 定位與反向地理編碼 |
+| `PhoneSessionManager` | class | Life App | WCSession iPhone 端（發送資料到 Watch、接收開銷） |
+| `WatchExpenseStore` | @Observable | LifeWatch | Watch 端帳本 + 分類 + 開銷暫存 |
+| `WatchLocationService` | @Observable | LifeWatch | Watch 端定位與反向地理編碼 |
+| `WatchSessionManager` | class | LifeWatch | WCSession Watch 端（接收資料、回傳開銷） |
 
 ### 資料流
 

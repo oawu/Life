@@ -2,6 +2,8 @@
 
 目前所有資料為 Client 端記憶體儲存。本文件記錄現有模型結構，並標注後端對應的 Table 設計方向。
 
+> **共用 Models**：`Expense`、`Ledger`、`ExpenseCategory`、`Currency`、`RecurringExpense` 位於 `Shared/Models/`，由 Life（iPhone）和 LifeWatch（Watch）兩個 target 共用。`CategoryIcon` 僅 Life 使用，保留在 `Life/Models/`。
+
 ---
 
 ## Client 資料模型
@@ -25,7 +27,7 @@ struct Expense: Identifiable, Equatable {
 }
 ```
 
-**備註**：目前 `category` 存完整物件，更新分類時需同步更新所有引用該分類的開銷。後端應改為 `categoryId` 外鍵。
+**備註**：目前 `category` 存完整物件，更新分類時需同步更新所有引用該分類的開銷。後端應改為 `categoryId` 外鍵。檔案位置：`Shared/Models/Expense.swift`（原本提取自 `Life/Services/ExpenseStore.swift`）。
 
 ---
 
@@ -345,6 +347,29 @@ JWT Token 安全儲存（Singleton）。
 - CLLocationManager 定位
 - CLGeocoder 反向地理編碼（組合行政區 + 路名）
 - 授權狀態管理（`pendingRequest` 旗標確保首次授權後自動發起定位）
+
+---
+
+### WatchExpenseStore
+
+Watch 端核心狀態管理（`LifeWatch/Services/WatchExpenseStore.swift`）。
+
+```swift
+@Observable final class WatchExpenseStore {
+    var ledgers: [Ledger]
+    var currentLedgerId: String
+
+    // Computed（代理到 currentLedger）
+    var categories: [ExpenseCategory]
+    var currentMembers: [LedgerMember]
+    var isGroupLedger: Bool
+    var currentCurrency: Currency
+}
+```
+
+- 帳本 / 分類資料來自 iPhone 透過 WCSession 同步（`updateApplicationContext`）
+- 目前內建 mock 資料供開發測試用
+- `addExpense(...)` 儲存後透過 `WatchSessionManager` 回傳 iPhone
 
 ---
 

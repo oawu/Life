@@ -549,15 +549,70 @@
 
 ---
 
+---
+
+## 10. Apple Watch 快速記帳（Watch Expense Recording）
+
+### 畫面
+
+**WatchAddExpenseView** — Watch App 主畫面（捲動 List）
+
+| 列 | 說明 |
+|----|------|
+| 帳本 | 顯示目前帳本名稱，點擊 → push WatchLedgerPickerView |
+| 金額 | 顯示目前金額，點擊 → push WatchAmountInputView |
+| 分類 | 顯示目前分類（圖示 + 名稱），點擊 → push WatchCategoryPickerView |
+| 付款人 | 群組帳本才顯示，點擊 → push WatchPayerPickerView |
+| 備註 | WatchMemoInputView 內嵌於主表單（系統鍵盤 / 語音輸入） |
+| 時間 | 顯示目前選擇時間，點擊 → push WatchDatePickerView |
+| 儲存按鈕 | 驗證後儲存 |
+
+**WatchAmountInputView** — 數字鍵盤（0–9 + 清除 + 確認）
+
+**WatchCategoryPickerView** — 分類列表（圖示 + 名稱，來自 WatchExpenseStore）
+
+**WatchLedgerPickerView** — 帳本列表（來自 WatchExpenseStore）
+
+**WatchPayerPickerView** — 付款人列表（來自目前帳本成員）
+
+**WatchDatePickerView** — 日期與時間選擇（DatePicker 元件）
+
+### 流程
+
+```
+1. 選擇帳本（WatchLedgerPickerView）
+2. 輸入金額（WatchAmountInputView）
+3. 選擇分類（WatchCategoryPickerView）
+4.（群組帳本）選擇付款人（WatchPayerPickerView）
+5. 輸入備註（WatchMemoInputView，選填）
+6. 選擇時間（WatchDatePickerView，預設目前時間）
+7. 點「儲存」
+   └─ 驗證：金額 > 0、已選分類
+   └─ 儲存成功 → haptic 成功回饋 + 打勾動畫 → 重置表單
+```
+
+### WatchConnectivity 同步機制
+
+| 方向 | 方法 | 內容 |
+|------|------|------|
+| iPhone → Watch | `updateApplicationContext` | 帳本列表、分類、成員、幣別（背景同步） |
+| Watch → iPhone | `sendMessage` / `transferUserInfo` | 新增的開銷資料 |
+
+- iPhone 端：`PhoneSessionManager`（`Life/Services/`）負責發送 context、接收 Watch 傳來的開銷並寫入 `ExpenseStore`
+- Watch 端：`WatchSessionManager`（`LifeWatch/Services/`）接收 context 更新 `WatchExpenseStore`、儲存後回傳開銷
+
+### 目前實作狀態
+
+- Watch UI 全部完成（WatchAddExpenseView + 6 個子畫面）
+- WatchConnectivity 已實作（PhoneSessionManager + WatchSessionManager）
+- 帳本 / 分類資料：WatchExpenseStore 內建 mock 資料，等後端上線後改為從 iPhone 同步
+- 開銷儲存：儲存至 WatchExpenseStore，並透過 WCSession 傳回 iPhone
+
+---
+
 ## 待開發功能
 
 以下功能尚未實作，列出供規劃參考：
-
-### Apple Watch App
-
-- watchOS 記帳快速入口（金額 + 分類，簡化操作）
-- 與 iPhone 同步帳本資料
-- Complication 顯示今日花費
 
 ### Widget
 
