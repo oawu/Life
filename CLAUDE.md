@@ -133,6 +133,11 @@ life/
     - List + Section：每個月/年為獨立 Section，所有期間一次列出
     - Swift Charts 環形圖（SectorMark + innerRadius 0.618），中心顯示總金額
     - 分類明細列表：圖示色塊 + 名稱 + 進度條 + 金額 + 百分比，按金額降序
+  - 個人頁面（ProfileView）：
+    - 頭像區塊：100pt 圓形大頭照 + 「更改」按鈕，點擊 → confirmationDialog 選擇相簿/拍照
+    - 名稱：點擊切換為 TextField inline 編輯，完成後自動儲存
+    - Email：靜態顯示，不可編輯
+    - 登出按鈕：alert 確認後登出
 
 ---
 
