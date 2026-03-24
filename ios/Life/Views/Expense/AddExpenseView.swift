@@ -91,7 +91,7 @@ struct AddExpenseView: View {
         .onChange(of: store.currentLedgerId) {
             selectedCategory = nil
             if store.isGroupLedger {
-                selectedPayer = store.currentMembers.first
+                selectedPayer = store.currentMembers.first { $0.isCurrentUser } ?? store.currentMembers.first
             } else {
                 selectedPayer = nil
             }
@@ -156,7 +156,7 @@ struct AddExpenseView: View {
         date = Date()
         locationService.clear()
         if store.isGroupLedger {
-            selectedPayer = store.currentMembers.first
+            selectedPayer = store.currentMembers.first { $0.isCurrentUser } ?? store.currentMembers.first
         } else {
             selectedPayer = nil
         }
@@ -165,6 +165,6 @@ struct AddExpenseView: View {
 
 #Preview {
     NavigationStack {
-        AddExpenseView(store: ExpenseStore())
+        AddExpenseView(store: ExpenseStore.preview())
     }
 }

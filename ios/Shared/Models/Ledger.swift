@@ -8,6 +8,7 @@ enum LedgerType: Equatable {
 struct LedgerMember: Identifiable, Equatable, Hashable {
     let id: String
     var name: String
+    var isCurrentUser: Bool = false
 }
 
 struct SettlementTransfer: Identifiable, Equatable {
@@ -52,69 +53,23 @@ struct Ledger: Identifiable, Equatable {
 }
 
 extension Ledger {
-    static let defaultMemberId = "me"
+    /// Watch 初始預設資料（尚未從 iPhone 同步前的 fallback）
+    static let watchDefaults: [Ledger] = [
+        Ledger(
+            id: "watch-default",
+            name: "個人",
+            type: .personal,
+            inviteCode: nil,
+            members: [LedgerMember(id: "me", name: "我", isCurrentUser: true)],
+            currency: .twd,
+            categories: ExpenseCategory.defaults,
+            expenses: [],
+            recurringExpenses: []
+        ),
+    ]
 
-    static let defaults: [Ledger] = {
-        let me = LedgerMember(id: defaultMemberId, name: "我")
-        let alice = LedgerMember(id: "alice", name: "Alice")
-        let bob = LedgerMember(id: "bob", name: "Bob")
-
-        return [
-            Ledger(
-                id: "personal",
-                name: "個人",
-                type: .personal,
-                inviteCode: nil,
-                members: [me],
-                currency: .twd,
-                categories: ExpenseCategory.defaults,
-                expenses: [],
-                recurringExpenses: []
-            ),
-            Ledger(
-                id: "roommates",
-                name: "室友",
-                type: .group,
-                inviteCode: "K3XR7N",
-                members: [me, alice, bob],
-                currency: .twd,
-                categories: ExpenseCategory.groupDefaults,
-                expenses: [],
-                recurringExpenses: []
-            ),
-            Ledger(
-                id: "dating",
-                name: "約會",
-                type: .group,
-                inviteCode: "D4YGWP",
-                members: [me, alice],
-                currency: .twd,
-                categories: ExpenseCategory.groupDefaults,
-                expenses: [],
-                recurringExpenses: []
-            ),
-            Ledger(
-                id: "family",
-                name: "家人",
-                type: .group,
-                inviteCode: "F7HJMC",
-                members: [me, alice],
-                currency: .twd,
-                categories: ExpenseCategory.groupDefaults,
-                expenses: [],
-                recurringExpenses: []
-            ),
-            Ledger(
-                id: "travel",
-                name: "旅遊",
-                type: .group,
-                inviteCode: "T9QRVX",
-                members: [me, alice],
-                currency: .jpy,
-                categories: ExpenseCategory.groupDefaults,
-                expenses: [],
-                recurringExpenses: []
-            ),
-        ]
-    }()
+    /// 找到當前使用者成員
+    var currentUserMember: LedgerMember? {
+        members.first { $0.isCurrentUser }
+    }
 }

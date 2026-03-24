@@ -103,11 +103,13 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
 
         let type: LedgerType = typeRaw == "group" ? .group : .personal
 
-        let members: [LedgerMember] = (data["members"] as? [[String: String]])?.compactMap { memberData in
-            guard let memberId = memberData["id"], let memberName = memberData["name"] else {
+        let members: [LedgerMember] = (data["members"] as? [[String: Any]])?.compactMap { memberData in
+            guard let memberId = memberData["id"] as? String,
+                  let memberName = memberData["name"] as? String else {
                 return nil
             }
-            return LedgerMember(id: memberId, name: memberName)
+            let isCurrentUser = memberData["isCurrentUser"] as? Bool ?? false
+            return LedgerMember(id: memberId, name: memberName, isCurrentUser: isCurrentUser)
         } ?? []
 
         let currencyCode = data["currencyCode"] as? String ?? "TWD"
@@ -120,7 +122,7 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
                 return nil
             }
             let colorHex = catData["colorHex"] as? String
-            let color = colorHex.flatMap { hexToColor($0) } ?? .gray
+            let color = colorHex.map { Color(hex: $0) } ?? .gray
             return ExpenseCategory(id: catId, name: catName, icon: icon, color: color)
         } ?? []
 
@@ -137,20 +139,4 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
         )
     }
 
-    private func hexToColor(_ hex: String) -> Color? {
-        var hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if hexString.hasPrefix("#") {
-            hexString.removeFirst()
-        }
-
-        guard hexString.count == 6, let intValue = UInt64(hexString, radix: 16) else {
-            return nil
-        }
-
-        let red = Double((intValue >> 16) & 0xFF) / 255.0
-        let green = Double((intValue >> 8) & 0xFF) / 255.0
-        let blue = Double(intValue & 0xFF) / 255.0
-
-        return Color(red: red, green: green, blue: blue)
-    }
 }

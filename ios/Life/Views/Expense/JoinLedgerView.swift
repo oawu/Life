@@ -197,7 +197,7 @@ struct JoinLedgerView: View {
 
         UINotificationFeedbackGenerator().notificationOccurred(.success)
 
-        let me = LedgerMember(id: Ledger.defaultMemberId, name: "我")
+        let me = LedgerMember(id: UUID().uuidString, name: "我", isCurrentUser: true)
         let friend = LedgerMember(id: UUID().uuidString, name: "好友")
 
         let ledger = Ledger(

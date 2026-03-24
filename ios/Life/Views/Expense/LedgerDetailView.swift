@@ -129,7 +129,7 @@ struct LedgerDetailView: View {
                         Text(member.name)
                             .font(.subheadline)
 
-                        if member.id == Ledger.defaultMemberId {
+                        if member.isCurrentUser {
                             Text("(我)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -296,6 +296,6 @@ struct LedgerDetailView: View {
 
 #Preview {
     NavigationStack {
-        LedgerDetailView(store: ExpenseStore(), ledgerId: "roommates")
+        LedgerDetailView(store: ExpenseStore.preview(), ledgerId: "roommates")
     }
 }

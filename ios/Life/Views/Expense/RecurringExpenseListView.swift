@@ -160,6 +160,6 @@ struct RecurringExpenseListView: View {
 
 #Preview {
     NavigationStack {
-        RecurringExpenseListView(store: ExpenseStore(), ledgerId: "personal")
+        RecurringExpenseListView(store: ExpenseStore.preview(), ledgerId: "personal")
     }
 }

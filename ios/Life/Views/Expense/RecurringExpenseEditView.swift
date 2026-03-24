@@ -448,7 +448,7 @@ private enum FrequencyType: CaseIterable {
 #Preview("Add") {
     RecurringExpenseEditView(
         mode: .add,
-        ledger: Ledger.defaults[0],
-        store: ExpenseStore()
+        ledger: Ledger.watchDefaults[0],
+        store: ExpenseStore.preview()
     )
 }

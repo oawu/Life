@@ -3,8 +3,8 @@ import SwiftUI
 
 @Observable
 final class WatchExpenseStore {
-    var ledgers: [Ledger] = Ledger.defaults
-    var selectedLedgerId: String = "personal"
+    var ledgers: [Ledger] = Ledger.watchDefaults
+    var selectedLedgerId: String = "watch-default"
     var hasSyncedFromPhone: Bool = false
 
     var currentLedger: Ledger? {

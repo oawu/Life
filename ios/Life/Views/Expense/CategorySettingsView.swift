@@ -61,7 +61,7 @@ struct CategorySettingsView: View {
         }
         .sheet(isPresented: $showAddSheet) {
             CategoryEditView(mode: .add) { newCategory in
-                store.categories.append(newCategory)
+                store.addCategory(id: newCategory.id, name: newCategory.name, icon: newCategory.icon, color: newCategory.color)
             }
         }
     }
@@ -82,6 +82,6 @@ struct CategorySettingsView: View {
 
 #Preview {
     NavigationStack {
-        CategorySettingsView(store: ExpenseStore())
+        CategorySettingsView(store: ExpenseStore.preview())
     }
 }

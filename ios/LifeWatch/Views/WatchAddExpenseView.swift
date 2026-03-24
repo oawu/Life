@@ -36,7 +36,7 @@ struct WatchAddExpenseView: View {
                     amount = 0
                     selectedCategory = nil
                     selectedPayer = ledger.type == .group
-                        ? ledger.members.first { $0.id == Ledger.defaultMemberId }
+                        ? ledger.members.first { $0.isCurrentUser }
                         : nil
                     memo = ""
                     date = Date()

@@ -183,7 +183,7 @@ struct LedgerEditView: View {
                 name: trimmedName,
                 type: .group,
                 inviteCode: Ledger.generateInviteCode(),
-                members: [LedgerMember(id: Ledger.defaultMemberId, name: "我")],
+                members: [LedgerMember(id: UUID().uuidString, name: "我", isCurrentUser: true)],
                 currency: currency,
                 categories: ExpenseCategory.groupDefaults,
                 expenses: [],

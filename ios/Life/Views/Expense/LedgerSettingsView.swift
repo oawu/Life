@@ -166,6 +166,6 @@ struct LedgerSettingsView: View {
 
 #Preview {
     NavigationStack {
-        LedgerSettingsView(store: ExpenseStore())
+        LedgerSettingsView(store: ExpenseStore.preview())
     }
 }

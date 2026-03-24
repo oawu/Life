@@ -24,5 +24,5 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(authManager: AuthManager(), expenseStore: ExpenseStore())
+    HomeView(authManager: AuthManager(), expenseStore: ExpenseStore.preview())
 }
