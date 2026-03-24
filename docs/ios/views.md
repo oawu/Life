@@ -83,6 +83,7 @@
 | View | 檔案 | 參數 | 呈現方式 |
 |------|------|------|----------|
 | ImagePickerView | ImagePickerView.swift | sourceType, onImagePicked | sheet（UIImagePickerController 包裝） |
+| CarrierEditView | CarrierEditView.swift | authManager: AuthManager | push 從 ProfileView |
 
 ---
 
@@ -124,6 +125,7 @@ HomeView (TabView)
 └─ Tab 2: ProfileView
             ├─ 頭像/「更改」→ confirmationDialog → sheet: ImagePickerView
             ├─ 名稱 → inline TextField 編輯
+            ├─ push: CarrierEditView（載具號碼編輯 + 條碼預覽）
             └─ 登出 → alert 確認
 ```
 

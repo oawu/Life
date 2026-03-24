@@ -137,6 +137,7 @@ life/
     - 頭像區塊：100pt 圓形大頭照 + 「更改」按鈕，點擊 → confirmationDialog 選擇相簿/拍照
     - 名稱：點擊切換為 TextField inline 編輯，完成後自動儲存
     - Email：靜態顯示，不可編輯
+    - 載具號碼：NavigationLink push 到 CarrierEditView，Code 128 條碼即時預覽 + 格式驗證（/ + 7 碼）
     - 登出按鈕：alert 確認後登出
 
 ---
