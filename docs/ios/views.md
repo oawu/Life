@@ -8,10 +8,12 @@
 
 | View | 檔案 | 說明 |
 |------|------|------|
-| LifeApp | LifeApp.swift | App 入口，依 isAuthenticated 切換 LoginView / HomeView |
-| LoginView | Views/LoginView.swift | 登入頁，Apple Sign In + 開發者登入 |
-| HomeView | Views/HomeView.swift | 主畫面 TabView（記帳 + 個人） |
-| ProfileView | Views/ProfileView.swift | 個人頁，頭像更換 + 名稱編輯 + 登出 |
+| LifeApp | LifeApp.swift | App 入口，依 AuthState 切換 LaunchView / HomeView，`.environment(authManager)` 注入 |
+| LaunchView | Views/LaunchView.swift | 啟動畫面（Logo + "Life"），AuthManager 背景檢查 token 後自動切走 |
+| LoginPromptView | Views/LoginPromptView.swift | 可複用登入 sheet，接收 `message` 參數，登入成功自動 dismiss |
+| GuestProfileView | Views/GuestProfileView.swift | Tab 2 訪客模式登入頁（品牌展示 + Apple Sign In） |
+| HomeView | Views/HomeView.swift | 主畫面 TabView（記帳 + 個人），Tab 2 依 authState 切換 ProfileView / GuestProfileView |
+| ProfileView | Views/ProfileView.swift | 個人頁，頭像更換 + 名稱編輯 + 登出（已登入限定） |
 
 ## 記帳功能群組（Views/Expense/）
 
@@ -83,14 +85,16 @@
 | View | 檔案 | 參數 | 呈現方式 |
 |------|------|------|----------|
 | ImagePickerView | ImagePickerView.swift | sourceType, onImagePicked | sheet（UIImagePickerController 包裝） |
-| CarrierEditView | CarrierEditView.swift | authManager: AuthManager | push 從 ProfileView |
+| CarrierEditView | CarrierEditView.swift | （@Environment AuthManager） | push 從 ProfileView |
 
 ---
 
 ## 導航關係圖
 
 ```
-LoginView ─────────────────────────────────────────── 認證成功 ──→ HomeView
+LifeApp
+├─ .launching → LaunchView（品牌 Logo，背景檢查 token）
+└─ .guest / .authenticated → HomeView
 
 HomeView (TabView)
 │
@@ -112,8 +116,9 @@ HomeView (TabView)
 │  ├─ push: CategorySettingsView
 │  │         └─ sheet: CategoryEditView
 │  └─ push: LedgerSettingsView
-│            ├─ sheet: LedgerEditView(.add)          ← 自己建立
-│            ├─ sheet: JoinLedgerView                ← 掃碼加入
+│            ├─ sheet: LedgerEditView(.add)          ← 自己建立（訪客 → LoginPromptView）
+│            ├─ sheet: JoinLedgerView                ← 掃碼加入（訪客 → LoginPromptView）
+│            ├─ sheet: LoginPromptView               ← 訪客登入提示
 │            ├─ sheet: LedgerEditView(.editPersonal) ← 個人帳本
 │            ├─ push: RecurringExpenseListView        ← 個人帳本固定開銷
 │            │         └─ sheet: RecurringExpenseEditView
@@ -122,11 +127,13 @@ HomeView (TabView)
 │                     └─ push: RecurringExpenseListView
 │                               └─ sheet: RecurringExpenseEditView
 │
-└─ Tab 2: ProfileView
-            ├─ 頭像/「更改」→ confirmationDialog → sheet: ImagePickerView
-            ├─ 名稱 → inline TextField 編輯
-            ├─ push: CarrierEditView（載具號碼編輯 + 條碼預覽）
-            └─ 登出 → alert 確認
+└─ Tab 2（依 authState 切換）
+   ├─ .authenticated → ProfileView
+   │   ├─ 頭像/「更改」→ confirmationDialog → sheet: ImagePickerView
+   │   ├─ 名稱 → inline TextField 編輯
+   │   ├─ push: CarrierEditView（載具號碼編輯 + 條碼預覽）
+   │   └─ 登出 → alert 確認 → LifeApp onChange 重設資料
+   └─ .guest → GuestProfileView（品牌展示 + Apple Sign In）
 ```
 
 **符號**：

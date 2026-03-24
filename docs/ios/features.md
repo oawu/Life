@@ -6,25 +6,41 @@
 
 ---
 
-## 1. 登入（Authentication）
+## 1. 認證與訪客模式（Authentication）
+
+### 架構
+
+**AuthState 狀態機**（AuthManager）：
+- `.launching`：App 啟動，檢查 token 中 → 顯示 LaunchView
+- `.guest`：未登入 → 訪客模式，可用個人帳本記帳
+- `.authenticated`：已登入 → 完整功能
+
+**權限矩陣**：
+
+| 功能 | 訪客 | 已登入 |
+|------|------|--------|
+| 個人帳本記帳/瀏覽/編輯/刪除 | O | O |
+| 分類新增/編輯/刪除/排序 | O | O |
+| 統計圖表、固定開銷（個人帳本） | O | O |
+| 建立 / 掃碼加入群組帳本 | X → LoginPromptView | O |
+| 個人資料/頭像/載具 | X → Tab 2 訪客登入頁 | O |
 
 ### 畫面
 
-**LoginView** — App 啟動時顯示（未登入）
-
-- App Logo + 名稱 + 副標題
-- Sign In with Apple 按鈕
-- 開發者登入按鈕（LOCAL 環境限定，輸入 email 即可）
-- Loading 狀態、錯誤訊息
+- **LaunchView**：品牌 Logo（heart.fill）+ "Life" + "記錄你的生活"，純展示
+- **GuestProfileView**：Tab 2 訪客模式，品牌展示 + Apple Sign In + 開發者登入（LOCAL）
+- **LoginPromptView**：可複用登入 sheet，接收 `message` 參數，登入成功自動 dismiss
+- **ProfileView**：已登入限定，頭像更換 + 名稱 + Email + 載具 + 登出
 
 ### 流程
 
+**Apple Sign In**：
 ```
 1. 用戶點「Sign In with Apple」
 2. 系統彈出 Apple 授權畫面
 3. 取得 identityToken + fullName
 4. POST /api/auth/apple/callback → 取得 JWT + UserInfo
-5. JWT 存入 Keychain → 進入 HomeView
+5. JWT 存入 Keychain → authState = .authenticated
 ```
 
 **開發者登入（isDev）**：
@@ -36,11 +52,23 @@
 
 **App 冷啟動**：
 ```
-1. 從 Keychain 讀取 JWT
-2. GET /api/auth/me → 驗證 token 有效性
-3. 成功 → 直接進入 HomeView
-4. 失敗 → 清除 token → 顯示 LoginView
+1. authState = .launching → 顯示 LaunchView
+2. 從 Keychain 讀取 JWT
+3. GET /api/auth/me → 驗證 token 有效性
+4. 成功 → authState = .authenticated → HomeView
+5. 失敗 → 清除 token → authState = .guest → HomeView（訪客模式）
 ```
+
+**登出**（LifeApp.handleAuthStateChange）：
+```
+1. authManager.signOut() → 清除 token + 用戶資訊
+2. authState = .guest
+3. DataManager.resetToDefaults() → 清除所有資料 + 重建預設帳本與分類
+4. ExpenseStore.reload() → 重設 currentLedgerId
+5. PhoneSessionManager 同步 isLoggedIn = false 到 Watch
+```
+
+**備份提醒**：訪客累積第 10 筆開銷時顯示 alert，提供「登入」（→ LoginPromptView）和「稍後」選項
 
 ### 已實作的後端 API
 

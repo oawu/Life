@@ -68,6 +68,17 @@ life/
 ## 已完成功能
 
 - Apple Sign In 登入（後端 API + iOS App）
+- Auth 狀態重設計（AuthState: launching / guest / authenticated）
+  - 訪客可用個人帳本記帳，群組帳本等功能需登入
+  - AuthManager 以 `AuthState` enum 取代 `isAuthenticated: Bool`，保留 computed property 向後相容
+  - 啟動畫面（LaunchView）：品牌 Logo，背景檢查 token 後自動切到 HomeView
+  - 訪客登入提示（LoginPromptView）：可複用 sheet，接收 `message` 參數，登入成功自動 dismiss
+  - 訪客個人頁（GuestProfileView）：Tab 2 訪客模式，品牌展示 + Apple Sign In
+  - 帳本設定攔截：訪客點「自己建立」/「掃碼加入」→ LoginPromptView sheet
+  - 備份提醒：訪客累積 10 筆開銷時 alert 提示登入
+  - 登出資料重設：DataManager.resetToDefaults() 清除所有資料並重建預設帳本與分類
+  - LifeApp 以 `.environment(authManager)` 注入，子 View 用 `@Environment(AuthManager.self)` 取用
+  - PhoneSessionManager 同步 `isLoggedIn` 狀態到 Watch
 - iOS 記帳功能（SwiftData 本地持久化，含計算機、分類選擇、位置記錄）
   - 登入後直接進入新增開銷頁面（Tab 1），「明細」按鈕 push 到開銷列表
   - 儲存成功顯示金額「已儲存 $150」+ 打勾動畫

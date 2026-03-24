@@ -34,7 +34,9 @@ ios/
 │   │       └── PersistentSettlement.swift
 │   ├── Services/            # 狀態管理、API、工具服務
 │   └── Views/               # UI 畫面
-│       ├── LoginView.swift
+│       ├── LaunchView.swift
+│       ├── LoginPromptView.swift
+│       ├── GuestProfileView.swift
 │       ├── HomeView.swift
 │       ├── ProfileView.swift
 │       ├── Profile/         # 個人頁面相關
@@ -51,25 +53,32 @@ ios/
 
 ```
 LifeApp
-├─ AuthManager.init() → 檢查 Keychain 中的 JWT
+├─ AuthManager.init() → checkExistingToken()
 │  ├─ 有 token → GET /api/auth/me 驗證
-│  │  ├─ 成功 → isAuthenticated = true
-│  │  └─ 失敗 → 清除 token
-│  └─ 無 token → 等待登入
+│  │  ├─ 成功 → authState = .authenticated
+│  │  └─ 失敗 → 清除 token → authState = .guest
+│  └─ 無 token → authState = .guest
 │
-├─ isAuthenticated = true → HomeView
-└─ isAuthenticated = false → LoginView
+├─ .launching → LaunchView（品牌 Logo，等待 token 檢查完成）
+├─ .guest → HomeView（訪客模式，可用個人帳本記帳）
+└─ .authenticated → HomeView（完整功能）
 ```
+
+**AuthState 狀態機**：
+- `.launching`：App 啟動，正在檢查 token
+- `.guest`：未登入，可使用個人帳本記帳、分類等基本功能
+- `.authenticated`：已登入，完整功能
+
+**狀態轉換處理**（LifeApp.handleAuthStateChange）：
+- `.authenticated` → `.guest`（登出）：DataManager.resetToDefaults() → ExpenseStore.reload() → 重設 currentLedgerId → Watch sync
+- `.guest` → `.authenticated`（登入）：保留本地資料 → Watch sync
 
 ## 導航結構
 
 ```
 LifeApp
-├─ LoginView（未登入）
-│  ├─ Sign In with Apple
-│  └─ 開發者登入（LOCAL 限定）
-│
-└─ HomeView（已登入，TabView）
+├─ .launching → LaunchView（品牌 Logo）
+└─ .guest / .authenticated → HomeView（TabView）
    │
    ├─ Tab 1：記帳（NavigationStack）
    │  └─ AddExpenseView
@@ -81,7 +90,7 @@ LifeApp
    │     ├─ [分類設定] → push CategorySettingsView
    │     │  └─ 分類行 → sheet CategoryEditView
    │     └─ [帳本設定] → push LedgerSettingsView
-   │        ├─ [＋新增帳本] → confirmationDialog
+   │        ├─ [＋新增帳本]（訪客 → LoginPromptView sheet）
    │        │  ├─ 自己建立 → sheet LedgerEditView(.add)
    │        │  └─ 掃碼加入 → sheet JoinLedgerView
    │        ├─ 個人帳本 → sheet LedgerEditView(.editPersonal)
@@ -91,10 +100,11 @@ LifeApp
    │           └─ 固定開銷 → push RecurringExpenseListView
    │
    └─ Tab 2：個人（NavigationStack）
-      └─ ProfileView
-         ├─ 頭像/「更改」→ confirmationDialog → sheet ImagePickerView
-         ├─ 名稱 → inline TextField 編輯
-         └─ [登出] → alert 確認 → 清除 token → 返回 LoginView
+      ├─ .authenticated → ProfileView
+      │  ├─ 頭像/「更改」→ confirmationDialog → sheet ImagePickerView
+      │  ├─ 名稱 → inline TextField 編輯
+      │  └─ [登出] → alert 確認 → LifeApp onChange 重設資料
+      └─ .guest → GuestProfileView（品牌展示 + Apple Sign In）
 
 LifeWatch（獨立 App）
 └─ WatchAddExpenseView（主表單，捲動 List）
@@ -110,7 +120,7 @@ LifeWatch（獨立 App）
 
 | 物件 | 類型 | 作用範圍 | 說明 |
 |------|------|----------|------|
-| `AuthManager` | @Observable | 全 App | 登入狀態、JWT、用戶資訊 |
+| `AuthManager` | @Observable | 全 App（.environment 注入） | AuthState 狀態機、JWT、用戶資訊 |
 | `DataManager` | @Observable | 全 App | SwiftData CRUD，struct ↔ @Model 映射 |
 | `ExpenseStore` | @Observable | Tab 1 | 帳本、分類、開銷（委派 DataManager 讀寫） |
 | `CalculatorEngine` | @Observable | AddExpenseView | 計算機運算邏輯 |
