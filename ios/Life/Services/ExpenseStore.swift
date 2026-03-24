@@ -108,6 +108,7 @@ final class ExpenseStore {
 
     func addExpense(amount: Double, category: ExpenseCategory, memo: String, date: Date, latitude: Double?, longitude: Double?, address: String?, paidBy: LedgerMember? = nil) async {
         if !authManager.isAuthenticated {
+            print("[ExpenseStore] addExpense: mode=guest")
             dataManager.addGuestExpense(
                 categoryKey: category.key ?? category.id,
                 amount: Int(amount),
@@ -126,6 +127,7 @@ final class ExpenseStore {
         }
 
         let categoryServerId = Int(category.id)
+        print("[ExpenseStore] addExpense: mode=auth, online=\(networkMonitor.isOnline)")
 
         if networkMonitor.isOnline {
             var body: [String: Any] = [
@@ -648,12 +650,14 @@ final class ExpenseStore {
             return
         }
 
+        print("[ExpenseStore] refreshState: start")
         do {
             let response = try await APIClient.shared.get(
                 path: "/api/state",
                 responseType: StateResponse.self
             )
 
+            print("[ExpenseStore] refreshState: received \(response.ledgers.count) ledgers")
             dataManager.rebuildFromState(response)
             reload()
         } catch {
@@ -674,6 +678,7 @@ final class ExpenseStore {
         }
 
         let unsynced = dataManager.fetchUnsyncedExpenses()
+        print("[ExpenseStore] syncOfflineExpenses: found \(unsynced.count) unsynced")
         let payloads: [UnsyncedPayload] = unsynced.compactMap { expense -> UnsyncedPayload? in
             guard let ledgerServerId = expense.ledger?.serverId, ledgerServerId > 0 else {
                 return nil
@@ -721,6 +726,7 @@ final class ExpenseStore {
                 let mappings = zip(items, response.expenses).map { (local, remote) in
                     (localId: local.localId, serverId: remote.id)
                 }
+                print("[ExpenseStore] syncOfflineExpenses: batch uploaded \(items.count) to ledger \(ledgerServerId)")
                 dataManager.markExpensesSynced(mappings)
             } catch {
                 print("[ExpenseStore] syncOfflineExpenses error for ledger \(ledgerServerId): \(error)")
@@ -748,6 +754,7 @@ final class ExpenseStore {
             return data
         }
 
+        print("[ExpenseStore] initAfterLogin: uploading \(guestExpenses.count) guest expenses")
         do {
             let response = try await APIClient.shared.post(
                 path: "/api/auth/init",

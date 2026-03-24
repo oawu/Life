@@ -42,9 +42,11 @@ struct LifeApp: App {
             .environment(authManager)
             .environment(networkMonitor)
             .onChange(of: authManager.authState) { oldState, newState in
+                print("[LifeApp] authState changed: \(oldState) → \(newState)")
                 handleAuthStateChange(from: oldState, to: newState)
             }
             .onChange(of: networkMonitor.isOnline) {
+                print("[LifeApp] network changed: isOnline=\(networkMonitor.isOnline)")
                 phoneSessionManager?.isOnline = networkMonitor.isOnline
                 phoneSessionManager?.syncLedgersToWatch()
                 // 網路恢復時同步離線開銷 + 重整快取
@@ -62,6 +64,7 @@ struct LifeApp: App {
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active && authManager.isAuthenticated {
+                    print("[LifeApp] scenePhase: active, triggering sync + refresh")
                     Task {
                         await expenseStore.syncOfflineExpenses()
                         await expenseStore.refreshState()
@@ -90,6 +93,7 @@ struct LifeApp: App {
             // 登入：上傳 guest 開銷 + 建立快取
             phoneSessionManager?.isLoggedIn = true
             let guestExpenses = dataManager.fetchGuestExpenses()
+            print("[LifeApp] initAfterLogin started, guestExpenses=\(guestExpenses.count)")
             Task {
                 await expenseStore.initAfterLogin(guestExpenses: guestExpenses)
                 phoneSessionManager?.syncLedgersToWatch()

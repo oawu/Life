@@ -105,6 +105,7 @@ final class DataManager {
             let paidByUserServerId: Int?
         }
 
+        print("[DataManager] rebuildFromState: preserving \(unsyncedExpenses.count) unsynced expenses")
         let unsyncedData = unsyncedExpenses.compactMap { expense -> UnsyncedExpenseData? in
             guard let ledgerServerId = expense.ledger?.serverId else {
                 return nil
@@ -217,6 +218,8 @@ final class DataManager {
             }
         }
 
+        print("[DataManager] rebuildFromState: created \(response.ledgers.count) ledgers")
+
         // 4. 恢復未同步的離線開銷（僅 ledger 仍存在者）
         for data in unsyncedData {
             guard remoteLedgerIds.contains(data.ledgerServerId) else {
@@ -328,6 +331,7 @@ final class DataManager {
     }
 
     func markExpensesSynced(_ mappings: [(localId: UUID, serverId: Int)]) {
+        print("[DataManager] markExpensesSynced: \(mappings.count) expenses")
         for mapping in mappings {
             let localId = mapping.localId
             let descriptor = FetchDescriptor<CachedExpense>(
@@ -573,6 +577,7 @@ final class DataManager {
     // MARK: - Clear All Cache
 
     func clearAllCache() {
+        print("[DataManager] clearAllCache")
         do {
             try context.delete(model: CachedLedger.self)
             try context.delete(model: CachedExpense.self)
