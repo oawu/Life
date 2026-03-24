@@ -14,7 +14,9 @@ targets:
   Life:
     type: application
     platform: iOS
-    sources: Life
+    sources:
+      - Life
+      - Shared
     entitlements:
       path: Life/Life.entitlements
       properties:
@@ -60,10 +62,13 @@ targets:
   LifeWatch:
     type: application
     platform: watchOS
-    sources: LifeWatch
+    sources:
+      - LifeWatch
+      - Shared
     settings:
       base:
         GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "用於記錄開銷的發生地點"
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: 1
       configs:
