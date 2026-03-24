@@ -3,8 +3,11 @@ import SwiftUI
 struct CategorySettingsView: View {
     @Bindable var store: ExpenseStore
 
+    @Environment(AuthManager.self) private var authManager
+    @Environment(NetworkMonitor.self) private var networkMonitor
     @State private var editingCategory: ExpenseCategory?
     @State private var showAddSheet = false
+    @State private var showOfflineAlert = false
 
     private var sortableCategories: [ExpenseCategory] {
         store.categories.filter { !$0.isSystemOther }
@@ -20,14 +23,18 @@ struct CategorySettingsView: View {
                 ForEach(sortableCategories) { category in
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        editingCategory = category
+                        if !authManager.isGuest && !networkMonitor.isOnline {
+                            showOfflineAlert = true
+                        } else {
+                            editingCategory = category
+                        }
                     } label: {
                         categoryRow(category)
                     }
                 }
-                .onMove { source, destination in
+                .onMove(perform: (!authManager.isGuest && !networkMonitor.isOnline) ? nil : { source, destination in
                     store.moveCategory(from: source, to: destination)
-                }
+                })
 
                 if let category = otherCategory {
                     categoryRow(category)
@@ -42,7 +49,11 @@ struct CategorySettingsView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    showAddSheet = true
+                    if !authManager.isGuest && !networkMonitor.isOnline {
+                        showOfflineAlert = true
+                    } else {
+                        showAddSheet = true
+                    }
                 } label: {
                     Image(systemName: "rectangle.stack.badge.plus")
                 }
@@ -64,6 +75,11 @@ struct CategorySettingsView: View {
                 store.addCategory(id: newCategory.id, name: newCategory.name, icon: newCategory.icon, color: newCategory.color)
             }
         }
+        .alert("無法連線", isPresented: $showOfflineAlert) {
+            Button("好") {}
+        } message: {
+            Text("此操作需要網路連線，請稍後再試")
+        }
     }
     private func categoryRow(_ category: ExpenseCategory) -> some View {
         HStack(spacing: 12) {
@@ -84,4 +100,6 @@ struct CategorySettingsView: View {
     NavigationStack {
         CategorySettingsView(store: ExpenseStore.preview())
     }
+    .environment(AuthManager())
+    .environment(NetworkMonitor())
 }

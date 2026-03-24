@@ -4,10 +4,12 @@ struct LedgerSettingsView: View {
     @Bindable var store: ExpenseStore
 
     @Environment(AuthManager.self) private var authManager
+    @Environment(NetworkMonitor.self) private var networkMonitor
     @State private var editingLedger: Ledger?
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
     @State private var showLoginPrompt = false
+    @State private var showOfflineAlert = false
     @State private var selectedLedgerId: String?
     @State private var showPersonalRecurring = false
 
@@ -89,6 +91,8 @@ struct LedgerSettingsView: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         if authManager.isGuest {
                             showLoginPrompt = true
+                        } else if !networkMonitor.isOnline {
+                            showOfflineAlert = true
                         } else {
                             showCreateSheet = true
                         }
@@ -99,6 +103,8 @@ struct LedgerSettingsView: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         if authManager.isGuest {
                             showLoginPrompt = true
+                        } else if !networkMonitor.isOnline {
+                            showOfflineAlert = true
                         } else {
                             showJoinSheet = true
                         }
@@ -158,6 +164,11 @@ struct LedgerSettingsView: View {
         .sheet(isPresented: $showLoginPrompt) {
             LoginPromptView(message: "登入後即可建立群組帳本")
         }
+        .alert("無法連線", isPresented: $showOfflineAlert) {
+            Button("好") {}
+        } message: {
+            Text("此操作需要網路連線，請稍後再試")
+        }
     }
 
     private func ledgerRow(_ ledger: Ledger) -> some View {
@@ -182,4 +193,5 @@ struct LedgerSettingsView: View {
         LedgerSettingsView(store: ExpenseStore.preview())
     }
     .environment(AuthManager())
+    .environment(NetworkMonitor())
 }

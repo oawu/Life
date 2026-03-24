@@ -4,6 +4,7 @@ import SwiftData
 @main
 struct LifeApp: App {
     @State private var authManager = AuthManager()
+    @State private var networkMonitor = NetworkMonitor()
     @State private var dataManager: DataManager
     @State private var expenseStore: ExpenseStore
     @State private var phoneSessionManager: PhoneSessionManager?
@@ -34,8 +35,13 @@ struct LifeApp: App {
                 }
             }
             .environment(authManager)
+            .environment(networkMonitor)
             .onChange(of: authManager.authState) { oldState, newState in
                 handleAuthStateChange(from: oldState, to: newState)
+            }
+            .onChange(of: networkMonitor.isOnline) {
+                phoneSessionManager?.isOnline = networkMonitor.isOnline
+                phoneSessionManager?.syncLedgersToWatch()
             }
             .onAppear {
                 if phoneSessionManager == nil {

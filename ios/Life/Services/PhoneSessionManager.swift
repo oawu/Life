@@ -6,6 +6,7 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     private let expenseStore: ExpenseStore
     private let session: WCSession
     var isLoggedIn: Bool = false
+    var isOnline: Bool = true
 
     init(expenseStore: ExpenseStore) {
         self.expenseStore = expenseStore
@@ -29,6 +30,7 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
         try? session.updateApplicationContext([
             "ledgers": context,
             "isLoggedIn": isLoggedIn,
+            "isOnline": isOnline,
         ])
     }
 

@@ -6,10 +6,12 @@ struct LedgerDetailView: View {
     let ledgerId: String
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(NetworkMonitor.self) private var networkMonitor
 
     @State private var showEditSheet = false
     @State private var showLeaveConfirmation = false
     @State private var showUnsettledAlert = false
+    @State private var showOfflineAlert = false
     @State private var showCopiedToast = false
     @State private var qrImage: UIImage?
     @State private var toastTask: DispatchWorkItem?
@@ -44,9 +46,18 @@ struct LedgerDetailView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("編輯") {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            showEditSheet = true
+                            if !networkMonitor.isOnline {
+                                showOfflineAlert = true
+                            } else {
+                                showEditSheet = true
+                            }
                         }
                     }
+                }
+                .alert("無法連線", isPresented: $showOfflineAlert) {
+                    Button("好") {}
+                } message: {
+                    Text("此操作需要網路連線，請稍後再試")
                 }
                 .sheet(isPresented: $showEditSheet) {
                     if let current = self.ledger {
@@ -193,7 +204,9 @@ struct LedgerDetailView: View {
     private var leaveButton: some View {
         Button(role: .destructive) {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            if hasUnsettledExpenses {
+            if !networkMonitor.isOnline {
+                showOfflineAlert = true
+            } else if hasUnsettledExpenses {
                 showUnsettledAlert = true
             } else {
                 showLeaveConfirmation = true
@@ -298,4 +311,5 @@ struct LedgerDetailView: View {
     NavigationStack {
         LedgerDetailView(store: ExpenseStore.preview(), ledgerId: "roommates")
     }
+    .environment(NetworkMonitor())
 }

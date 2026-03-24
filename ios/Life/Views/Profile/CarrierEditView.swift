@@ -3,6 +3,7 @@ import CoreImage.CIFilterBuiltins
 
 struct CarrierEditView: View {
     @Environment(AuthManager.self) private var authManager
+    @Environment(NetworkMonitor.self) private var networkMonitor
 
     @State private var carrierNumber: String = ""
     @State private var debouncedNumber: String = ""
@@ -69,10 +70,14 @@ struct CarrierEditView: View {
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .focused($fieldFocused)
+                    .disabled(!networkMonitor.isOnline)
             } header: {
                 Text("請輸入個人載具號碼")
             } footer: {
-                if !isValid {
+                if !networkMonitor.isOnline {
+                    Text("目前離線，無法修改")
+                        .foregroundStyle(.secondary)
+                } else if !isValid {
                     Text("格式錯誤：/ 開頭 + 7 碼（數字、大寫字母、.、-、+）")
                         .foregroundStyle(.red)
                 }
@@ -86,6 +91,9 @@ struct CarrierEditView: View {
         }
         .onDisappear {
             debounceTask?.cancel()
+            if !networkMonitor.isOnline {
+                return
+            }
             let trimmed = carrierNumber.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
             if trimmed.isEmpty || (try? Self.carrierRegex.wholeMatch(in: trimmed)) != nil {
                 authManager.updateCarrierNumber(trimmed)

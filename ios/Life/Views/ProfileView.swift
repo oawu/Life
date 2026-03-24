@@ -2,10 +2,12 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(AuthManager.self) private var authManager
+    @Environment(NetworkMonitor.self) private var networkMonitor
 
     @State private var showSignOutAlert = false
     @State private var showImageSourceDialog = false
     @State private var showImagePicker = false
+    @State private var showOfflineAlert = false
     @State private var imagePickerSource: UIImagePickerController.SourceType = .photoLibrary
     @State private var isEditingName = false
     @State private var editingName = ""
@@ -18,7 +20,11 @@ struct ProfileView: View {
                 VStack(spacing: 12) {
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        showImageSourceDialog = true
+                        if !networkMonitor.isOnline {
+                            showOfflineAlert = true
+                        } else {
+                            showImageSourceDialog = true
+                        }
                     } label: {
                         if let image = authManager.avatarImage {
                             Image(uiImage: image)
@@ -38,7 +44,11 @@ struct ProfileView: View {
 
                     Button("更改") {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        showImageSourceDialog = true
+                        if !networkMonitor.isOnline {
+                            showOfflineAlert = true
+                        } else {
+                            showImageSourceDialog = true
+                        }
                     }
                     .font(.subheadline)
                     .buttonStyle(.borderless)
@@ -73,6 +83,10 @@ struct ProfileView: View {
                     } else {
                         Button {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            if !networkMonitor.isOnline {
+                                showOfflineAlert = true
+                                return
+                            }
                             if let user = authManager.currentUser {
                                 editingName = user.name
                             }
@@ -146,6 +160,11 @@ struct ProfileView: View {
             ImagePickerView(sourceType: imagePickerSource) { image in
                 authManager.avatarImage = image
             }
+        }
+        .alert("無法連線", isPresented: $showOfflineAlert) {
+            Button("好") {}
+        } message: {
+            Text("此操作需要網路連線，請稍後再試")
         }
     }
 
