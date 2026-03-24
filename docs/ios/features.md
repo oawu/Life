@@ -142,6 +142,68 @@
 
 ---
 
+## 3a. 開銷詳情與編輯（Expense Detail & Edit）
+
+### 畫面
+
+**ExpenseDetailView** — 從 ExpenseListView 點擊開銷 push 進入
+
+| 區塊 | 說明 |
+|------|------|
+| 金額 | 36pt rounded bold + 幣別 badge |
+| 分類 | 圖示 + 名稱置中 |
+| 詳細資訊 | 時間、備註（有才顯示）、付款人（群組才顯示） |
+| 位置 | Map + Marker（180pt）、地址、「在 Apple 地圖中開啟」按鈕 |
+| 刪除按鈕 | 紅色 + confirmationDialog 確認 |
+| Toolbar | 右上角「編輯」→ sheet ExpenseEditView |
+
+**ExpenseEditView** — Sheet 呈現
+
+- 複用 CalculatorView、CategoryGridView、PayerChips、ExpenseDetailFields
+- onAppear 預填所有欄位（金額、分類、備註、日期、付款人、位置）
+- 取消 / 儲存按鈕
+
+### 流程
+
+```
+查看詳情：
+1. 開銷列表點擊某筆開銷 → push 到 ExpenseDetailView
+2. 有位置時顯示地圖區塊，可開啟 Apple 地圖
+
+編輯：
+1. 詳情頁右上角「編輯」→ sheet ExpenseEditView
+2. 修改欄位 → 儲存 → ExpenseStore.updateExpense()
+
+刪除：
+1. 詳情頁底部「刪除開銷」→ confirmationDialog 確認
+2. 刪除成功 → pop back
+```
+
+---
+
+## 3b. 開銷統計圖表（Expense Chart）
+
+### 畫面
+
+**ExpenseChartView** — 從 ExpenseListView 右上角按鈕 push 進入
+
+| 區塊 | 說明 |
+|------|------|
+| Header | safeAreaInset 置中 segmented Picker（月/年），右上角圓餅圖顯隱 toggle |
+| 列表 | 每個月/年為獨立 Section，所有期間一次列出 |
+| 環形圖 | Swift Charts SectorMark（innerRadius 0.618），中心顯示總金額 |
+| 分類明細 | 圖示色塊 + 名稱 + 進度條 + 金額 + 百分比，按金額降序 |
+
+### 流程
+
+```
+1. 開銷列表右上角按鈕 → push ExpenseChartView
+2. 切換月/年 segmented Picker → 重新分組統計
+3. Toggle 圓餅圖顯隱
+```
+
+---
+
 ## 4. 分類管理（Category Management）
 
 ### 畫面
@@ -229,7 +291,8 @@
 | 邀請碼卡片 | 大字 monospaced 顯示 `#XXXXXX`，複製按鈕 + toast |
 | QR Code 卡片 | CIFilter 產生 200×200 QR 圖片 |
 | 成員列表 | person.fill 圖示 + 名稱，「我」標注 |
-| 刪除按鈕 | 確認對話框，刪除後 pop back |
+| 固定開銷 | 顯示數量 + NavigationLink 進入 RecurringExpenseListView |
+| 退出按鈕 | 未結清 → alert 攔截；已結清 → confirmationDialog 確認退出 |
 | Toolbar | 「編輯」→ sheet 開啟 LedgerEditView(.editGroup) |
 
 **JoinLedgerView** — 掃碼加入（Sheet 呈現）
@@ -270,9 +333,15 @@
 2. 複製邀請碼（toast 提示「已複製邀請碼」）
 3. 或讓對方掃描 QR Code
 
-刪除帳本：
-1. 群組帳本詳情頁 → 點「刪除帳本」→ 確認
-2. 刪除後 pop back，若為當前帳本則自動切回個人帳本
+退出帳本：
+1. 群組帳本詳情頁 → 點「退出帳本」
+2. 帳本尚未結清 → alert 攔截（「帳本尚未結清，無法退出」）
+3. 已結清 → confirmationDialog 確認 → 退出並自動切回個人帳本
+
+人員異動規則：
+- 帳本尚未結清時，任何人員無法加入或退出
+- 加入群組帳本：未結清時 alert 攔截
+- 退出群組帳本：未結清時 alert 攔截
 
 排序：
 1. 拖曳群組帳本調整順序（個人帳本固定在最前）
@@ -347,16 +416,36 @@
 
 **ProfileView** — Tab 2
 
-- 用戶頭像（person.circle.fill）
-- 用戶名稱、Email
-- Toolbar 右上角「登出」按鈕
+| 區塊 | 說明 |
+|------|------|
+| 頭像區塊 | 100pt 圓形大頭照 + 「更改」文字按鈕，點擊 → confirmationDialog 選擇相簿/拍照 |
+| 名稱 | 點擊切換為 TextField inline 編輯，完成後自動儲存 |
+| Email | 靜態顯示，不可編輯 |
+| 登出按鈕 | `role: .destructive`，點擊 → alert 確認後登出 |
+
+**ImagePickerView**（Views/Profile/）— UIViewControllerRepresentable
+
+- 包裝 UIImagePickerController
+- 支援 photoLibrary 和 camera 兩種來源
+- allowsEditing: true（裁切圓形頭像）
 
 ### 流程
 
 ```
+更換頭像：
+1. 點擊頭像圖片或「更改」按鈕
+2. confirmationDialog：「從相簿選擇」/「拍照」
+3. ImagePickerView sheet → 選擇/拍攝照片
+4. 回傳 UIImage → authManager.avatarImage
+
+編輯名稱：
+1. 點擊名稱 → 切換為 TextField
+2. 輸入完成（鍵盤 Done 或失焦）→ authManager.updateName()
+
 登出：
-1. 點「登出」→ AuthManager.signOut()
-2. 清除 Keychain JWT → isAuthenticated = false → 顯示 LoginView
+1. 點「登出」→ alert「確定要登出嗎？」
+2. 確認 → AuthManager.signOut()
+3. 清除 Keychain JWT → isAuthenticated = false → 顯示 LoginView
 ```
 
 ---

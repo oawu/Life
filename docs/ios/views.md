@@ -11,7 +11,7 @@
 | LifeApp | LifeApp.swift | App 入口，依 isAuthenticated 切換 LoginView / HomeView |
 | LoginView | Views/LoginView.swift | 登入頁，Apple Sign In + 開發者登入 |
 | HomeView | Views/HomeView.swift | 主畫面 TabView（記帳 + 個人） |
-| ProfileView | Views/ProfileView.swift | 個人頁，顯示用戶資訊 + 登出 |
+| ProfileView | Views/ProfileView.swift | 個人頁，頭像更換 + 名稱編輯 + 登出 |
 
 ## 記帳功能群組（Views/Expense/）
 
@@ -23,6 +23,8 @@
 | CalculatorView | CalculatorView.swift | engine: CalculatorEngine, currency: Currency | 4×4 計算機（金額輸入），左上幣別 badge |
 | ExpenseDetailFields | ExpenseDetailFields.swift | memo, date, locationService | 備註 + 日期 + 位置 |
 | ExpenseListView | ExpenseListView.swift | store: ExpenseStore | 開銷列表（按日期分組），toolbar 右上 push 到 ExpenseChartView |
+| ExpenseDetailView | ExpenseDetailView.swift | store: ExpenseStore, expenseId: UUID | 開銷詳情頁（金額、分類、位置地圖、刪除） |
+| ExpenseEditView | ExpenseEditView.swift | expense, ledger, store | 開銷編輯 sheet（複用記帳元件） |
 | ExpenseChartView | ExpenseChartView.swift | store: ExpenseStore | 開銷統計圖表（環形圖 + 分類進度條），月/年切換 |
 | SettlementDetailView | SettlementDetailView.swift | record: SettlementRecord | 結算紀錄詳情（轉帳明細） |
 
@@ -76,6 +78,12 @@
 |------|------|------|----------|
 | LocationPickerView | LocationPickerView.swift | initialLat?, initialLon?, onConfirm | sheet |
 
+## 個人頁面群組（Views/Profile/）
+
+| View | 檔案 | 參數 | 呈現方式 |
+|------|------|------|----------|
+| ImagePickerView | ImagePickerView.swift | sourceType, onImagePicked | sheet（UIImagePickerController 包裝） |
+
 ---
 
 ## 導航關係圖
@@ -96,7 +104,10 @@ HomeView (TabView)
 │  │
 │  ├─ push: ExpenseListView
 │  │         ├─ 嵌入: LedgerSwitcher（safeAreaInset）
-│  │         └─ push: SettlementDetailView
+│  │         ├─ push: ExpenseDetailView
+│  │         │         └─ sheet: ExpenseEditView
+│  │         ├─ push: SettlementDetailView
+│  │         └─ push: ExpenseChartView
 │  ├─ push: CategorySettingsView
 │  │         └─ sheet: CategoryEditView
 │  └─ push: LedgerSettingsView
@@ -111,6 +122,9 @@ HomeView (TabView)
 │                               └─ sheet: RecurringExpenseEditView
 │
 └─ Tab 2: ProfileView
+            ├─ 頭像/「更改」→ confirmationDialog → sheet: ImagePickerView
+            ├─ 名稱 → inline TextField 編輯
+            └─ 登出 → alert 確認
 ```
 
 **符號**：

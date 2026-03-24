@@ -24,6 +24,7 @@ ios/
 │       ├── LoginView.swift
 │       ├── HomeView.swift
 │       ├── ProfileView.swift
+│       ├── Profile/         # 個人頁面相關
 │       └── Expense/         # 記帳功能群組
 ├── LifeWatch/               # watchOS App（待開發）
 ├── LifeWidget/              # Widget Extension（待開發）
@@ -58,6 +59,10 @@ LifeApp
    ├─ Tab 1：記帳（NavigationStack）
    │  └─ AddExpenseView
    │     ├─ [明細] → push ExpenseListView
+   │     │  ├─ 開銷行 → push ExpenseDetailView
+   │     │  │  └─ [編輯] → sheet ExpenseEditView
+   │     │  ├─ 結算紀錄 → push SettlementDetailView
+   │     │  └─ [統計] → push ExpenseChartView
    │     ├─ [分類設定] → push CategorySettingsView
    │     │  └─ 分類行 → sheet CategoryEditView
    │     └─ [帳本設定] → push LedgerSettingsView
@@ -72,7 +77,9 @@ LifeApp
    │
    └─ Tab 2：個人（NavigationStack）
       └─ ProfileView
-         └─ [登出] → 清除 token → 返回 LoginView
+         ├─ 頭像/「更改」→ confirmationDialog → sheet ImagePickerView
+         ├─ 名稱 → inline TextField 編輯
+         └─ [登出] → alert 確認 → 清除 token → 返回 LoginView
 ```
 
 ## 狀態管理
@@ -114,5 +121,6 @@ ExpenseStore
 | 權限 | 用途 | Info.plist Key |
 |------|------|----------------|
 | 位置（使用中） | 記錄開銷發生地點 | NSLocationWhenInUseUsageDescription |
-| 相機 | 掃描帳本邀請碼 QR Code | NSCameraUsageDescription |
+| 相機 | 掃描帳本邀請碼 QR Code 及拍攝大頭照 | NSCameraUsageDescription |
+| 相簿 | 選擇大頭照 | NSPhotoLibraryUsageDescription |
 | Apple Sign In | 登入 | Entitlements |

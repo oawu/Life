@@ -257,6 +257,9 @@ struct CategoryIcon {
 | updateRecurringExpense(_) | 更新固定開銷 |
 | deleteRecurringExpense(id:) | 刪除固定開銷 |
 | recurringExpenseCount(forLedger:) | 指定帳本的固定開銷數量 |
+| updateExpense(_:) | 更新開銷 |
+| settleLedger(by:) | 結清當前帳本（標記已結算 + 建立結算紀錄） |
+| calculateTransfers() | 計算拆帳轉帳明細 |
 
 ---
 
@@ -270,6 +273,7 @@ struct CategoryIcon {
     var currentUser: UserInfo?
     var isLoading: Bool
     var errorMessage: String?
+    var avatarImage: UIImage?
 }
 ```
 
@@ -277,7 +281,8 @@ struct CategoryIcon {
 |------|------|
 | handleAppleSignIn(authorization:) | 處理 Apple Sign In 回調 |
 | devLogin(email:) | 開發者模擬登入 |
-| signOut() | 登出、清除 token |
+| signOut() | 登出、清除 token + 頭像 |
+| updateName(_:) | 更新用戶名稱 |
 | checkExistingToken() | 啟動時驗證已存 token |
 
 **UserInfo**：id, email, name, avatar?, status
