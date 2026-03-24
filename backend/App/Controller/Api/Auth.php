@@ -136,7 +136,39 @@ class Auth {
   }
 
   public function me() {
-    return ['user' => User::current()->toSafeArray()];
+    $user = User::current();
+
+    return ['user' => $user->toSafeArray()];
+  }
+
+  public function updateProfile() {
+    $user = User::current();
+
+    list(
+      'name'           => $name,
+      'carrierNumber'  => $carrierNumber,
+    ) = Valid::check(Payload::getJson(), [
+      'name'           => Valid::string_('名稱')->max(190)->nullOrNoKey(null),
+      'carrierNumber'  => Valid::string_('載具號碼')->max(10)->nullOrNoKey(null),
+    ]);
+
+    if ($name === null && $carrierNumber === null) {
+      return ['user' => $user->toSafeArray()];
+    }
+
+    if ($name !== null) {
+      $user->name = $name;
+    }
+
+    if ($carrierNumber !== null) {
+      $user->carrierNumber = $carrierNumber;
+    }
+
+    transaction(static function () use ($user) {
+      return $user->save();
+    });
+
+    return ['user' => $user->toSafeArray()];
   }
 
   private static function _devLogin(string $email): array {

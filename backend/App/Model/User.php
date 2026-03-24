@@ -24,11 +24,12 @@ class User extends \Orm\Model {
 
   public function toSafeArray(): array {
     return [
-      'id'     => $this->id,
-      'email'  => $this->email,
-      'name'   => $this->name,
-      'avatar' => $this->avatar,
-      'status' => $this->status,
+      'id'             => $this->id,
+      'email'          => $this->email,
+      'name'           => $this->name,
+      'avatar'         => $this->avatar,
+      'status'         => $this->status,
+      'carrierNumber'  => $this->carrierNumber ?? '',
     ];
   }
 
