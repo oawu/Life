@@ -1,10 +1,11 @@
 import Foundation
+import UIKit
 import AuthenticationServices
 
 struct UserInfo: Codable {
     let id: Int
     let email: String
-    let name: String
+    var name: String
     let avatar: String?
     let status: String
 }
@@ -24,6 +25,7 @@ final class AuthManager {
     var currentUser: UserInfo?
     var isLoading = false
     var errorMessage: String?
+    var avatarImage: UIImage?
 
     init() {
         checkExistingToken()
@@ -65,6 +67,13 @@ final class AuthManager {
         KeychainService.shared.deleteToken()
         isAuthenticated = false
         currentUser = nil
+        avatarImage = nil
+    }
+
+    // MARK: - Update
+
+    func updateName(_ name: String) {
+        currentUser?.name = name
     }
 
     // MARK: - Private

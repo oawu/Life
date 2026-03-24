@@ -30,9 +30,11 @@
 		</dict>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>用於掃描帳本邀請碼 QR Code</string>
+	<string>用於掃描帳本邀請碼 QR Code 及拍攝大頭照</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>用於記錄開銷的發生地點</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用於選擇大頭照</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
