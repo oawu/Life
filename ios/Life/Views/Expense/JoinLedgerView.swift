@@ -2,14 +2,16 @@ import SwiftUI
 import AVFoundation
 
 struct JoinLedgerView: View {
-    let onJoined: (Ledger) -> Void
+    @Bindable var store: ExpenseStore
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var inputCode: String = ""
-    @State private var joinedLedger: Ledger?
+    @State private var joinedLedgerName: String?
     @State private var cameraPermission: AVAuthorizationStatus = .notDetermined
-    @State private var showUnsettledAlert = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var isLoading = false
 
     private var canJoin: Bool {
         inputCode.trimmingCharacters(in: .whitespaces).count == 6
@@ -23,8 +25,15 @@ struct JoinLedgerView: View {
                     inputArea
                 }
 
-                if let ledger = joinedLedger {
-                    successOverlay(ledger)
+                if let name = joinedLedgerName {
+                    successOverlay(name)
+                }
+
+                if isLoading {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                    ProgressView()
+                        .tint(.white)
                 }
             }
             .background(Color(.systemBackground))
@@ -40,10 +49,10 @@ struct JoinLedgerView: View {
             .onAppear {
                 checkCameraPermission()
             }
-            .alert("此帳本尚未結清", isPresented: $showUnsettledAlert) {
+            .alert("無法加入", isPresented: $showErrorAlert) {
                 Button("好") {}
             } message: {
-                Text("帳本需要先完成結算才能加入新成員")
+                Text(errorMessage)
             }
         }
     }
@@ -130,7 +139,7 @@ struct JoinLedgerView: View {
 
     // MARK: - Success Overlay
 
-    private func successOverlay(_ ledger: Ledger) -> some View {
+    private func successOverlay(_ name: String) -> some View {
         ZStack {
             Color(.systemBackground).opacity(0.95)
 
@@ -142,13 +151,12 @@ struct JoinLedgerView: View {
                 Text("成功加入")
                     .font(.title2.weight(.semibold))
 
-                Text(ledger.name)
+                Text(name)
                     .font(.headline)
                     .foregroundStyle(.secondary)
 
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    onJoined(ledger)
                     dismiss()
                 } label: {
                     Text("完成")
@@ -182,38 +190,33 @@ struct JoinLedgerView: View {
     }
 
     private func handleCode(_ code: String) {
-        guard !code.isEmpty, joinedLedger == nil else {
+        guard !code.isEmpty, joinedLedgerName == nil, !isLoading else {
             return
         }
 
         let upperCode = code.uppercased()
+        isLoading = true
 
-        // Mock: "XXXXXX" 模擬帳本尚未結清
-        // 真實環境由 API 回傳帳本結算狀態
-        if upperCode == "XXXXXX" {
-            showUnsettledAlert = true
-            return
-        }
+        Task {
+            do {
+                try await store.joinGroupLedger(inviteCode: upperCode)
 
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-
-        let me = LedgerMember(id: UUID().uuidString, name: "我", isCurrentUser: true)
-        let friend = LedgerMember(id: UUID().uuidString, name: "好友")
-
-        let ledger = Ledger(
-            id: UUID().uuidString,
-            name: "好友帳本",
-            type: .group,
-            inviteCode: upperCode,
-            members: [me, friend],
-            currency: .twd,
-            categories: ExpenseCategory.groupDefaults,
-            expenses: [],
-            recurringExpenses: []
-        )
-
-        withAnimation(.easeInOut(duration: 0.3)) {
-            joinedLedger = ledger
+                await MainActor.run {
+                    isLoading = false
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    // 取得剛加入的帳本名稱（最後一個群組帳本）
+                    let name = store.ledgers.last { $0.type == .group }?.name ?? "群組帳本"
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        joinedLedgerName = name
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isLoading = false
+                    errorMessage = error.localizedDescription
+                    showErrorAlert = true
+                }
+            }
         }
     }
 }
@@ -298,5 +301,5 @@ struct CameraScannerView: UIViewRepresentable {
 }
 
 #Preview {
-    JoinLedgerView { _ in }
+    JoinLedgerView(store: ExpenseStore.preview())
 }

@@ -2,6 +2,42 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+// MARK: - Ledger API Models
+
+struct LedgerAPIResponse: Decodable {
+    let serverId: Int
+    let name: String
+    let type: String
+    let currency: String
+    let inviteCode: String?
+    let members: [SyncMember]
+    let categories: [SyncCategory]
+}
+
+struct LedgerCreateResponse: Decodable {
+    let ledger: LedgerAPIResponse
+}
+
+struct LedgerJoinResponse: Decodable {
+    let ledger: LedgerAPIResponse
+}
+
+struct LedgerLeaveResponse: Decodable {
+    let success: Bool
+}
+
+struct SettleResponse: Decodable {
+    let settlement: SettleResponseItem
+}
+
+struct SettleResponseItem: Decodable {
+    let serverId: Int
+    let settledByUserId: Int
+    let transfers: AnyCodable?
+    let currencySymbol: String
+    let createAt: String
+}
+
 @Observable
 final class ExpenseStore {
     private let dataManager: DataManager
@@ -228,6 +264,104 @@ final class ExpenseStore {
     func moveLedger(from source: IndexSet, to destination: Int) {
         dataManager.moveLedger(fromOffsets: source, toOffset: destination)
         reload()
+    }
+
+    // MARK: - Group Ledger API
+
+    func createGroupLedger(name: String, currency: Currency) async throws -> String {
+        let response = try await APIClient.shared.post(
+            path: "/api/ledgers",
+            body: [
+                "name": name,
+                "currency": currency.code,
+            ],
+            responseType: LedgerCreateResponse.self
+        )
+
+        await MainActor.run {
+            dataManager.addLedgerFromAPI(response.ledger)
+            reload()
+        }
+
+        return response.ledger.inviteCode ?? ""
+    }
+
+    func joinGroupLedger(inviteCode: String) async throws {
+        let response = try await APIClient.shared.post(
+            path: "/api/ledgers/join",
+            body: ["inviteCode": inviteCode],
+            responseType: LedgerJoinResponse.self
+        )
+
+        await MainActor.run {
+            dataManager.addLedgerFromAPI(response.ledger)
+            reload()
+        }
+    }
+
+    func leaveGroupLedger(id: String) async throws {
+        guard let serverId = dataManager.serverIdForLedger(id: id) else {
+            throw APIError.serverError(statusCode: 0, message: "帳本尚未同步")
+        }
+
+        _ = try await APIClient.shared.post(
+            path: "/api/ledgers/\(serverId)/leave",
+            body: nil,
+            responseType: LedgerLeaveResponse.self
+        )
+
+        await MainActor.run {
+            dataManager.deleteLedger(id: id)
+            if currentLedgerId == id {
+                currentLedgerId = ledgers.first { $0.type == .personal }?.id ?? ledgers.first?.id ?? ""
+            }
+            reload()
+        }
+    }
+
+    func updateGroupLedger(_ ledger: Ledger) async throws {
+        guard let serverId = dataManager.serverIdForLedger(id: ledger.id) else {
+            throw APIError.serverError(statusCode: 0, message: "帳本尚未同步")
+        }
+
+        _ = try await APIClient.shared.put(
+            path: "/api/ledgers/\(serverId)",
+            body: [
+                "name": ledger.name,
+                "currency": ledger.currency.code,
+            ],
+            responseType: LedgerCreateResponse.self
+        )
+
+        await MainActor.run {
+            dataManager.updateLedgerFull(ledger)
+            reload()
+        }
+    }
+
+    func settleGroupLedger(id: String, transfers: [SettlementTransfer]) async throws {
+        guard let serverId = dataManager.serverIdForLedger(id: id) else {
+            throw APIError.serverError(statusCode: 0, message: "帳本尚未同步")
+        }
+
+        let transfersPayload: [[String: Any]] = transfers.map { transfer in
+            [
+                "fromUserId": transfer.from.id,
+                "toUserId": transfer.to.id,
+                "amount": transfer.amount,
+            ]
+        }
+
+        _ = try await APIClient.shared.post(
+            path: "/api/ledgers/\(serverId)/settle",
+            body: ["transfers": transfersPayload],
+            responseType: SettleResponse.self
+        )
+
+        await MainActor.run {
+            dataManager.settleLedger(id: id, transfers: transfers)
+            reload()
+        }
     }
 
     // MARK: - Preview

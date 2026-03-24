@@ -71,6 +71,52 @@ final class DataManager {
         save()
     }
 
+    func serverIdForLedger(id: String) -> Int? {
+        findLedger(id: id)?.serverId
+    }
+
+    func addLedgerFromAPI(_ response: LedgerAPIResponse) {
+        let ledger = PersistentLedger(
+            serverId: response.serverId,
+            name: response.name,
+            type: response.type,
+            currencyCode: response.currency,
+            inviteCode: response.inviteCode,
+            sortOrder: nextLedgerSortOrder(),
+            syncStatus: "synced"
+        )
+        context.insert(ledger)
+
+        for member in response.members {
+            let persistentMember = PersistentMember(
+                serverId: member.serverId,
+                name: member.name,
+                isCurrentUser: member.isCurrentUser,
+                syncStatus: "synced",
+                ledger: ledger
+            )
+            context.insert(persistentMember)
+        }
+
+        for category in response.categories {
+            let localId = UUID(uuidString: category.localId) ?? UUID()
+            let persistentCategory = PersistentCategory(
+                localId: localId,
+                serverId: category.serverId,
+                name: category.name,
+                icon: category.icon,
+                colorHex: category.color,
+                sortOrder: category.sort,
+                isSystemDefault: category.isSystemDefault,
+                syncStatus: "synced",
+                ledger: ledger
+            )
+            context.insert(persistentCategory)
+        }
+
+        save()
+    }
+
     func moveLedger(fromOffsets: IndexSet, toOffset: Int) {
         var groups = fetchGroupLedgers()
         groups.move(fromOffsets: fromOffsets, toOffset: toOffset)

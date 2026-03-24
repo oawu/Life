@@ -4,6 +4,8 @@ struct ExpenseListView: View {
     @Bindable var store: ExpenseStore
     @State private var showSettleConfirmation = false
     @State private var showSettledToast = false
+    @State private var showSettleError = false
+    @State private var settleErrorMessage = ""
     @State private var toastTask: DispatchWorkItem?
     @State private var scrollOpacity: Double = 0
 
@@ -143,10 +145,36 @@ struct ExpenseListView: View {
         }
         .confirmationDialog("確定已經結算清楚了嗎？", isPresented: $showSettleConfirmation, titleVisibility: .visible) {
             Button("結清", role: .destructive) {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                store.settleLedger(id: store.currentLedgerId)
-                showSettleToast()
+                let ledger = store.ledgers.first { $0.id == store.currentLedgerId }
+                guard let ledger else {
+                    return
+                }
+
+                let transfers = ExpenseStore.calculateTransfers(
+                    expenses: ledger.expenses.filter { !ledger.settledExpenseIds.contains($0.id) },
+                    members: ledger.members
+                )
+
+                Task {
+                    do {
+                        try await store.settleGroupLedger(id: store.currentLedgerId, transfers: transfers)
+                        await MainActor.run {
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            showSettleToast()
+                        }
+                    } catch {
+                        await MainActor.run {
+                            settleErrorMessage = error.localizedDescription
+                            showSettleError = true
+                        }
+                    }
+                }
             }
+        }
+        .alert("結算失敗", isPresented: $showSettleError) {
+            Button("好") {}
+        } message: {
+            Text(settleErrorMessage)
         }
     }
 

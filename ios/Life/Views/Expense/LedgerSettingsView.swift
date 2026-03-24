@@ -10,6 +10,8 @@ struct LedgerSettingsView: View {
     @State private var showJoinSheet = false
     @State private var showLoginPrompt = false
     @State private var showOfflineAlert = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     @State private var selectedLedgerId: String?
     @State private var showPersonalRecurring = false
 
@@ -153,13 +155,18 @@ struct LedgerSettingsView: View {
         }
         .sheet(isPresented: $showCreateSheet) {
             LedgerEditView(mode: .add) { newLedger in
-                store.addLedger(newLedger)
+                Task {
+                    do {
+                        _ = try await store.createGroupLedger(name: newLedger.name, currency: newLedger.currency)
+                    } catch {
+                        errorMessage = error.localizedDescription
+                        showErrorAlert = true
+                    }
+                }
             }
         }
         .sheet(isPresented: $showJoinSheet) {
-            JoinLedgerView { ledger in
-                store.addLedger(ledger)
-            }
+            JoinLedgerView(store: store)
         }
         .sheet(isPresented: $showLoginPrompt) {
             LoginPromptView(message: "登入後即可建立群組帳本")
@@ -168,6 +175,11 @@ struct LedgerSettingsView: View {
             Button("好") {}
         } message: {
             Text("此操作需要網路連線，請稍後再試")
+        }
+        .alert("錯誤", isPresented: $showErrorAlert) {
+            Button("好") {}
+        } message: {
+            Text(errorMessage)
         }
     }
 

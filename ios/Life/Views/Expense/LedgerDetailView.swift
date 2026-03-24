@@ -12,7 +12,10 @@ struct LedgerDetailView: View {
     @State private var showLeaveConfirmation = false
     @State private var showUnsettledAlert = false
     @State private var showOfflineAlert = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     @State private var showCopiedToast = false
+    @State private var isLeaving = false
     @State private var qrImage: UIImage?
     @State private var toastTask: DispatchWorkItem?
 
@@ -62,9 +65,21 @@ struct LedgerDetailView: View {
                 .sheet(isPresented: $showEditSheet) {
                     if let current = self.ledger {
                         LedgerEditView(mode: .editGroup(current)) { updated in
-                            store.updateLedger(updated)
+                            Task {
+                                do {
+                                    try await store.updateGroupLedger(updated)
+                                } catch {
+                                    errorMessage = error.localizedDescription
+                                    showErrorAlert = true
+                                }
+                            }
                         }
                     }
+                }
+                .alert("錯誤", isPresented: $showErrorAlert) {
+                    Button("好") {}
+                } message: {
+                    Text(errorMessage)
                 }
             }
         }
@@ -225,8 +240,22 @@ struct LedgerDetailView: View {
         }
         .confirmationDialog("確定要退出此帳本嗎？", isPresented: $showLeaveConfirmation, titleVisibility: .visible) {
             Button("退出", role: .destructive) {
-                store.deleteLedger(id: ledgerId)
-                dismiss()
+                isLeaving = true
+                Task {
+                    do {
+                        try await store.leaveGroupLedger(id: ledgerId)
+                        await MainActor.run {
+                            isLeaving = false
+                            dismiss()
+                        }
+                    } catch {
+                        await MainActor.run {
+                            isLeaving = false
+                            errorMessage = error.localizedDescription
+                            showErrorAlert = true
+                        }
+                    }
+                }
             }
         }
     }
