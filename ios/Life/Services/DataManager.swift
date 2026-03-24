@@ -796,6 +796,30 @@ final class DataManager {
         ensureDefaultData()
     }
 
+    /// 移除未同步且無開銷的個人帳本（登出後重建的空白預設帳本）
+    /// 僅在已有從 Server 同步的帳本時才執行，避免首次登入時誤刪
+    func removeUnsyncedEmptyPersonalLedgers() {
+        let descriptor = FetchDescriptor<PersistentLedger>()
+        guard let ledgers = try? context.fetch(descriptor) else {
+            return
+        }
+
+        let hasSyncedLedgers = ledgers.contains { $0.serverId != nil }
+        guard hasSyncedLedgers else {
+            return
+        }
+
+        var removed = false
+        for ledger in ledgers where ledger.type == "personal" && ledger.serverId == nil && ledger.expenses.isEmpty && ledger.recurringExpenses.isEmpty {
+            context.delete(ledger)
+            removed = true
+        }
+
+        if removed {
+            save()
+        }
+    }
+
     // MARK: - Clear All Data
 
     func clearAllData() {

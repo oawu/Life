@@ -158,6 +158,32 @@ final class SyncEngine {
         await pull()
     }
 
+    /// 登入同步：先 pull 再 push，避免將空白預設帳本推送到 Server 造成重複
+    func loginSync() async {
+        guard networkMonitor.isOnline else {
+            return
+        }
+        guard !isSyncing else {
+            return
+        }
+
+        await MainActor.run {
+            isSyncing = true
+        }
+
+        defer {
+            Task { @MainActor in
+                isSyncing = false
+            }
+        }
+
+        await pull()
+        await MainActor.run {
+            dataManager.removeUnsyncedEmptyPersonalLedgers()
+        }
+        await push()
+    }
+
     // MARK: - Push
 
     private func push() async {

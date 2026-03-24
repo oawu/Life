@@ -88,11 +88,12 @@ struct LifeApp: App {
             phoneSessionManager?.syncLedgersToWatch()
 
         case (.guest, .authenticated):
-            // 登入：同步本地資料到 Server
+            // 登入：先 pull 再 push，避免空白預設帳本覆蓋 Server 資料
             phoneSessionManager?.isLoggedIn = true
             Task {
-                await syncEngine?.fullSync()
+                await syncEngine?.loginSync()
                 expenseStore.reload()
+                expenseStore.currentLedgerId = expenseStore.ledgers.first?.id ?? ""
                 phoneSessionManager?.syncLedgersToWatch()
             }
 
