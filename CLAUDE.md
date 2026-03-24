@@ -194,6 +194,17 @@ life/
   - WatchSessionManager.handleContext() 獨立處理 isLoggedIn / isOnline / ledgers 三個欄位
   - AuthManager 更新名稱/載具時同步呼叫 API（fire-and-forget）
   - User table 新增 carrierNumber 欄位
+- 群組帳本後端串接
+  - 後端 Ledger Controller（Api\Ledger）：7 個 API 涵蓋建立、查看、更新、加入、退出、成員、結算
+  - 建立群組帳本（POST /api/ledgers）：自動生成 6 碼邀請碼 + 預設分類 + owner 成員
+  - 加入群組帳本（POST /api/ledgers/join）：邀請碼驗證、重複成員檢查、未結算攔截
+  - 退出群組帳本（POST /api/ledgers/:id/leave）：未結算攔截、級聯刪除固定開銷、無成員時刪除帳本
+  - 結算拆帳（POST /api/ledgers/:id/settle）：標記開銷已結算 + 建立 Settlement 紀錄
+  - iOS 群組帳本操作改為 API 呼叫（非 SyncEngine 排隊）：
+    - ExpenseStore 新增 5 個 async 方法（createGroupLedger / joinGroupLedger / leaveGroupLedger / updateGroupLedger / settleGroupLedger）
+    - DataManager 新增 `serverIdForLedger()` / `addLedgerFromAPI()` 輔助方法
+    - LedgerSettingsView、JoinLedgerView、LedgerDetailView、ExpenseListView 改為 async API + error alert
+    - JoinLedgerView 移除 mock 邏輯，改為真實 API + loading 狀態
 
 ---
 

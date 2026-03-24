@@ -26,6 +26,18 @@
 | POST | sync/push | Api\Sync@push | 推送本地變更到 Server |
 | POST | sync/pull | Api\Sync@pull | 拉取 Server 變更到本地 |
 
+### Ledger（群組帳本）
+
+| 方法 | 路由 | Controller | 說明 |
+|------|------|-----------|------|
+| POST | ledgers | Api\Ledger@create | 建立群組帳本 |
+| GET | ledgers/:id | Api\Ledger@show | 取得帳本詳情 |
+| PUT | ledgers/:id | Api\Ledger@update | 更新帳本名稱/幣別 |
+| POST | ledgers/join | Api\Ledger@join | 用邀請碼加入群組帳本 |
+| POST | ledgers/:id/leave | Api\Ledger@leave | 退出群組帳本 |
+| GET | ledgers/:id/members | Api\Ledger@members | 取得成員列表 |
+| POST | ledgers/:id/settle | Api\Ledger@settle | 結算拆帳 |
+
 ---
 
 ## Sync API 詳細說明
