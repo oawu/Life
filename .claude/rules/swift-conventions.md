@@ -19,3 +19,11 @@ Button {
 ```
 
 **注意**：儲存成功等結果性回饋使用 `UINotificationFeedbackGenerator`（`.success` / `.error`），與操作觸發的 `.light` impact 區分。
+
+## XcodeGen
+
+專案使用 XcodeGen 管理 `.xcodeproj`。**新增或刪除 Swift 檔案後，必須執行 `xcodegen generate` 重新產生專案檔**，否則 Xcode 會找不到新檔案：
+
+```bash
+cd /Users/oa/Workspace/32_Life/ios && xcodegen generate
+```
