@@ -716,20 +716,28 @@ final class ExpenseStore {
         for (ledgerServerId, items) in grouped {
             let expensePayloads = items.map { $0.data }
 
-            do {
-                let response = try await APIClient.shared.post(
-                    path: "/api/ledgers/\(ledgerServerId)/expenses/batch",
-                    body: ["expenses": expensePayloads],
-                    responseType: ExpenseBatchResponse.self
-                )
+            for attempt in 1...3 {
+                do {
+                    let response = try await APIClient.shared.post(
+                        path: "/api/ledgers/\(ledgerServerId)/expenses/batch",
+                        body: ["expenses": expensePayloads],
+                        responseType: ExpenseBatchResponse.self
+                    )
 
-                let mappings = zip(items, response.expenses).map { (local, remote) in
-                    (localId: local.localId, serverId: remote.id)
+                    let mappings = zip(items, response.expenses).map { (local, remote) in
+                        (localId: local.localId, serverId: remote.id)
+                    }
+                    print("[ExpenseStore] syncOfflineExpenses: batch uploaded \(items.count) to ledger \(ledgerServerId)")
+                    dataManager.markExpensesSynced(mappings)
+                    break
+                } catch {
+                    if attempt < 3 {
+                        print("[ExpenseStore] syncOfflineExpenses: 帳本 \(ledgerServerId) 第 \(attempt) 次失敗，\(Int(pow(2, Double(attempt - 1))))s 後重試")
+                        try? await Task.sleep(for: .seconds(pow(2, Double(attempt - 1))))
+                    } else {
+                        print("[ExpenseStore] syncOfflineExpenses: 放棄，帳本 \(ledgerServerId) 經 3 次嘗試仍失敗")
+                    }
                 }
-                print("[ExpenseStore] syncOfflineExpenses: batch uploaded \(items.count) to ledger \(ledgerServerId)")
-                dataManager.markExpensesSynced(mappings)
-            } catch {
-                print("[ExpenseStore] syncOfflineExpenses error for ledger \(ledgerServerId): \(error)")
             }
         }
     }
