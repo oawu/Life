@@ -8,7 +8,7 @@
 
 Life 是一個 Web 應用服務（含 App 生態）。
 
-**主要功能：** （待定義）
+**主要功能：** 記帳與財務管理（個人 / 群組拆帳）
 
 ### 文件導讀
 
@@ -144,7 +144,7 @@ life/
 
 | Model | 表名 | 說明 |
 |-------|------|------|
-| User | User | 用戶（支援 Google / Apple 登入） |
+| User | User | 用戶（Apple Sign In 登入） |
 | Ledger | Ledger | 帳本（personal / group） |
 | LedgerMember | LedgerMember | 帳本成員（owner / member） |
 | Category | Category | 分類（key 識別系統預設，categoryId=null 為「其他」） |

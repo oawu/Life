@@ -117,7 +117,7 @@ LifeApp
 LifeWatch（獨立 App）
 └─ WatchAddExpenseView（主表單，捲動 List）
    ├─ 帳本 → push WatchLedgerPickerView
-   ├─ 金額 → push WatchAmountInputView
+   ├─ 金額 → push WatchCalculatorView
    ├─ 分類 → push WatchCategoryPickerView
    ├─ 付款人 → push WatchPayerPickerView（群組帳本）
    ├─ 備註 → WatchMemoInputView（內嵌於主表單）

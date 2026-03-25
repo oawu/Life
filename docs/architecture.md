@@ -101,7 +101,7 @@
 | latitude | decimal(10,7), nullable | 緯度 |
 | longitude | decimal(10,7), nullable | 經度 |
 | address | varchar(200), nullable | 地址 |
-| isSettled | enum(yes, no) DEFAULT 'no' | 是否已結算 |
+| isSettled | tinyint unsigned DEFAULT 0 | 是否已結算（0=否, 1=是） |
 | paidByUserId | int unsigned, nullable | 付款人 User ID |
 | createdByUserId | int unsigned | 建立者 User ID |
 | updateAt | datetime | 更新時間 |
@@ -120,7 +120,7 @@
 | frequencyType | varchar(10) | 頻率類型 daily/weekly/monthly/yearly |
 | frequencyValue | json, nullable | 頻率參數 |
 | memo | varchar(200) DEFAULT '' | 備註 |
-| isEnabled | enum(yes, no) DEFAULT 'yes' | 是否啟用 |
+| isEnabled | tinyint unsigned DEFAULT 1 | 是否啟用（0=否, 1=是） |
 | latitude | decimal(10,7), nullable | 緯度 |
 | longitude | decimal(10,7), nullable | 經度 |
 | address | varchar(200), nullable | 地址 |

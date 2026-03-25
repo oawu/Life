@@ -547,17 +547,24 @@
 
 ### 畫面
 
-**WatchAddExpenseView** — Watch App 主畫面（捲動 List）
+**WatchAddExpenseView** — Watch App 主畫面（Wizard 逐步導航）
 
-| 列 | 說明 |
-|----|------|
-| 帳本 | 顯示目前帳本名稱，點擊 → push WatchLedgerPickerView |
-| 金額 | 顯示目前金額，點擊 → push WatchAmountInputView |
-| 分類 | 顯示目前分類（圖示 + 名稱），點擊 → push WatchCategoryPickerView |
-| 付款人 | 群組帳本才顯示，點擊 → push WatchPayerPickerView |
-| 備註 | WatchMemoInputView 內嵌於主表單（系統鍵盤 / 語音輸入） |
-| 時間 | 顯示目前選擇時間，點擊 → push WatchDatePickerView |
-| 儲存按鈕 | 驗證後儲存 |
+NavigationStack(path:) + WatchStep enum 控制流程，根帳本列表選擇後依序 push 各步驟：
+
+```
+帳本 → 計算機 → 分類 → [付款人] → 備註或儲存 → [備註] → 時間或儲存 → [時間] → 儲存
+```
+
+| 步驟 | View | 說明 |
+|------|------|------|
+| 帳本選擇 | WatchLedgerPickerView | Root 頁面，顯示帳本列表 |
+| 計算機 | WatchCalculatorView | 3×4 數字鍵盤（純整數），幣別 badge |
+| 分類選擇 | WatchCategoryPickerView | 分類列表（圖示 + 名稱） |
+| 付款人 | WatchPayerPickerView | 群組帳本限定，成員列表選擇 |
+| 備註或儲存 | WatchMemoOrSaveView | 二選一：儲存 / 輸入備註 |
+| 備註輸入 | WatchMemoInputView | 文字輸入 + 下一步 |
+| 時間或儲存 | WatchTimeOrSaveView | 二選一：儲存 / 調整時間 |
+| 時間選擇 | WatchDatePickerView | 日期與時間選擇 → 儲存 |
 
 ### WatchConnectivity 同步機制
 

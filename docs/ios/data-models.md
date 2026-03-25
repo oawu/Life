@@ -408,5 +408,5 @@ Repository 層，管理 SwiftData 的所有讀寫操作。
 - **無 localId**：移除所有 localId 欄位，Server ID 為唯一識別
 - **categoryId nullable**：`null` 代表「其他」分類，移除 isSystemDefault
 - **Category.key**：系統預設分類帶 key（如 `breakfast`），用於 Guest 登入轉換時配對
-- **isSettled enum**：`yes`/`no` 而非 tinyint
-- **isEnabled enum**：`yes`/`no` 而非 tinyint
+- **isSettled tinyint**：`0`/`1`，Model const `IS_SETTLED_NO = 0` / `IS_SETTLED_YES = 1`
+- **isEnabled tinyint**：`0`/`1`，Model const `IS_ENABLED_NO = 0` / `IS_ENABLED_YES = 1`
