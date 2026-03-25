@@ -64,6 +64,12 @@ struct DebugOverlayView: View {
                         .transition(.scale(scale: 0.5, anchor: .bottomTrailing).combined(with: .opacity))
                 } else {
                     collapsedButton
+                        .onTapGesture {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            withAnimation(.spring(duration: 0.3)) {
+                                isExpanded = true
+                            }
+                        }
                         .transition(.scale(scale: 0.5).combined(with: .opacity))
                 }
             }
@@ -72,25 +78,13 @@ struct DebugOverlayView: View {
                 y: position.y + dragOffset.height
             )
             .gesture(
-                DragGesture(minimumDistance: 0)
+                DragGesture(minimumDistance: 5)
                     .updating($dragOffset) { value, state, _ in
-                        if abs(value.translation.width) > 5 || abs(value.translation.height) > 5 {
-                            state = value.translation
-                        }
+                        state = value.translation
                     }
                     .onEnded { value in
-                        let distance = abs(value.translation.width) + abs(value.translation.height)
-                        if distance > 5 {
-                            // 拖曳：更新位置
-                            position.x += value.translation.width
-                            position.y += value.translation.height
-                        } else {
-                            // 點擊：切換展開
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            withAnimation(.spring(duration: 0.3)) {
-                                isExpanded.toggle()
-                            }
-                        }
+                        position.x += value.translation.width
+                        position.y += value.translation.height
                     }
             )
         }
