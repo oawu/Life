@@ -1,5 +1,7 @@
 # App Log 驗證清單
 
+> 已整併至 [e2e-tests.md](e2e-tests.md)，本文件保留作為情境索引參考。
+
 在 Xcode console 觀察結構化 log，驗證關鍵路徑的執行順序。
 
 ---
