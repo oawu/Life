@@ -74,6 +74,13 @@ struct LifeApp: App {
             .onChange(of: expenseStore.ledgers) {
                 phoneSessionManager?.syncLedgersToWatch()
             }
+            #if DEBUG
+            .overlay {
+                DebugOverlayView()
+                    .environment(authManager)
+                    .environment(networkMonitor)
+            }
+            #endif
         }
     }
 

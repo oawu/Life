@@ -10,6 +10,11 @@ final class NetworkMonitor {
 
     var isOnline: Bool = true
 
+    #if DEBUG
+    /// 上次 NWPathMonitor 回報的真實網路狀態
+    private(set) var realOnline: Bool = true
+    #endif
+
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "NetworkMonitor")
 
@@ -17,11 +22,12 @@ final class NetworkMonitor {
         monitor.pathUpdateHandler = { [weak self] path in
             DispatchQueue.main.async {
                 guard let self else { return }
-                let realOnline = path.status == .satisfied
+                let pathOnline = path.status == .satisfied
                 #if DEBUG
-                self.isOnline = self.forceOffline ? false : realOnline
+                self.realOnline = pathOnline
+                self.isOnline = self.forceOffline ? false : pathOnline
                 #else
-                self.isOnline = realOnline
+                self.isOnline = pathOnline
                 #endif
             }
         }
