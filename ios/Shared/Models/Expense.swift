@@ -12,4 +12,5 @@ struct Expense: Identifiable, Equatable {
     var address: String?
     var ledgerId: String
     var paidBy: LedgerMember?
+    var isSynced: Bool = true
 }

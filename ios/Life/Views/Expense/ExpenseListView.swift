@@ -433,6 +433,13 @@ private struct ExpenseRow: View {
 
             Spacer()
 
+            // 未同步標示
+            if !expense.isSynced {
+                Image(systemName: "icloud.slash")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
+            }
+
             // 金額
             HStack(spacing: 4) {
                 Text(currency.name)

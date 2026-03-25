@@ -77,7 +77,8 @@ final class CachedExpense {
             longitude: longitude,
             address: address,
             ledgerId: ledgerId,
-            paidBy: paidBy
+            paidBy: paidBy,
+            isSynced: isSynced
         )
     }
 }
