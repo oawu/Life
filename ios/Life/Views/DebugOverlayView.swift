@@ -7,7 +7,6 @@ struct DebugOverlayView: View {
     @State private var isExpanded = false
     @State private var position = CGPoint(x: UIScreen.main.bounds.width - 40, y: UIScreen.main.bounds.height - 160)
     @GestureState private var dragOffset = CGSize.zero
-    @State private var isDragging = false
     @State private var forceAPIFailure = false
 
     // MARK: - Computed
@@ -72,18 +71,26 @@ struct DebugOverlayView: View {
                 x: position.x + dragOffset.width,
                 y: position.y + dragOffset.height
             )
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 5)
+            .gesture(
+                DragGesture(minimumDistance: 0)
                     .updating($dragOffset) { value, state, _ in
-                        state = value.translation
-                    }
-                    .onChanged { _ in
-                        isDragging = true
+                        if abs(value.translation.width) > 5 || abs(value.translation.height) > 5 {
+                            state = value.translation
+                        }
                     }
                     .onEnded { value in
-                        position.x += value.translation.width
-                        position.y += value.translation.height
-                        isDragging = false
+                        let distance = abs(value.translation.width) + abs(value.translation.height)
+                        if distance > 5 {
+                            // 拖曳：更新位置
+                            position.x += value.translation.width
+                            position.y += value.translation.height
+                        } else {
+                            // 點擊：切換展開
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            withAnimation(.spring(duration: 0.3)) {
+                                isExpanded.toggle()
+                            }
+                        }
                     }
             )
         }
@@ -93,23 +100,15 @@ struct DebugOverlayView: View {
     // MARK: - Collapsed
 
     private var collapsedButton: some View {
-        Button {
-            if isDragging { return }
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            withAnimation(.spring(duration: 0.3)) {
-                isExpanded = true
+        Circle()
+            .fill(.ultraThinMaterial)
+            .frame(width: 44, height: 44)
+            .overlay {
+                Circle()
+                    .fill(statusColor.opacity(0.8))
+                    .frame(width: 16, height: 16)
             }
-        } label: {
-            Circle()
-                .fill(.ultraThinMaterial)
-                .frame(width: 44, height: 44)
-                .overlay {
-                    Circle()
-                        .fill(statusColor.opacity(0.8))
-                        .frame(width: 16, height: 16)
-                }
-                .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
-        }
+            .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
     }
 
     // MARK: - Expanded
