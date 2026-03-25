@@ -159,6 +159,25 @@ session_set_defaults:
 
 ---
 
+## 網路情境測試（Debug Flags）
+
+透過 `#if DEBUG` flags 模擬網路異常，不需要關閉真實網路或 Docker。
+
+| Flag | 位置 | 效果 |
+|------|------|------|
+| `NetworkMonitor.forceOffline` | NetworkMonitor.swift | `isOnline` 強制為 `false`，模擬**沒有網路** |
+| `APIClient.shared.forceAPIFailure` | APIClient.swift | 所有 API 呼叫拋 `NSURLErrorCannotConnectToHost`，模擬**網路通但 API 不可達** |
+
+### 測試情境對應
+
+| 情境 | forceOffline | forceAPIFailure | App 行為 |
+|------|-------------|----------------|----------|
+| 正常 | false | false | API call → 成功 |
+| 沒網路（EXP-008） | true | - | `isOnline=false` → 直接本地儲存 |
+| API 不通（EXP-013） | false | true | `isOnline=true` → API 失敗 → fallback 離線 |
+
+---
+
 ## 疑難排解
 
 ### MCP 啟動失敗

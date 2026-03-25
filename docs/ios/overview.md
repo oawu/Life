@@ -129,7 +129,7 @@ LifeWatch（獨立 App）
 | 物件 | 類型 | 說明 |
 |------|------|------|
 | `AuthManager` | @Observable | 全 App（.environment 注入），AuthState 狀態機、JWT、用戶資訊 |
-| `NetworkMonitor` | @Observable | 全 App（.environment 注入），NWPathMonitor 偵測網路狀態 |
+| `NetworkMonitor` | @Observable | 全 App（.environment 注入），NWPathMonitor 偵測網路狀態。DEBUG 模式提供 `forceOffline` flag 模擬離線 |
 | `DataManager` | @MainActor @Observable | SwiftData CRUD，Guest 開銷 + Cached* 快取管理 |
 | `ExpenseStore` | @MainActor @Observable | 帳本、分類、開銷的業務邏輯（API 呼叫 + DataManager 快取） |
 | `CalculatorEngine` | @Observable | AddExpenseView 計算機運算邏輯 |
