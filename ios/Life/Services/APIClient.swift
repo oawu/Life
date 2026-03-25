@@ -26,6 +26,11 @@ enum APIError: LocalizedError {
 final class APIClient {
     static let shared = APIClient()
 
+    #if DEBUG
+    /// 強制所有 API 呼叫失敗（模擬網路通但 API 不可達）
+    var forceAPIFailure: Bool = false
+    #endif
+
     private let session: URLSession
 
     private init() {
@@ -40,6 +45,15 @@ final class APIClient {
         body: [String: Any]? = nil,
         responseType: T.Type
     ) async throws -> T {
+        #if DEBUG
+        if forceAPIFailure {
+            throw APIError.networkError(
+                NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotConnectToHost,
+                        userInfo: [NSLocalizedDescriptionKey: "[DEBUG] Forced API failure"])
+            )
+        }
+        #endif
+
         let urlString = AppEnvironment.apiBaseURL + path
 
         guard let url = URL(string: urlString) else {
