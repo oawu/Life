@@ -94,7 +94,8 @@
 ```
 LifeApp
 ├─ .launching → LaunchView（品牌 Logo，背景檢查 token）
-└─ .guest / .authenticated → HomeView
+├─ .guest / .authenticated → HomeView
+└─ overlay: DebugOverlayView（#if DEBUG，浮動 debug 面板）
 
 HomeView (TabView)
 │
@@ -140,6 +141,16 @@ HomeView (TabView)
 - `push` = NavigationStack push（有返回按鈕）
 - `sheet` = Modal sheet（有取消/關閉按鈕）
 - `嵌入` = 直接嵌在父 View 中（非導航）
+
+---
+
+## Debug（`#if DEBUG` 限定）
+
+| View | 檔案 | 說明 |
+|------|------|------|
+| DebugOverlayView | Views/DebugOverlayView.swift | 浮動 debug 面板，可拖曳圓形按鈕（狀態燈：綠/黃/紅），展開可切換「模擬斷網」「API 故障」，顯示 Auth 狀態 |
+
+掛載於 `LifeApp.swift` 根層 `.overlay`，Release build 不包含。
 
 ---
 
