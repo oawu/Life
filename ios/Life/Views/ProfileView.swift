@@ -134,6 +134,7 @@ struct ProfileView: View {
                     Text("登出")
                         .frame(maxWidth: .infinity)
                 }
+                .accessibilityIdentifier(AID.btnSignOut)
             }
         }
         .navigationTitle("個人")

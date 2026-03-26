@@ -63,6 +63,7 @@ struct ExpenseDetailView: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     showEditSheet = true
                 }
+                .accessibilityIdentifier(AID.btnEditExpense)
             }
         }
         .confirmationDialog("確定要刪除此開銷嗎？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
@@ -207,6 +208,7 @@ struct ExpenseDetailView: View {
                 Text("刪除開銷")
                     .frame(maxWidth: .infinity)
             }
+            .accessibilityIdentifier(AID.btnDeleteExpense)
         }
     }
 }

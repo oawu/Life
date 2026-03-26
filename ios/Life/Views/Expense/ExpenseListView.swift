@@ -143,6 +143,7 @@ struct ExpenseListView: View {
                 } label: {
                     Image(systemName: "chart.line.uptrend.xyaxis")
                 }
+                .accessibilityIdentifier(AID.btnChart)
             }
         }
         .confirmationDialog("確定已經結算清楚了嗎？", isPresented: $showSettleConfirmation, titleVisibility: .visible) {
@@ -274,6 +275,7 @@ struct ExpenseListView: View {
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity)
                 }
+                .accessibilityIdentifier(AID.btnSettle)
             } header: {
                 Text("拆帳")
             }
@@ -295,6 +297,7 @@ struct ExpenseListView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
+        .accessibilityIdentifier(AID.expenseListEmpty)
     }
 
     private var expenseList: some View {
@@ -313,6 +316,7 @@ struct ExpenseListView: View {
                             } label: {
                                 ExpenseRow(expense: expense, showPayer: store.isGroupLedger, currency: currency)
                             }
+                            .accessibilityIdentifier(AID.expenseCell(expense.id.uuidString))
                         }
                         .onDelete { offsets in
                             deleteExpenses(from: expenses, at: offsets)

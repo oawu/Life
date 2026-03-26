@@ -67,6 +67,7 @@ struct GuestProfileView: View {
                         .cornerRadius(12)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(AID.btnDevLogin)
                     #endif
                 }
             }

@@ -41,6 +41,7 @@ struct CalculatorView: View {
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
+                .accessibilityIdentifier(AID.calcDisplay)
             }
             .padding(.top, 4)
 
@@ -128,6 +129,7 @@ private struct CalculatorButton: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(ScaleButtonStyle())
+        .accessibilityIdentifier(AID.calcBtn(key.label))
     }
 
     private var foregroundColor: Color {

@@ -103,6 +103,7 @@ struct DebugOverlayView: View {
                     .frame(width: 16, height: 16)
             }
             .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+            .accessibilityIdentifier(AID.debugIndicator)
     }
 
     // MARK: - Expanded
@@ -140,6 +141,7 @@ struct DebugOverlayView: View {
             }
             .toggleStyle(.switch)
             .controlSize(.mini)
+            .accessibilityIdentifier(AID.toggleOffline)
             .onChange(of: network.forceOffline) {
                 if network.forceOffline {
                     network.isOnline = false
@@ -156,6 +158,7 @@ struct DebugOverlayView: View {
             }
             .toggleStyle(.switch)
             .controlSize(.mini)
+            .accessibilityIdentifier(AID.toggleAPIFailure)
             .onChange(of: forceAPIFailure) {
                 APIClient.shared.forceAPIFailure = forceAPIFailure
             }

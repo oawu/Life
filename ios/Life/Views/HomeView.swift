@@ -12,6 +12,7 @@ struct HomeView: View {
             .tabItem {
                 Label("記帳", systemImage: "yensign.circle.fill")
             }
+            .accessibilityIdentifier(AID.tabExpense)
 
             NavigationStack {
                 if authManager.isAuthenticated {
@@ -23,6 +24,7 @@ struct HomeView: View {
             .tabItem {
                 Label("個人", systemImage: "person.fill")
             }
+            .accessibilityIdentifier(AID.tabProfile)
         }
     }
 }

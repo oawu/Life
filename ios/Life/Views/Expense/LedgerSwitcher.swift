@@ -31,6 +31,7 @@ struct LedgerSwitcher: View {
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier(AID.ledgerPill(ledger.id))
                     }
                 }
                 .padding(.leading, 16)
@@ -54,6 +55,7 @@ struct LedgerSwitcher: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 12)
+                .accessibilityIdentifier(AID.btnLedgerSettings)
             }
         }
     }

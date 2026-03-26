@@ -65,6 +65,7 @@ struct ExpenseEditView: View {
                     Button("取消") {
                         dismiss()
                     }
+                    .accessibilityIdentifier(AID.btnCancelEdit)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("儲存") {
@@ -73,6 +74,7 @@ struct ExpenseEditView: View {
                     }
                     .fontWeight(.semibold)
                     .disabled(!canSave)
+                    .accessibilityIdentifier(AID.btnSaveEdit)
                 }
             }
             .onAppear {

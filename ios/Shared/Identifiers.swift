@@ -1,0 +1,51 @@
+import Foundation
+
+enum AID {
+    // MARK: - Tab Bar
+    static let tabExpense = "tab_expense"
+    static let tabProfile = "tab_profile"
+
+    // MARK: - AddExpenseView
+    static let btnExpenseList = "btn_expense_list"
+    static let btnSaveExpense = "btn_save_expense"
+    static let overlaySaveConfirm = "overlay_save_confirm"
+
+    // MARK: - Calculator
+    static func calcBtn(_ key: String) -> String { "calc_\(key)" }
+    static let calcDisplay = "calc_display"
+
+    // MARK: - Category
+    static func categoryCell(_ key: String) -> String { "cat_\(key)" }
+    static let btnCategorySettings = "btn_cat_settings"
+
+    // MARK: - Ledger
+    static func ledgerPill(_ id: String) -> String { "ledger_\(id)" }
+    static let btnLedgerSettings = "btn_ledger_settings"
+
+    // MARK: - Payer
+    static func payerChip(_ id: String) -> String { "payer_\(id)" }
+
+    // MARK: - Debug Panel
+    static let debugIndicator = "debug_indicator"
+    static let toggleOffline = "toggle_offline"
+    static let toggleAPIFailure = "toggle_api_failure"
+
+    // MARK: - Profile / Auth
+    static let btnDevLogin = "btn_dev_login"
+    static let btnSignOut = "btn_sign_out"
+    static let fieldDevEmail = "field_dev_email"
+    static let btnDevLoginSubmit = "btn_dev_login_submit"
+    static let btnAppleSignIn = "btn_apple_sign_in"
+
+    // MARK: - Expense List / Detail / Edit
+    static func expenseCell(_ id: String) -> String { "expense_\(id)" }
+    static let btnEditExpense = "btn_edit_expense"
+    static let btnDeleteExpense = "btn_delete_expense"
+    static let btnSaveEdit = "btn_save_edit"
+    static let btnCancelEdit = "btn_cancel_edit"
+    static let btnSettle = "btn_settle"
+    static let btnChart = "btn_chart"
+
+    // MARK: - Expense List
+    static let expenseListEmpty = "expense_list_empty"
+}

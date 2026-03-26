@@ -25,6 +25,7 @@ struct CategoryGridView: View {
                     onSettingsTapped()
                 }
                     .font(.subheadline)
+                    .accessibilityIdentifier(AID.btnCategorySettings)
             }
             .padding(.horizontal, 20)
 
@@ -75,6 +76,9 @@ struct CategoryGridView: View {
                         }
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityIdentifier(AID.categoryCell(category.key ?? category.id))
             }
 
             ForEach(0..<placeholderCount, id: \.self) { _ in

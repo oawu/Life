@@ -68,6 +68,7 @@ struct AddExpenseView: View {
                 } label: {
                     Text("明細")
                 }
+                .accessibilityIdentifier(AID.btnExpenseList)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("儲存") {
@@ -76,6 +77,7 @@ struct AddExpenseView: View {
                 }
                 .fontWeight(.semibold)
                 .disabled(!canSave)
+                .accessibilityIdentifier(AID.btnSaveExpense)
             }
         }
         .navigationDestination(isPresented: $showExpenseList) {
@@ -116,6 +118,7 @@ struct AddExpenseView: View {
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .transition(.scale.combined(with: .opacity))
+                .accessibilityIdentifier(AID.overlaySaveConfirm)
             }
         }
         .alert("備份提醒", isPresented: $showBackupAlert) {

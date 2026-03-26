@@ -85,6 +85,20 @@ targets:
           PRODUCT_NAME: Life Watch
           INFOPLIST_KEY_WKCompanionAppBundleIdentifier: tw.iwi.life
 
+  LifeUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - LifeUITests
+      - path: Shared/Identifiers.swift
+        buildPhase: sources
+    dependencies:
+      - target: Life
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG LOCAL
+
   LifeWidget:
     type: app-extension
     platform: iOS
@@ -119,8 +133,14 @@ schemes:
         Life: all
         LifeWatch: all
         LifeWidget: all
+        LifeUITests:
+          - testing
     run:
       config: Local
+    test:
+      config: Local
+      targets:
+        - LifeUITests
     profile:
       config: Local
     analyze:

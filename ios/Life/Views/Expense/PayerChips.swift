@@ -42,6 +42,7 @@ struct PayerChips: View {
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier(AID.payerChip(member.id))
                     }
                 }
                 .padding(.horizontal, 16)
