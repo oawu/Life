@@ -19,6 +19,13 @@ final class NetworkMonitor {
     private let queue = DispatchQueue(label: "NetworkMonitor")
 
     init() {
+        #if DEBUG
+        if CommandLine.arguments.contains("--force-offline") {
+            forceOffline = true
+            isOnline = false
+        }
+        #endif
+
         monitor.pathUpdateHandler = { [weak self] path in
             DispatchQueue.main.async {
                 guard let self else { return }

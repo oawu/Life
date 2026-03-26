@@ -21,6 +21,14 @@ struct LifeApp: App {
         }
 
         let manager = DataManager(modelContainer: container)
+
+        #if DEBUG
+        if CommandLine.arguments.contains("--reset-local-data") {
+            manager.clearAllGuestData()
+            manager.clearAllCache()
+        }
+        #endif
+
         let auth = AuthManager()
         let network = NetworkMonitor()
         _authManager = State(initialValue: auth)
