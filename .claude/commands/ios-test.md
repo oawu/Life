@@ -6,19 +6,24 @@
 
 ## 使用方式
 
-- `/ios-test` — 執行所有測試
+- `/ios-test` — 執行所有測試（顯示模擬器）
 - `/ios-test SimpleTests` — 執行 SimpleTests 中的所有測試
 - `/ios-test SimpleTests/test_addExpense_3x5` — 執行單一測試
+- `/ios-test AuthTests -bg` — 背景執行（不開啟模擬器視窗）
+
+尾部加 `-bg` 表示背景模式，不加則預設顯示模擬器。
 
 ## 步驟
 
 ### 1. 解析參數
 
-解析 `$ARGUMENTS`，判斷測試範圍：
+解析 `$ARGUMENTS`，判斷測試範圍與模式：
 
-- **空白**：執行所有 LifeUITests
-- **`ClassName`**：執行該 class 的所有測試
-- **`ClassName/test_functionName`**：執行單一測試
+- 若參數尾部包含 `-bg`，移除該 flag 並標記為**背景模式**（不開啟模擬器視窗）
+- 剩餘參數判斷測試範圍：
+  - **空白**：執行所有 LifeUITests
+  - **`ClassName`**：執行該 class 的所有測試
+  - **`ClassName/test_functionName`**：執行單一測試
 
 ### 2. 驗證測試存在
 
@@ -29,13 +34,15 @@
 - 若不存在，列出所有可用的測試 class 和 function，讓使用者選擇
 - 不要繼續執行測試
 
-### 3. 開啟模擬器
+### 3. 開啟模擬器（非背景模式）
 
-執行測試前先開啟 Simulator.app，讓使用者可以看到測試過程：
+若非背景模式，執行測試前先開啟 Simulator.app，讓使用者可以看到測試過程：
 
 ```
 open -a Simulator
 ```
+
+若為背景模式（`-bg`），跳過此步驟。
 
 ### 4. 產生 xcodebuild 指令
 
