@@ -41,7 +41,7 @@ enum TestHelper {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let body: [String: Any] = ["isDev": true, "email": email]
+        let body: [String: Any] = ["isDev": true, "identityToken": email]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         let expectation = XCTestExpectation(description: "Dev login")
@@ -98,5 +98,122 @@ enum TestHelper {
         }
 
         return firstRow
+    }
+
+    /// 查詢 MySQL 回傳所有 rows
+    static func queryMySQLAll(_ sql: String) -> [[String: Any]] {
+        let url = URL(string: "\(apiBaseURL)/api/test/query")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = ["sql": sql]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        let expectation = XCTestExpectation(description: "Query MySQL All")
+        var rows: [[String: Any]] = []
+
+        let task = URLSession.shared.dataTask(with: request) { data, _, _ in
+            if let data = data,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let result = json["rows"] as? [[String: Any]] {
+                rows = result
+            }
+            expectation.fulfill()
+        }
+        task.resume()
+
+        let result = XCTWaiter.wait(for: [expectation], timeout: 10)
+        if result != .completed {
+            XCTFail("MySQL 查詢逾時")
+        }
+
+        return rows
+    }
+
+    /// 通用 API POST，回傳 JSON dict
+    static func apiPost(path: String, token: String? = nil, body: [String: Any]? = nil) -> [String: Any]? {
+        let url = URL(string: "\(apiBaseURL)\(path)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        if let body = body {
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        }
+
+        let expectation = XCTestExpectation(description: "API POST \(path)")
+        var responseJSON: [String: Any]?
+
+        let task = URLSession.shared.dataTask(with: request) { data, _, _ in
+            if let data = data,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                responseJSON = json
+            }
+            expectation.fulfill()
+        }
+        task.resume()
+
+        let result = XCTWaiter.wait(for: [expectation], timeout: 10)
+        if result != .completed {
+            XCTFail("API POST \(path) 逾時")
+        }
+
+        return responseJSON
+    }
+
+    /// 通用 API GET，回傳 JSON dict
+    static func apiGet(path: String, token: String? = nil) -> [String: Any]? {
+        let url = URL(string: "\(apiBaseURL)\(path)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let expectation = XCTestExpectation(description: "API GET \(path)")
+        var responseJSON: [String: Any]?
+
+        let task = URLSession.shared.dataTask(with: request) { data, _, _ in
+            if let data = data,
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                responseJSON = json
+            }
+            expectation.fulfill()
+        }
+        task.resume()
+
+        let result = XCTWaiter.wait(for: [expectation], timeout: 10)
+        if result != .completed {
+            XCTFail("API GET \(path) 逾時")
+        }
+
+        return responseJSON
+    }
+
+    /// 建立群組帳本（POST /api/ledgers），回傳帳本 JSON
+    static func createGroupLedger(token: String, name: String) -> [String: Any]? {
+        let response = apiPost(
+            path: "/api/ledgers",
+            token: token,
+            body: ["name": name]
+        )
+        return response?["ledger"] as? [String: Any]
+    }
+
+    /// 透過 API 新增開銷（POST /api/ledgers/:id/expenses/batch）
+    static func addExpenseViaAPI(token: String, ledgerId: Int, amount: Int) -> [String: Any]? {
+        let response = apiPost(
+            path: "/api/ledgers/\(ledgerId)/expenses/batch",
+            token: token,
+            body: ["expenses": [["amount": amount]]]
+        )
+        if let expenses = response?["expenses"] as? [[String: Any]] {
+            return expenses.first
+        }
+        return nil
     }
 }
