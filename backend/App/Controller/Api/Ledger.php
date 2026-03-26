@@ -155,7 +155,7 @@ class Ledger {
       error('帳本尚未結清，無法退出', 400);
     }
 
-    $shouldDeleteLedger = transaction(static function () use ($member, $id, $user) {
+    $result = transaction(static function () use ($member, $id, $user) {
       // 刪除該成員的固定開銷
       $recurringExpenses = RecurringExpense::where('ledgerId', $id)->where('paidByUserId', $user->id)->all();
       foreach ($recurringExpenses as $recurring) {
@@ -166,10 +166,10 @@ class Ledger {
 
       // 在 transaction 內檢查殘餘成員（避免 race condition）
       $remainingMembers = (int)LedgerMember::where('ledgerId', $id)->count();
-      return $remainingMembers == 0;
+      return ['shouldDelete' => $remainingMembers === 0];
     });
 
-    if ($shouldDeleteLedger) {
+    if ($result['shouldDelete']) {
       self::_deleteLedgerCompletely($id);
     }
 
