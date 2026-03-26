@@ -7,6 +7,8 @@
 | 方法 | 路由 | Controller | 說明 |
 |------|------|-----------|------|
 | POST | auth/apple/callback | Api\Auth@appleCallback | Apple Sign In 回調 |
+| POST | test/reset           | Api\Test@reset         | 測試 DB 重置（僅限非 Production） |
+| POST | test/query           | Api\Test@query         | 測試 DB 查詢（僅限非 Production，只允許 SELECT） |
 
 ## 需認證路由
 

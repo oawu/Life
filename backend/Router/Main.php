@@ -19,6 +19,14 @@ Group::create('api')
       ->controller(\App\Controller\Api\Auth::class . '@appleCallback')
       ->title('Apple Sign In 回調');
 
+    Router::post('test/reset')
+      ->controller(\App\Controller\Api\Test::class . '@reset')
+      ->title('測試 DB 重置（僅限非 Production）');
+
+    Router::post('test/query')
+      ->controller(\App\Controller\Api\Test::class . '@query')
+      ->title('測試 DB 查詢（僅限非 Production，只允許 SELECT）');
+
     // 需認證路由
     Group::create()
       ->middleware(\App\Middleware\Auth::class)
