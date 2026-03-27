@@ -14,6 +14,7 @@ struct LedgerSettingsView: View {
     @State private var errorMessage = ""
     @State private var selectedLedgerId: String?
     @State private var showPersonalRecurring = false
+    @State private var showAddOptions = false
 
     private var personalLedger: Ledger? {
         store.ledgers.first { $0.type == .personal }
@@ -34,6 +35,7 @@ struct LedgerSettingsView: View {
                     } label: {
                         ledgerRow(ledger)
                     }
+                    .accessibilityIdentifier(AID.ledgerSettingsPersonal)
 
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -79,6 +81,7 @@ struct LedgerSettingsView: View {
                                     .foregroundStyle(Color(.tertiaryLabel))
                             }
                         }
+                        .accessibilityIdentifier(AID.ledgerSettingsGroup(ledger.id))
                     }
                     .onMove { source, destination in
                         store.moveLedger(from: source, to: destination)
@@ -88,31 +91,9 @@ struct LedgerSettingsView: View {
 
             // 新增帳本
             Section {
-                Menu {
-                    Button {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        if authManager.isGuest {
-                            showLoginPrompt = true
-                        } else if !networkMonitor.isOnline {
-                            showOfflineAlert = true
-                        } else {
-                            showCreateSheet = true
-                        }
-                    } label: {
-                        Label("自己建立", systemImage: "plus")
-                    }
-                    Button {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        if authManager.isGuest {
-                            showLoginPrompt = true
-                        } else if !networkMonitor.isOnline {
-                            showOfflineAlert = true
-                        } else {
-                            showJoinSheet = true
-                        }
-                    } label: {
-                        Label("掃碼加入", systemImage: "qrcode.viewfinder")
-                    }
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    showAddOptions = true
                 } label: {
                     HStack {
                         Spacer()
@@ -125,6 +106,7 @@ struct LedgerSettingsView: View {
                     .foregroundStyle(Color(.secondaryLabel))
                     .padding(.vertical, 4)
                 }
+                .accessibilityIdentifier(AID.menuAddLedger)
                 .listRowBackground(
                     RoundedRectangle(cornerRadius: 10)
                         .strokeBorder(
@@ -187,6 +169,28 @@ struct LedgerSettingsView: View {
             Button("好") {}
         } message: {
             Text(errorMessage)
+        }
+        .confirmationDialog("新增帳本", isPresented: $showAddOptions) {
+            Button("自己建立") {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                if authManager.isGuest {
+                    showLoginPrompt = true
+                } else if !networkMonitor.isOnline {
+                    showOfflineAlert = true
+                } else {
+                    showCreateSheet = true
+                }
+            }
+            Button("掃碼加入") {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                if authManager.isGuest {
+                    showLoginPrompt = true
+                } else if !networkMonitor.isOnline {
+                    showOfflineAlert = true
+                } else {
+                    showJoinSheet = true
+                }
+            }
         }
     }
 

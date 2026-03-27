@@ -109,6 +109,7 @@ struct JoinLedgerView: View {
                     .font(.system(size: 20, weight: .medium, design: .monospaced))
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
+                    .accessibilityIdentifier(AID.fieldInviteCode)
                     .onChange(of: inputCode) { _, newValue in
                         if newValue.count > 6 {
                             inputCode = String(newValue.prefix(6))
@@ -127,6 +128,7 @@ struct JoinLedgerView: View {
                         .background(canJoin ? Color.blue : Color.gray)
                         .clipShape(Capsule())
                 }
+                .accessibilityIdentifier(AID.btnJoinSubmit)
                 .disabled(!canJoin)
             }
             .padding(12)
@@ -167,6 +169,7 @@ struct JoinLedgerView: View {
                         .background(Color.blue)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .accessibilityIdentifier(AID.btnJoinDone)
                 .padding(.top, 12)
             }
             .padding(32)

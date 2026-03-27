@@ -52,6 +52,7 @@ struct LedgerEditView: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         save()
                     }
+                    .accessibilityIdentifier(AID.btnLedgerSave)
                     .disabled(!canSave)
                 }
             }
@@ -66,6 +67,7 @@ struct LedgerEditView: View {
     private var nameCard: some View {
         cardSection(title: "名稱") {
             TextField("帳本名稱", text: $name)
+                .accessibilityIdentifier(AID.fieldLedgerName)
                 .padding(12)
         }
     }

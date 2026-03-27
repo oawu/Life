@@ -55,6 +55,7 @@ struct LedgerDetailView: View {
                                 showEditSheet = true
                             }
                         }
+                        .accessibilityIdentifier(AID.btnLedgerEdit)
                     }
                 }
                 .alert("無法連線", isPresented: $showOfflineAlert) {
@@ -231,6 +232,7 @@ struct LedgerDetailView: View {
                 .frame(maxWidth: .infinity)
                 .padding(12)
         }
+        .accessibilityIdentifier(AID.btnLedgerLeave)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .alert("帳本尚未結清", isPresented: $showUnsettledAlert) {

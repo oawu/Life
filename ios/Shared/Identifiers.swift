@@ -59,4 +59,22 @@ enum AID {
     static let btnCatDelete = "btn_cat_delete"
     static func catIconGroup(_ name: String) -> String { "cat_icon_group_\(name)" }
     static func catIcon(_ icon: String) -> String { "cat_icon_\(icon)" }
+
+    // MARK: - Ledger Settings
+    static let menuAddLedger = "menu_add_ledger"
+    static let ledgerSettingsPersonal = "ledger_settings_personal"
+    static func ledgerSettingsGroup(_ id: String) -> String { "ledger_settings_group_\(id)" }
+
+    // MARK: - Ledger Edit
+    static let fieldLedgerName = "field_ledger_name"
+    static let btnLedgerSave = "btn_ledger_save"
+
+    // MARK: - Join Ledger
+    static let fieldInviteCode = "field_invite_code"
+    static let btnJoinSubmit = "btn_join_submit"
+    static let btnJoinDone = "btn_join_done"
+
+    // MARK: - Ledger Detail
+    static let btnLedgerEdit = "btn_ledger_edit"
+    static let btnLedgerLeave = "btn_ledger_leave"
 }
