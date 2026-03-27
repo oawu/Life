@@ -183,7 +183,7 @@ final class LedgerTests: XCTestCase {
         // MySQL 驗證：LedgerMember 應有 2 筆
         guard let ledgerRow = TestHelper.queryMySQL(
             "SELECT id FROM Ledger WHERE name = 'A的帳本' LIMIT 1"
-        ), let ledgerId = ledgerRow["id"] as? String else {
+        ), let ledgerId = ledgerRow["id"] as? Int else {
             XCTFail("無法取得帳本 ID")
             return
         }

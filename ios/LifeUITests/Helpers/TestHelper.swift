@@ -204,16 +204,49 @@ enum TestHelper {
         return response?["ledger"] as? [String: Any]
     }
 
+    /// 加入帳本（POST /api/ledgers/join）
+    static func joinLedgerViaAPI(token: String, inviteCode: String) -> [String: Any]? {
+        let response = apiPost(
+            path: "/api/ledgers/join",
+            token: token,
+            body: ["inviteCode": inviteCode]
+        )
+        return response?["ledger"] as? [String: Any]
+    }
+
+    /// 結清帳本（POST /api/ledgers/:id/settle）
+    static func settleViaAPI(token: String, ledgerId: Int, transfers: [[String: Any]] = []) -> [String: Any]? {
+        let response = apiPost(
+            path: "/api/ledgers/\(ledgerId)/settle",
+            token: token,
+            body: ["transfers": transfers]
+        )
+        return response?["settlement"] as? [String: Any]
+    }
+
     /// 透過 API 新增開銷（POST /api/ledgers/:id/expenses/batch）
-    static func addExpenseViaAPI(token: String, ledgerId: Int, amount: Int) -> [String: Any]? {
+    static func addExpenseViaAPI(token: String, ledgerId: Int, amount: Int, paidByUserId: Int? = nil) -> [String: Any]? {
+        var expenseData: [String: Any] = ["amount": amount]
+        if let paidByUserId = paidByUserId {
+            expenseData["paidByUserId"] = paidByUserId
+        }
         let response = apiPost(
             path: "/api/ledgers/\(ledgerId)/expenses/batch",
             token: token,
-            body: ["expenses": [["amount": amount]]]
+            body: ["expenses": [expenseData]]
         )
         if let expenses = response?["expenses"] as? [[String: Any]] {
             return expenses.first
         }
         return nil
+    }
+
+    /// 查詢用戶 ID（透過 MySQL）
+    static func getUserId(email: String) -> Int? {
+        let row = queryMySQL("SELECT id FROM User WHERE email = '\(email)' LIMIT 1")
+        if let idStr = row?["id"] as? String, let id = Int(idStr) {
+            return id
+        }
+        return row?["id"] as? Int
     }
 }
