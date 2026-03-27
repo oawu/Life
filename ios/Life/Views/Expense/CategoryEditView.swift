@@ -82,6 +82,7 @@ struct CategoryEditView: View {
                         onSave(category)
                         dismiss()
                     }
+                    .accessibilityIdentifier(AID.btnCatSave)
                     .disabled(!canSave)
                 }
             }
@@ -128,6 +129,7 @@ struct CategoryEditView: View {
     private var nameCard: some View {
         cardSection(title: "名稱") {
             TextField("分類名稱", text: $name)
+                .accessibilityIdentifier(AID.fieldCatName)
                 .padding(12)
         }
     }
@@ -244,6 +246,7 @@ struct CategoryEditView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(isSelected ? selectedColor.opacity(0.1) : Color(.tertiarySystemFill))
                 )
+                .accessibilityIdentifier(AID.catIconGroup(group.name))
                 .onTapGesture {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -293,6 +296,7 @@ struct CategoryEditView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(selectedIcon == icon ? selectedColor : .clear, lineWidth: 2)
                         )
+                        .accessibilityIdentifier(AID.catIcon(icon))
                         .onTapGesture {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             selectedIcon = icon
@@ -317,6 +321,7 @@ struct CategoryEditView: View {
                 .frame(maxWidth: .infinity)
                 .padding(12)
         }
+        .accessibilityIdentifier(AID.btnCatDelete)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .confirmationDialog("確定要刪除此分類嗎？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {

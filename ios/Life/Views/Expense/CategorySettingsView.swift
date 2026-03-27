@@ -38,6 +38,7 @@ struct CategorySettingsView: View {
                     } label: {
                         categoryRow(category)
                     }
+                    .accessibilityIdentifier(AID.catSettingsRow(category.id))
                 }
                 .onMove(perform: authManager.isGuest || !networkMonitor.isOnline ? nil : { source, destination in
                     Task {
@@ -72,6 +73,7 @@ struct CategorySettingsView: View {
                     } label: {
                         Image(systemName: "rectangle.stack.badge.plus")
                     }
+                    .accessibilityIdentifier(AID.btnAddCategory)
                 }
             }
         }

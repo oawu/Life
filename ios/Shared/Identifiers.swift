@@ -48,4 +48,15 @@ enum AID {
 
     // MARK: - Expense List
     static let expenseListEmpty = "expense_list_empty"
+
+    // MARK: - Category Settings
+    static let btnAddCategory = "btn_add_category"
+    static func catSettingsRow(_ id: String) -> String { "cat_settings_\(id)" }
+
+    // MARK: - Category Edit
+    static let fieldCatName = "field_cat_name"
+    static let btnCatSave = "btn_cat_save"
+    static let btnCatDelete = "btn_cat_delete"
+    static func catIconGroup(_ name: String) -> String { "cat_icon_group_\(name)" }
+    static func catIcon(_ icon: String) -> String { "cat_icon_\(icon)" }
 }
