@@ -195,11 +195,15 @@ enum TestHelper {
     }
 
     /// 建立群組帳本（POST /api/ledgers），回傳帳本 JSON
-    static func createGroupLedger(token: String, name: String) -> [String: Any]? {
+    static func createGroupLedger(token: String, name: String, currency: String? = nil) -> [String: Any]? {
+        var body: [String: Any] = ["name": name]
+        if let currency = currency {
+            body["currency"] = currency
+        }
         let response = apiPost(
             path: "/api/ledgers",
             token: token,
-            body: ["name": name]
+            body: body
         )
         return response?["ledger"] as? [String: Any]
     }
