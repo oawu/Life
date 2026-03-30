@@ -37,6 +37,12 @@ enum AID {
     static let btnDevLoginSubmit = "btn_dev_login_submit"
     static let btnAppleSignIn = "btn_apple_sign_in"
 
+    // MARK: - Profile
+    static let btnEditName = "btn_edit_name"
+    static let fieldProfileName = "field_profile_name"
+    static let btnEditCarrier = "btn_edit_carrier"
+    static let fieldCarrierNumber = "field_carrier_number"
+
     // MARK: - Expense List / Detail / Edit
     static func expenseCell(_ id: String) -> String { "expense_\(id)" }
     static let btnEditExpense = "btn_edit_expense"

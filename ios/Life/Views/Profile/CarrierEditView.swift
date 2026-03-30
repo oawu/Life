@@ -71,6 +71,7 @@ struct CarrierEditView: View {
                     .autocorrectionDisabled()
                     .focused($fieldFocused)
                     .disabled(!networkMonitor.isOnline)
+                    .accessibilityIdentifier(AID.fieldCarrierNumber)
             } header: {
                 Text("請輸入個人載具號碼")
             } footer: {

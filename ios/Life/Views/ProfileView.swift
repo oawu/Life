@@ -80,6 +80,7 @@ struct ProfileView: View {
                                     saveName()
                                 }
                             }
+                            .accessibilityIdentifier(AID.fieldProfileName)
                     } else {
                         Button {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -96,6 +97,7 @@ struct ProfileView: View {
                             Text(authManager.currentUser?.name.isEmpty == false ? authManager.currentUser!.name : "未命名")
                                 .foregroundStyle(.primary)
                         }
+                        .accessibilityIdentifier(AID.btnEditName)
                     }
                 }
                 .animation(.easeInOut(duration: 0.2), value: isEditingName)
@@ -123,6 +125,7 @@ struct ProfileView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .accessibilityIdentifier(AID.btnEditCarrier)
             }
 
             // 登出
