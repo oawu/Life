@@ -80,7 +80,8 @@ life/
   - 離線：僅允許新增開銷（isSynced = false），其餘操作阻擋 → alert「無法連線」
   - `GET /api/state`：App 回前景 / 網路恢復時重建全部快取
   - `POST /api/auth/init`：登入時上傳 Guest 開銷（帶 categoryKey）→ 回傳完整 state
-  - 登入轉換：initAfterLogin() → 清除 GuestExpense → rebuildFromState
+  - 登入同步提示：有 Guest 開銷時彈 alert 詢問「上傳」或「捨棄」，無開銷時靜默初始化
+  - 登入轉換：initAfterLogin() → 清除 GuestExpense → rebuildFromState → 自動切到記帳 Tab
   - 登出轉換：clearAllCache() → reload()
   - @MainActor 隔離：DataManager + ExpenseStore 標記 @MainActor 確保 SwiftData 線程安全
 - iOS 記帳功能（計算機、分類選擇、位置記錄、帳本切換）

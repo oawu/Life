@@ -67,12 +67,17 @@
 1. Apple Sign In 成功 → authState = .authenticated
 2. LifeApp 觸發 handleAuthStateChange()
 3. 取得所有 GuestExpense
-4. expenseStore.initAfterLogin(guestExpenses:)
+4. 無 GuestExpense → 靜默 initAfterLogin(guestExpenses: [])
+5. 有 GuestExpense → 彈 alert「同步資料」
+   a. 「上傳」→ initAfterLogin(guestExpenses: expenses)
+   b. 「捨棄」→ initAfterLogin(guestExpenses: [])（清除本地資料）
+6. initAfterLogin 流程：
    a. POST /api/auth/init（上傳 guest 開銷帶 categoryKey）
    b. Server 建立/找到個人帳本 + 預設分類 + 建立開銷
    c. 回傳完整 state → DataManager.rebuildFromState()
    d. 清除 GuestExpense
-5. PhoneSessionManager 同步 isLoggedIn = true 到 Watch
+7. HomeView 自動切到記帳 Tab
+8. PhoneSessionManager 同步 isLoggedIn = true 到 Watch
 ```
 
 **登出（Authenticated → Guest）**：
