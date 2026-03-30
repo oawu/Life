@@ -11,6 +11,7 @@ final class LoginExpenseTests: XCTestCase {
         TestHelper.resetBackend()
 
         app = XCUIApplication()
+        app.launchArguments = ["--reset-local-data"]
         app.launch()
     }
 
@@ -39,13 +40,17 @@ final class LoginExpenseTests: XCTestCase {
         XCTAssertTrue(loginBtn.exists, "登入按鈕未出現")
         loginBtn.tap()
 
-        // 等待登入完成 → 回到記帳頁
-        let expenseTab = app.tabBars.buttons["記帳"]
-        XCTAssertTrue(expenseTab.waitForExistence(timeout: 10), "登入後記帳 Tab 未出現")
-        expenseTab.tap()
+        // 處理同步資料 alert（有 guest 開銷時出現）
+        let syncAlert = app.alerts["同步資料"]
+        if syncAlert.waitForExistence(timeout: 3) {
+            syncAlert.buttons["上傳"].tap()
+        }
 
-        // 等待登入後首頁載入完成
-        sleep(2)
+        // 登入後自動跳到記帳 Tab，確保在記帳頁
+        let expenseTab = app.tabBars.buttons["記帳"]
+        XCTAssertTrue(expenseTab.waitForExistence(timeout: 10), "記帳 Tab 未出現")
+        expenseTab.tap()
+        sleep(3)
 
         // === 2. 輸入金額 250 ===
         app.buttons["calc_2"].tap()

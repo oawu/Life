@@ -34,9 +34,17 @@ final class AuthTests: XCTestCase {
 
         app.alerts["開發者登入"].buttons["登入"].tap()
 
-        // 等待登入完成：ProfileView 顯示登出按鈕
+        // 處理同步資料 alert（有 guest 開銷時出現）
+        let syncAlert = app.alerts["同步資料"]
+        if syncAlert.waitForExistence(timeout: 3) {
+            syncAlert.buttons["上傳"].tap()
+        }
+
+        // 登入後自動跳到記帳 Tab，切回個人 Tab 驗證登入完成
+        app.tabBars.buttons["個人"].tap()
+
         let signOutBtn = app.buttons["btn_sign_out"]
-        XCTAssertTrue(signOutBtn.waitForExistence(timeout: 10), "登入未完成")
+        XCTAssertTrue(signOutBtn.waitForExistence(timeout: 15), "登入未完成")
     }
 
     /// 透過 UI 執行登出
