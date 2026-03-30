@@ -8,6 +8,8 @@ struct LifeApp: App {
     @State private var dataManager: DataManager
     @State private var expenseStore: ExpenseStore
     @State private var phoneSessionManager: PhoneSessionManager?
+    @State private var pendingGuestExpenses: [GuestExpense] = []
+    @State private var showSyncAlert = false
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -82,6 +84,26 @@ struct LifeApp: App {
             .onChange(of: expenseStore.ledgers) {
                 phoneSessionManager?.syncLedgersToWatch()
             }
+            .alert("同步資料", isPresented: $showSyncAlert) {
+                Button("捨棄") {
+                    pendingGuestExpenses = []
+                    Task {
+                        await expenseStore.initAfterLogin(guestExpenses: [])
+                        phoneSessionManager?.syncLedgersToWatch()
+                    }
+                }
+                Button("上傳") {
+                    let expenses = pendingGuestExpenses
+                    pendingGuestExpenses = []
+                    Task {
+                        await expenseStore.initAfterLogin(guestExpenses: expenses)
+                        phoneSessionManager?.syncLedgersToWatch()
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+            } message: {
+                Text("你有 \(pendingGuestExpenses.count) 筆記帳紀錄尚未同步，要上傳到雲端嗎？")
+            }
             #if DEBUG
             .overlay {
                 DebugOverlayView()
@@ -109,9 +131,15 @@ struct LifeApp: App {
             phoneSessionManager?.isLoggedIn = true
             let guestExpenses = dataManager.fetchGuestExpenses()
             print("[LifeApp] initAfterLogin started, guestExpenses=\(guestExpenses.count)")
-            Task {
-                await expenseStore.initAfterLogin(guestExpenses: guestExpenses)
-                phoneSessionManager?.syncLedgersToWatch()
+
+            if guestExpenses.isEmpty {
+                Task {
+                    await expenseStore.initAfterLogin(guestExpenses: [])
+                    phoneSessionManager?.syncLedgersToWatch()
+                }
+            } else {
+                pendingGuestExpenses = guestExpenses
+                showSyncAlert = true
             }
 
         default:
