@@ -30,6 +30,20 @@ php Maple.php create -I alter User drop avatar    → 003-alter User drop avatar
 002-alter User add token.php
 ```
 
+## 資料表必備欄位
+
+所有資料表都必須包含 `id`、`updateAt`、`createAt` 三個欄位，無例外：
+
+```php
+// Migration create 範例
+$this->create('User', function ($table) {
+  $table->column('id')->int()->unsigned()->ai()->comment('PK');
+  // ... 其他欄位 ...
+  $table->column('updateAt')->datetime()->default('CURRENT_TIMESTAMP')->on('update', 'CURRENT_TIMESTAMP')->comment('更新時間');
+  $table->column('createAt')->datetime()->default('CURRENT_TIMESTAMP')->comment('建立時間');
+});
+```
+
 ## 框架：Maple 9
 
 - MVC 架構
