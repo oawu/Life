@@ -136,6 +136,13 @@ life/
   - Expense CRUD（POST/PUT/DELETE + batch）
   - RecurringExpense CRUD（POST/PUT/DELETE）
   - Ledger API（建立/查看/更新/加入/退出/成員/結算）
+- Worker 常駐服務（Node.js + pm2）
+  - CLI 執行：後端透過 HTTP 觸發 PHP CLI 命令（debounce / queue / timeout）
+  - Job 調度引擎：並發控制、超時保護、重試機制（暫無任務類型）
+  - 排程服務：每分鐘檢查，同日同任務防重複（暫無排程任務）
+  - HTTP 端點：`/worker/notify`、`/worker/status`、`/exec/cli`
+  - PHP Lib（Worker）：`Worker::cli()->maple('route')->exec()` / `fire()`
+  - Config 共享：讀取 `backend/Config/Worker.php`（port 8700）
 
 ---
 
@@ -158,6 +165,7 @@ life/
 | Lib | 說明 |
 |-----|------|
 | Jwt | JWT 簽發與驗證（HS256 / RS256） |
+| Worker | Worker 服務通訊（status / notify / cli） |
 
 ---
 
@@ -214,7 +222,9 @@ docs/
 │   ├── integration-tests.md     # 模擬器 + 後端整合測試
 │   └── mcp-setup.md             # iOS 模擬器 MCP 自動化設定
 └── worker/
-    └── overview.md              # Worker 架構總覽
+    ├── overview.md              # Worker 架構總覽、觸發流程、Config 共享
+    ├── modules.md               # 逐模組 API 說明
+    └── setup.md                 # 安裝、部署、pm2 管理
 
 .claude/rules/                   # 編碼規範（自動載入）
 ├── coding-conventions.md        # 通用規範（if 大括號、命名、early return）
