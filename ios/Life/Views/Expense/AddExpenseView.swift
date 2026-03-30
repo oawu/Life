@@ -31,11 +31,13 @@ struct AddExpenseView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 32) {
-                LedgerSwitcher(
-                    ledgers: store.ledgers,
-                    selectedId: $store.currentLedgerId,
-                    onSettingsTapped: { showLedgerSettings = true }
-                )
+                if authManager.isAuthenticated {
+                    LedgerSwitcher(
+                        ledgers: store.ledgers,
+                        selectedId: $store.currentLedgerId,
+                        onSettingsTapped: { showLedgerSettings = true }
+                    )
+                }
 
                 CalculatorView(engine: engine, currency: store.currentCurrency)
 

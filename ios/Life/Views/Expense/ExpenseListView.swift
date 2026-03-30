@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ExpenseListView: View {
     @Bindable var store: ExpenseStore
+    @Environment(AuthManager.self) private var authManager
     @State private var showSettleConfirmation = false
     @State private var showSettledToast = false
     @State private var showSettleError = false
@@ -112,20 +113,22 @@ struct ExpenseListView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 0) {
-                LedgerSwitcher(
-                    ledgers: store.ledgers,
-                    selectedId: $store.currentLedgerId
-                )
-                .padding(.vertical, 8)
-                Divider()
-                    .opacity(headerOpacity)
-            }
-            .background {
-                Rectangle()
-                    .fill(.bar)
-                    .opacity(headerOpacity)
-                    .ignoresSafeArea(edges: .top)
+            if authManager.isAuthenticated {
+                VStack(spacing: 0) {
+                    LedgerSwitcher(
+                        ledgers: store.ledgers,
+                        selectedId: $store.currentLedgerId
+                    )
+                    .padding(.vertical, 8)
+                    Divider()
+                        .opacity(headerOpacity)
+                }
+                .background {
+                    Rectangle()
+                        .fill(.bar)
+                        .opacity(headerOpacity)
+                        .ignoresSafeArea(edges: .top)
+                }
             }
         }
         .toolbarBackground(.hidden, for: .navigationBar)
