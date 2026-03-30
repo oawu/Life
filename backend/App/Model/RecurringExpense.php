@@ -9,4 +9,9 @@ class RecurringExpense extends \Orm\Model {
     self::IS_ENABLED_NO  => '停用',
     self::IS_ENABLED_YES => '啟用',
   ];
+
+  const FREQUENCY_TYPE_DAILY   = 'daily';
+  const FREQUENCY_TYPE_WEEKLY  = 'weekly';
+  const FREQUENCY_TYPE_MONTHLY = 'monthly';
+  const FREQUENCY_TYPE_YEARLY  = 'yearly';
 }
