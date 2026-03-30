@@ -63,6 +63,7 @@ struct LedgerSettingsView: View {
                         }
                         .padding(.vertical, 2)
                     }
+                    .accessibilityIdentifier(AID.btnPersonalRecurring)
                 }
             }
 

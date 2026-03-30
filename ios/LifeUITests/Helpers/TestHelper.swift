@@ -241,6 +241,36 @@ enum TestHelper {
         return nil
     }
 
+    /// 透過 API 新增固定開銷
+    static func addRecurringExpenseViaAPI(
+        token: String,
+        ledgerId: Int,
+        amount: Int,
+        frequencyType: String = "daily",
+        frequencyValue: Any? = nil,
+        memo: String = "",
+        categoryId: Int? = nil
+    ) -> [String: Any]? {
+        var body: [String: Any] = [
+            "amount": amount,
+            "frequencyType": frequencyType,
+            "memo": memo,
+            "isEnabled": true
+        ]
+        if let frequencyValue = frequencyValue {
+            body["frequencyValue"] = frequencyValue
+        }
+        if let categoryId = categoryId {
+            body["categoryId"] = categoryId
+        }
+        let response = apiPost(
+            path: "/api/ledgers/\(ledgerId)/recurring-expenses",
+            token: token,
+            body: body
+        )
+        return response?["recurringExpense"] as? [String: Any]
+    }
+
     /// 查詢用戶 ID（透過 MySQL）
     static func getUserId(email: String) -> Int? {
         let row = queryMySQL("SELECT id FROM User WHERE email = '\(email)' LIMIT 1")

@@ -128,6 +128,7 @@ struct RecurringExpenseEditView: View {
                     }
                     .fontWeight(.semibold)
                     .disabled(!canSave)
+                    .accessibilityIdentifier(AID.btnSaveRecurring)
                 }
             }
             .onAppear {
@@ -209,6 +210,7 @@ struct RecurringExpenseEditView: View {
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(AID.freqType(type.aidKey))
                 }
             }
             .padding(.horizontal, 16)
@@ -342,6 +344,7 @@ struct RecurringExpenseEditView: View {
                 .frame(maxWidth: .infinity)
                 .padding(12)
         }
+        .accessibilityIdentifier(AID.btnDeleteRecurring)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 12)
@@ -469,6 +472,15 @@ private enum FrequencyType: CaseIterable {
         case .weekly:  return "每週"
         case .monthly: return "每月"
         case .yearly:  return "每年"
+        }
+    }
+
+    var aidKey: String {
+        switch self {
+        case .daily:   return "daily"
+        case .weekly:  return "weekly"
+        case .monthly: return "monthly"
+        case .yearly:  return "yearly"
         }
     }
 }

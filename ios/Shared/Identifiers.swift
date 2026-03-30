@@ -77,4 +77,12 @@ enum AID {
     // MARK: - Ledger Detail
     static let btnLedgerEdit = "btn_ledger_edit"
     static let btnLedgerLeave = "btn_ledger_leave"
+
+    // MARK: - Recurring Expense
+    static let btnPersonalRecurring = "btn_personal_recurring"
+    static let btnAddRecurring = "btn_add_recurring"
+    static let btnSaveRecurring = "btn_save_recurring"
+    static let btnDeleteRecurring = "btn_delete_recurring"
+    static func recurringRow(_ id: String) -> String { "recurring_\(id)" }
+    static func freqType(_ type: String) -> String { "freq_\(type)" }
 }

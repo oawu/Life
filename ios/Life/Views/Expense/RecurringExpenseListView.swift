@@ -35,6 +35,7 @@ struct RecurringExpenseListView: View {
                             } label: {
                                 recurringRow(recurring)
                             }
+                            .accessibilityIdentifier(AID.recurringRow(String(recurring.serverId ?? 0)))
                         }
                         .onDelete { indexSet in
                             for index in indexSet {
@@ -64,6 +65,7 @@ struct RecurringExpenseListView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityIdentifier(AID.btnAddRecurring)
             }
         }
         .sheet(isPresented: $showAddSheet) {
