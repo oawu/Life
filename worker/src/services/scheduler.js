@@ -12,8 +12,9 @@ const time = require('../core/time')
 
 const _log = logger.create('main')
 
-// 排程任務定義（暫無排程任務）
+// 排程任務定義
 const TASKS = [
+  { name: 'recurring-trigger', hour: 0, minute: 5, cmd: 'php Public/index.php recurring/trigger' },
 ]
 
 // 已執行記錄（key: 'name:YYYY-MM-DD'）
