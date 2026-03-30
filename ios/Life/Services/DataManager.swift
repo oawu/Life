@@ -199,6 +199,7 @@ final class DataManager {
                     longitude: recurring.longitude,
                     address: recurring.address,
                     paidByUserServerId: recurring.paidByUserId,
+                    lastTriggeredDate: recurring.lastTriggeredDate,
                     ledger: ledger
                 )
                 context.insert(cachedRecurring)
@@ -455,6 +456,7 @@ final class DataManager {
             longitude: state.longitude,
             address: state.address,
             paidByUserServerId: state.paidByUserId,
+            lastTriggeredDate: state.lastTriggeredDate,
             ledger: ledger
         )
         context.insert(recurring)
@@ -475,6 +477,7 @@ final class DataManager {
         recurring.longitude = state.longitude
         recurring.address = state.address
         recurring.paidByUserServerId = state.paidByUserId
+        recurring.lastTriggeredDate = state.lastTriggeredDate
         save()
     }
 

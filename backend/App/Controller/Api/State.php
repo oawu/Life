@@ -143,17 +143,20 @@ class State {
 
   private static function _formatRecurringExpense(RecurringExpense $recurring): array {
     return [
-      'id'             => $recurring->id,
-      'categoryId'     => $recurring->categoryId !== null ? (int)$recurring->categoryId : null,
-      'amount'         => (int)$recurring->amount,
-      'frequencyType'  => $recurring->frequencyType,
-      'frequencyValue' => $recurring->frequencyValue,
-      'memo'           => $recurring->memo,
-      'isEnabled'      => $recurring->isEnabled == RecurringExpense::IS_ENABLED_YES,
-      'latitude'       => $recurring->latitude !== null ? (float)$recurring->latitude : null,
-      'longitude'      => $recurring->longitude !== null ? (float)$recurring->longitude : null,
-      'address'        => $recurring->address,
-      'paidByUserId'   => $recurring->paidByUserId !== null ? (int)$recurring->paidByUserId : null,
+      'id'                => $recurring->id,
+      'categoryId'        => $recurring->categoryId !== null ? (int)$recurring->categoryId : null,
+      'amount'            => (int)$recurring->amount,
+      'frequencyType'     => $recurring->frequencyType,
+      'frequencyValue'    => $recurring->frequencyValue,
+      'memo'              => $recurring->memo,
+      'isEnabled'         => $recurring->isEnabled == RecurringExpense::IS_ENABLED_YES,
+      'latitude'          => $recurring->latitude !== null ? (float)$recurring->latitude : null,
+      'longitude'         => $recurring->longitude !== null ? (float)$recurring->longitude : null,
+      'address'           => $recurring->address,
+      'paidByUserId'      => $recurring->paidByUserId !== null ? (int)$recurring->paidByUserId : null,
+      'lastTriggeredDate' => $recurring->lastTriggeredDate->getValue()
+        ? $recurring->lastTriggeredDate->format('Y-m-d')
+        : null,
     ];
   }
 }

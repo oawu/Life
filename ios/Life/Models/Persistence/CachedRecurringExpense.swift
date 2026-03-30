@@ -15,6 +15,7 @@ final class CachedRecurringExpense {
     var address: String?
     var paidByUserServerId: Int?
     var createdByUserServerId: Int?
+    var lastTriggeredDate: String?
 
     var ledger: CachedLedger?
 
@@ -31,6 +32,7 @@ final class CachedRecurringExpense {
         address: String? = nil,
         paidByUserServerId: Int? = nil,
         createdByUserServerId: Int? = nil,
+        lastTriggeredDate: String? = nil,
         ledger: CachedLedger? = nil
     ) {
         self.serverId = serverId
@@ -45,6 +47,7 @@ final class CachedRecurringExpense {
         self.address = address
         self.paidByUserServerId = paidByUserServerId
         self.createdByUserServerId = createdByUserServerId
+        self.lastTriggeredDate = lastTriggeredDate
         self.ledger = ledger
     }
 
@@ -111,7 +114,8 @@ final class CachedRecurringExpense {
             longitude: longitude,
             address: address,
             ledgerId: ledgerId,
-            paidBy: paidBy
+            paidBy: paidBy,
+            lastTriggeredDate: lastTriggeredDate
         )
     }
 }

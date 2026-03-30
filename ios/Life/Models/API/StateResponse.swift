@@ -79,6 +79,7 @@ struct StateRecurringExpense: Decodable {
     let longitude: Double?
     let address: String?
     let paidByUserId: Int?
+    let lastTriggeredDate: String?
 }
 
 struct StateSettlement: Decodable {

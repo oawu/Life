@@ -62,4 +62,5 @@ struct RecurringExpense: Identifiable, Equatable {
     var address: String?
     var ledgerId: String
     var paidBy: LedgerMember?
+    var lastTriggeredDate: String?
 }
