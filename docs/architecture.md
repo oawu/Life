@@ -67,6 +67,8 @@
 | role | enum(owner, member) | 角色 |
 | sort | int unsigned | 排序 |
 | joinAt | datetime | 加入時間 |
+| updateAt | datetime | 更新時間 |
+| createAt | datetime | 新增時間 |
 
 - UNIQUE(ledgerId, userId)
 
@@ -140,6 +142,7 @@
 | settledByUserId | int unsigned | 結算者 User ID |
 | transfers | json, nullable | 轉帳明細快照 |
 | currencySymbol | varchar(5) | 幣別符號 |
+| updateAt | datetime | 更新時間 |
 | createAt | datetime | 新增時間 |
 
 - INDEX(ledgerId)
