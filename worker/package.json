@@ -1,0 +1,14 @@
+{
+  "name": "life-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "mysql2": "^3.11.0",
+    "p-limit": "^3.1.0"
+  }
+}

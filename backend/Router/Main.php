@@ -3,6 +3,9 @@
 use \Router\Group;
 
 Router::cli()->func(fn() => 'Hello!');
+
+// Worker CLI 路由
+Router::cli('test/worker')->controller(\App\Controller\Cli\Worker::class . '@test')->title('測試 Worker');
 Router::get()->controller(\App\Controller\Main::class);
 Router::post()->controller(\App\Controller\Main::class);
 
