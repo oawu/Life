@@ -187,15 +187,20 @@ scheduler.start()   // 啟動
 scheduler.stop()    // 停止
 ```
 
-任務定義格式（目前為空，未來擴充）：
+任務定義：
 
 ```javascript
 const TASKS = [
-  { name: 'task-name', hour: 1, minute: 0, cmd: 'php Public/index.php some/route' },
+  { name: 'recurring-trigger', hour: 0, minute: 5, cmd: 'php Public/index.php recurring/trigger' },
 ]
 ```
 
+| 任務名稱 | 時間 | 說明 |
+|----------|------|------|
+| `recurring-trigger` | 每日 00:05 | 檢查啟用的固定開銷，依頻率自動建立 Expense |
+
 - 每個任務每天只執行一次（防重複）
+- DB `lastTriggeredDate` 欄位雙重防護，確保不重複觸發
 - 執行結果記錄到 main logger
 
 ---

@@ -68,6 +68,16 @@
 
 ---
 
+## CLI 路由
+
+| 路由 | Controller | 說明 |
+|------|-----------|------|
+| (default) | — | Hello! |
+| test/worker | Cli\Worker@test | 測試 Worker 連線 |
+| recurring/trigger | Cli\Recurring@trigger | 觸發固定開銷排程（Worker 每日 00:05 呼叫） |
+
+---
+
 ## State API 詳細說明
 
 ### GET /api/state
@@ -123,7 +133,7 @@
       "longitude": null,
       "address": null,
       "paidByUserId": null,
-      "createdByUserId": 1
+      "lastTriggeredDate": "2026-03-31"
     }],
     "settlements": [{
       "id": 1,

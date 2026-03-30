@@ -129,7 +129,7 @@ life/
   - 已登入離線攔截：群組帳本操作、分類管理、個人資料 → alert「無法連線」
   - 離線新增開銷不攔截（isSynced = false），網路恢復時自動批次同步
 - 後端 CRUD API（完整路由表見 docs/backend/api-routes.md）
-  - 資料表：User, Ledger, LedgerMember, Category, Expense, RecurringExpense, Settlement（Migration 001-007）
+  - 資料表：User, Ledger, LedgerMember, Category, Expense, RecurringExpense, Settlement（Migration 001-010）
   - State API（GET /api/state）：回傳用戶所有帳本完整資料
   - Auth Init API（POST /api/auth/init）：登入初始化 + 上傳 Guest 開銷
   - Category CRUD（POST/PUT/DELETE + sort）
@@ -139,7 +139,8 @@ life/
 - Worker 常駐服務（Node.js + pm2）
   - CLI 執行：後端透過 HTTP 觸發 PHP CLI 命令（debounce / queue / timeout）
   - Job 調度引擎：並發控制、超時保護、重試機制（暫無任務類型）
-  - 排程服務：每分鐘檢查，同日同任務防重複（暫無排程任務）
+  - 排程服務：每分鐘檢查，同日同任務防重複
+    - `recurring-trigger`（每日 00:05）：檢查啟用的 RecurringExpense，依頻率自動建立 Expense
   - HTTP 端點：`/worker/notify`、`/worker/status`、`/exec/cli`
   - PHP Lib（Worker）：`Worker::cli()->maple('route')->exec()` / `fire()`
   - Config 共享：讀取 `backend/Config/Worker.php`（port 8700）
