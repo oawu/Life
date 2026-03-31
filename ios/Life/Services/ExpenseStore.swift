@@ -650,6 +650,8 @@ final class ExpenseStore {
             return
         }
 
+        await syncOfflineExpenses()
+
         print("[ExpenseStore] refreshState: start")
         do {
             let response = try await APIClient.shared.get(

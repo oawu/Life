@@ -185,6 +185,9 @@ struct ExpenseChartView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .refreshable {
+            await store.refreshState()
+        }
         .scrollHeaderOpacity($scrollOpacity)
     }
 
@@ -277,20 +280,24 @@ struct ExpenseChartView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 12) {
+                Spacer()
+                    .frame(height: 200)
 
-            Image(systemName: "tray")
-                .font(.system(size: 36))
-                .foregroundStyle(.quaternary)
+                Image(systemName: "tray")
+                    .font(.system(size: 36))
+                    .foregroundStyle(.quaternary)
 
-            Text("尚無開銷紀錄")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Spacer()
+                Text("尚無開銷紀錄")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
+        .refreshable {
+            await store.refreshState()
+        }
     }
 }
 

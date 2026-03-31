@@ -48,6 +48,9 @@ struct ExpenseDetailView: View {
                     deleteSection
                 }
                 .listStyle(.insetGrouped)
+                .refreshable {
+                    await store.refreshState()
+                }
                 .sheet(isPresented: $showEditSheet) {
                     if let ledger {
                         ExpenseEditView(expense: expense, ledger: ledger, store: store)

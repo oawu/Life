@@ -173,6 +173,9 @@
 - 時間線包含：開銷群組 + 結算紀錄（群組帳本）
 - 每行：分類圖示（帶顏色）+ 分類名 + 備註 + 付款人（群組帳本）+ 金額
 - 左滑刪除（async throws）
+- 下拉重新整理（`.refreshable`）：先同步離線開銷（`syncOfflineExpenses`），再拉取最新狀態（`refreshState`）
+  - 空狀態同樣支援（ScrollView 包裹）
+  - Guest / 離線時 spinner 瞬間消失（guard return）
 
 ### 流程
 
@@ -182,6 +185,7 @@
 3. 按日期分組排列
 4. 群組帳本：頂部顯示拆帳區塊（見 Section 8）
 5. 左滑某筆 → 刪除（API → 更新快取）
+6. 下拉 → syncOfflineExpenses → refreshState → 資料刷新
 ```
 
 ---
@@ -199,6 +203,7 @@
 | 詳細資訊 | 時間、備註（有才顯示）、付款人（群組才顯示） |
 | 位置 | Map + Marker（180pt）、地址、「在 Apple 地圖中開啟」按鈕 |
 | 刪除按鈕 | 紅色 + confirmationDialog 確認 |
+| 下拉重新整理 | `.refreshable` → syncOfflineExpenses + refreshState |
 | Toolbar | 右上角「編輯」→ sheet ExpenseEditView |
 
 **ExpenseEditView** — Sheet 呈現
@@ -237,6 +242,7 @@
 | 列表 | 每個月/年為獨立 Section，所有期間一次列出 |
 | 環形圖 | Swift Charts SectorMark（innerRadius 0.618），中心顯示總金額 |
 | 分類明細 | 圖示色塊 + 名稱 + 進度條 + 金額 + 百分比，按金額降序 |
+| 下拉重新整理 | `.refreshable` → syncOfflineExpenses + refreshState（空狀態同樣支援）|
 
 ---
 
