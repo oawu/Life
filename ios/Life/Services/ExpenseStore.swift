@@ -10,14 +10,21 @@ enum OfflineError: LocalizedError {
     }
 }
 
+struct SyncProgress {
+    var completed: Int
+    var total: Int
+}
+
 @MainActor
 @Observable
 final class ExpenseStore {
     private let dataManager: DataManager
     private let authManager: AuthManager
     private let networkMonitor: NetworkMonitor
+    private let syncProgressThreshold = 50
     var ledgers: [Ledger] = []
     var currentLedgerId: String = ""
+    var syncProgress: SyncProgress?
 
     var categories: [ExpenseCategory] {
         currentLedger?.categories ?? []
@@ -652,18 +659,131 @@ final class ExpenseStore {
 
         await syncOfflineExpenses()
 
-        print("[ExpenseStore] refreshState: start")
+        do {
+            try await refreshViaManifest()
+        } catch {
+            print("[ExpenseStore] refreshViaManifest failed, falling back to full state: \(error)")
+            await refreshViaFullState()
+        }
+    }
+
+    private func refreshViaManifest() async throws {
+        print("[ExpenseStore] refreshViaManifest: start")
+        let response = try await APIClient.shared.get(
+            path: "/api/manifest",
+            responseType: ManifestResponse.self
+        )
+
+        let serverLedgerIds = Set(response.ledgers.keys.compactMap { Int($0) })
+        let localLedgerIds = dataManager.fetchCachedLedgerServerIds()
+
+        // 刪除本地有但 Server 沒有的帳本
+        for localId in localLedgerIds {
+            if !serverLedgerIds.contains(localId) {
+                print("[ExpenseStore] manifest: deleting removed ledger \(localId)")
+                dataManager.deleteCachedLedger(serverId: localId)
+            }
+        }
+
+        // 新增 Server 有但本地沒有的帳本
+        var nextSortOrder = localLedgerIds.count
+        for (idStr, manifest) in response.ledgers {
+            guard let serverId = Int(idStr) else {
+                continue
+            }
+            if !localLedgerIds.contains(serverId) {
+                print("[ExpenseStore] manifest: creating new ledger \(serverId)")
+                dataManager.createLedgerFromManifest(serverId: serverId, from: manifest, sortOrder: nextSortOrder)
+                nextSortOrder += 1
+            }
+        }
+
+        // 逐帳本比對 version → 重建 metadata
+        for (idStr, manifest) in response.ledgers {
+            guard let serverId = Int(idStr) else {
+                continue
+            }
+            let localVersion = dataManager.getLedgerVersion(serverId: serverId)
+            if localVersion != manifest.version {
+                print("[ExpenseStore] manifest: rebuilding metadata for ledger \(serverId) (version \(localVersion) → \(manifest.version))")
+                dataManager.rebuildLedgerMetadata(serverId: serverId, from: manifest)
+            }
+        }
+
+        // 逐帳本 diff expenses
+        var allNeedFetchIds: [(ledgerId: Int, ids: [Int])] = []
+        var allNeedDeleteLocalIds: [UUID] = []
+
+        for (idStr, manifest) in response.ledgers {
+            guard let serverId = Int(idStr) else {
+                continue
+            }
+            let parsed = DataManager.parseManifest(manifest.expenses)
+            let diff = dataManager.diffWithManifest(ledgerServerId: serverId, manifest: parsed)
+
+            if !diff.needFetchIds.isEmpty {
+                allNeedFetchIds.append((ledgerId: serverId, ids: diff.needFetchIds))
+            }
+            allNeedDeleteLocalIds.append(contentsOf: diff.needDeleteLocalIds)
+        }
+
+        // 批次刪除本地已被 Server 刪除的開銷
+        if !allNeedDeleteLocalIds.isEmpty {
+            print("[ExpenseStore] manifest: deleting \(allNeedDeleteLocalIds.count) removed expenses")
+            dataManager.deleteExpensesByLocalIds(allNeedDeleteLocalIds)
+        }
+
+        // 計算總需 fetch 數量
+        let totalFetchCount = allNeedFetchIds.reduce(0) { $0 + $1.ids.count }
+
+        if totalFetchCount == 0 {
+            print("[ExpenseStore] refreshViaManifest: no changes")
+            reload()
+            return
+        }
+
+        print("[ExpenseStore] manifest: need to fetch \(totalFetchCount) expenses")
+
+        if totalFetchCount > syncProgressThreshold {
+            withAnimation { syncProgress = SyncProgress(completed: 0, total: totalFetchCount) }
+        }
+
+        var fetchedCount = 0
+
+        // 分批 fetch
+        for (ledgerId, ids) in allNeedFetchIds {
+            let chunks = ids.chunked(into: 200)
+            for chunk in chunks {
+                let fetchResponse = try await APIClient.shared.post(
+                    path: "/api/ledgers/\(ledgerId)/expenses/fetch",
+                    body: ["ids": chunk],
+                    responseType: ExpenseFetchResponse.self
+                )
+                dataManager.mergeExpenses(ledgerServerId: ledgerId, expenses: fetchResponse.expenses)
+                fetchedCount += chunk.count
+                if syncProgress != nil {
+                    syncProgress = SyncProgress(completed: fetchedCount, total: totalFetchCount)
+                }
+            }
+        }
+
+        withAnimation { syncProgress = nil }
+        reload()
+        print("[ExpenseStore] refreshViaManifest: done, fetched \(totalFetchCount) expenses")
+    }
+
+    private func refreshViaFullState() async {
+        print("[ExpenseStore] refreshViaFullState: start")
         do {
             let response = try await APIClient.shared.get(
                 path: "/api/state",
                 responseType: StateResponse.self
             )
-
-            print("[ExpenseStore] refreshState: received \(response.ledgers.count) ledgers")
+            print("[ExpenseStore] refreshViaFullState: received \(response.ledgers.count) ledgers")
             dataManager.rebuildFromState(response)
             reload()
         } catch {
-            print("[ExpenseStore] refreshState error: \(error)")
+            print("[ExpenseStore] refreshViaFullState error: \(error)")
         }
     }
 
@@ -727,7 +847,7 @@ final class ExpenseStore {
                     )
 
                     let mappings = zip(items, response.expenses).map { (local, remote) in
-                        (localId: local.localId, serverId: remote.id)
+                        (localId: local.localId, serverId: remote.id, version: remote.version)
                     }
                     print("[ExpenseStore] syncOfflineExpenses: batch uploaded \(items.count) to ledger \(ledgerServerId)")
                     dataManager.markExpensesSynced(mappings)
@@ -769,16 +889,29 @@ final class ExpenseStore {
             let response = try await APIClient.shared.post(
                 path: "/api/auth/init",
                 body: ["expenses": expensesPayload],
-                responseType: StateResponse.self
+                responseType: InitResponse.self
             )
 
-            dataManager.rebuildFromState(response)
+            // 用不含 expenses 的 ledgers 重建基本快取
+            dataManager.rebuildFromState(StateResponse(ledgers: response.ledgers))
+
+            // 合併上傳的 guest 開銷（已有 id + v）
+            if !response.uploadedExpenses.isEmpty, let firstLedger = response.ledgers.first {
+                dataManager.mergeExpenses(ledgerServerId: firstLedger.id, expenses: response.uploadedExpenses)
+            }
+
             dataManager.clearAllGuestData()
             reload()
             currentLedgerId = ledgers.first { $0.type == .personal }?.id ?? ledgers.first?.id ?? ""
+
+            // 拉取其餘開銷
+            do {
+                try await refreshViaManifest()
+            } catch {
+                print("[ExpenseStore] initAfterLogin manifest sync failed: \(error)")
+            }
         } catch {
             print("[ExpenseStore] initAfterLogin error: \(error)")
-            // 即使 init 失敗，也嘗試 refreshState
             await refreshState()
             dataManager.clearAllGuestData()
             reload()
@@ -817,7 +950,7 @@ final class ExpenseStore {
     // MARK: - Preview
 
     static func preview() -> ExpenseStore {
-        let schema = Schema(SchemaV1.models)
+        let schema = Schema(LifeSchema.models)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try! ModelContainer(for: schema, configurations: [configuration])
         let manager = DataManager(modelContainer: container)

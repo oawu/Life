@@ -137,7 +137,8 @@ final class DataManager {
                 type: remoteLedger.type,
                 currencyCode: remoteLedger.currency,
                 inviteCode: remoteLedger.inviteCode,
-                sortOrder: index
+                sortOrder: index,
+                version: remoteLedger.version
             )
             context.insert(ledger)
 
@@ -180,6 +181,7 @@ final class DataManager {
                     paidByUserServerId: expense.paidByUserId,
                     createdByUserServerId: expense.createdByUserId,
                     isSynced: true,
+                    version: expense.version,
                     ledger: ledger
                 )
                 context.insert(cachedExpense)
@@ -273,6 +275,7 @@ final class DataManager {
             paidByUserServerId: state.paidByUserId,
             createdByUserServerId: state.createdByUserId,
             isSynced: true,
+            version: state.version,
             ledger: ledger
         )
         context.insert(expense)
@@ -292,6 +295,7 @@ final class DataManager {
         expense.address = state.address
         expense.isSettled = state.isSettled
         expense.paidByUserServerId = state.paidByUserId
+        expense.version = state.version
         save()
     }
 
@@ -331,7 +335,7 @@ final class DataManager {
         return (try? context.fetch(descriptor)) ?? []
     }
 
-    func markExpensesSynced(_ mappings: [(localId: UUID, serverId: Int)]) {
+    func markExpensesSynced(_ mappings: [(localId: UUID, serverId: Int, version: Int)]) {
         print("[DataManager] markExpensesSynced: \(mappings.count) expenses")
         for mapping in mappings {
             let localId = mapping.localId
@@ -343,6 +347,7 @@ final class DataManager {
             }
             expense.serverId = mapping.serverId
             expense.isSynced = true
+            expense.version = mapping.version
         }
         save()
     }
@@ -575,6 +580,287 @@ final class DataManager {
         }
 
         save()
+    }
+
+    // MARK: - Manifest Diff
+
+    static func parseManifest(_ manifestStr: String) -> [(id: Int, version: Int)] {
+        if manifestStr.isEmpty {
+            return []
+        }
+        return manifestStr.split(separator: "|").compactMap { part in
+            let segments = part.split(separator: "-")
+            guard segments.count == 2,
+                  let id = Int(segments[0]),
+                  let version = Int(segments[1]) else {
+                return nil
+            }
+            return (id: id, version: version)
+        }
+    }
+
+    func diffWithManifest(ledgerServerId: Int, manifest: [(id: Int, version: Int)]) -> (needFetchIds: [Int], needDeleteLocalIds: [UUID]) {
+        guard let ledger = findCachedLedger(serverId: ledgerServerId) else {
+            return (needFetchIds: manifest.map { $0.id }, needDeleteLocalIds: [])
+        }
+
+        // 建立本地 serverId → (localId, version) 映射（只含已同步的）
+        var localMap: [Int: (localId: UUID, version: Int)] = [:]
+        for expense in ledger.expenses where expense.isSynced {
+            guard let sid = expense.serverId else {
+                continue
+            }
+            localMap[sid] = (localId: expense.localId, version: expense.version)
+        }
+
+        let serverIds = Set(manifest.map { $0.id })
+        var needFetchIds: [Int] = []
+        var needDeleteLocalIds: [UUID] = []
+
+        // Server 有的：比對版本
+        for entry in manifest {
+            if let local = localMap[entry.id] {
+                if local.version != entry.version {
+                    needFetchIds.append(entry.id)
+                }
+            } else {
+                needFetchIds.append(entry.id)
+            }
+        }
+
+        // 本地有但 Server 沒有 → 刪除
+        for (sid, local) in localMap {
+            if !serverIds.contains(sid) {
+                needDeleteLocalIds.append(local.localId)
+            }
+        }
+
+        return (needFetchIds: needFetchIds, needDeleteLocalIds: needDeleteLocalIds)
+    }
+
+    func mergeExpenses(ledgerServerId: Int, expenses: [StateExpense]) {
+        guard let ledger = findCachedLedger(serverId: ledgerServerId) else {
+            return
+        }
+
+        for state in expenses {
+            if let existing = ledger.expenses.first(where: { $0.serverId == state.id }) {
+                existing.categoryServerId = state.categoryId
+                existing.amount = state.amount
+                existing.memo = state.memo
+                existing.date = Self.parseDate(state.date) ?? existing.date
+                existing.latitude = state.latitude
+                existing.longitude = state.longitude
+                existing.address = state.address
+                existing.isSettled = state.isSettled
+                existing.paidByUserServerId = state.paidByUserId
+                existing.createdByUserServerId = state.createdByUserId
+                existing.version = state.version
+            } else {
+                let cachedExpense = CachedExpense(
+                    serverId: state.id,
+                    categoryServerId: state.categoryId,
+                    amount: state.amount,
+                    memo: state.memo,
+                    date: Self.parseDate(state.date) ?? Date(),
+                    latitude: state.latitude,
+                    longitude: state.longitude,
+                    address: state.address,
+                    isSettled: state.isSettled,
+                    paidByUserServerId: state.paidByUserId,
+                    createdByUserServerId: state.createdByUserId,
+                    isSynced: true,
+                    version: state.version,
+                    ledger: ledger
+                )
+                context.insert(cachedExpense)
+            }
+        }
+        save()
+    }
+
+    func deleteExpensesByLocalIds(_ localIds: [UUID]) {
+        if localIds.isEmpty {
+            return
+        }
+        let localIdSet = Set(localIds)
+        let descriptor = FetchDescriptor<CachedExpense>()
+        let allExpenses = (try? context.fetch(descriptor)) ?? []
+        for expense in allExpenses where localIdSet.contains(expense.localId) {
+            context.delete(expense)
+        }
+        save()
+    }
+
+    func getLedgerVersion(serverId: Int) -> Int {
+        findCachedLedger(serverId: serverId)?.version ?? 0
+    }
+
+    func rebuildLedgerMetadata(serverId: Int, from manifest: ManifestLedger) {
+        guard let ledger = findCachedLedger(serverId: serverId) else {
+            return
+        }
+
+        ledger.name = manifest.name
+        ledger.type = manifest.type
+        ledger.currencyCode = manifest.currency
+        ledger.inviteCode = manifest.inviteCode
+        ledger.version = manifest.version
+
+        // 重建 members
+        for member in ledger.members {
+            context.delete(member)
+        }
+        for member in manifest.members {
+            let cachedMember = CachedMember(
+                serverId: member.id,
+                userId: member.userId,
+                name: member.name,
+                role: member.role,
+                isCurrentUser: member.isCurrentUser,
+                ledger: ledger
+            )
+            context.insert(cachedMember)
+        }
+
+        // 重建 categories
+        for category in ledger.categories {
+            context.delete(category)
+        }
+        for category in manifest.categories {
+            let cachedCategory = CachedCategory(
+                serverId: category.id,
+                key: category.key,
+                name: category.name,
+                icon: category.icon,
+                colorHex: category.color,
+                sortOrder: category.sort,
+                ledger: ledger
+            )
+            context.insert(cachedCategory)
+        }
+
+        // 重建 recurringExpenses
+        for recurring in ledger.recurringExpenses {
+            context.delete(recurring)
+        }
+        for recurring in manifest.recurringExpenses {
+            let frequencyValue = Self.extractFrequencyValue(recurring.frequencyValue)
+            let cachedRecurring = CachedRecurringExpense(
+                serverId: recurring.id,
+                categoryServerId: recurring.categoryId,
+                amount: recurring.amount,
+                frequencyType: recurring.frequencyType,
+                frequencyValue: frequencyValue,
+                memo: recurring.memo,
+                isEnabled: recurring.isEnabled,
+                latitude: recurring.latitude,
+                longitude: recurring.longitude,
+                address: recurring.address,
+                paidByUserServerId: recurring.paidByUserId,
+                lastTriggeredDate: recurring.lastTriggeredDate,
+                ledger: ledger
+            )
+            context.insert(cachedRecurring)
+        }
+
+        // 重建 settlements
+        for settlement in ledger.settlements {
+            context.delete(settlement)
+        }
+        for settlement in manifest.settlements {
+            let transfersJson = Self.encodeSettlementTransfers(settlement.transfers)
+            let cachedSettlement = CachedSettlement(
+                serverId: settlement.id,
+                date: Self.parseDate(settlement.createAt) ?? Date(),
+                settledByUserId: settlement.settledByUserId,
+                transfersJson: transfersJson,
+                currencySymbol: settlement.currencySymbol,
+                ledger: ledger
+            )
+            context.insert(cachedSettlement)
+        }
+
+        save()
+    }
+
+    func createLedgerFromManifest(serverId: Int, from manifest: ManifestLedger, sortOrder: Int) {
+        let ledger = CachedLedger(
+            serverId: serverId,
+            name: manifest.name,
+            type: manifest.type,
+            currencyCode: manifest.currency,
+            inviteCode: manifest.inviteCode,
+            sortOrder: sortOrder,
+            version: manifest.version
+        )
+        context.insert(ledger)
+
+        for member in manifest.members {
+            let cachedMember = CachedMember(
+                serverId: member.id,
+                userId: member.userId,
+                name: member.name,
+                role: member.role,
+                isCurrentUser: member.isCurrentUser,
+                ledger: ledger
+            )
+            context.insert(cachedMember)
+        }
+
+        for category in manifest.categories {
+            let cachedCategory = CachedCategory(
+                serverId: category.id,
+                key: category.key,
+                name: category.name,
+                icon: category.icon,
+                colorHex: category.color,
+                sortOrder: category.sort,
+                ledger: ledger
+            )
+            context.insert(cachedCategory)
+        }
+
+        for recurring in manifest.recurringExpenses {
+            let frequencyValue = Self.extractFrequencyValue(recurring.frequencyValue)
+            let cachedRecurring = CachedRecurringExpense(
+                serverId: recurring.id,
+                categoryServerId: recurring.categoryId,
+                amount: recurring.amount,
+                frequencyType: recurring.frequencyType,
+                frequencyValue: frequencyValue,
+                memo: recurring.memo,
+                isEnabled: recurring.isEnabled,
+                latitude: recurring.latitude,
+                longitude: recurring.longitude,
+                address: recurring.address,
+                paidByUserServerId: recurring.paidByUserId,
+                lastTriggeredDate: recurring.lastTriggeredDate,
+                ledger: ledger
+            )
+            context.insert(cachedRecurring)
+        }
+
+        for settlement in manifest.settlements {
+            let transfersJson = Self.encodeSettlementTransfers(settlement.transfers)
+            let cachedSettlement = CachedSettlement(
+                serverId: settlement.id,
+                date: Self.parseDate(settlement.createAt) ?? Date(),
+                settledByUserId: settlement.settledByUserId,
+                transfersJson: transfersJson,
+                currencySymbol: settlement.currencySymbol,
+                ledger: ledger
+            )
+            context.insert(cachedSettlement)
+        }
+
+        save()
+    }
+
+    func fetchCachedLedgerServerIds() -> Set<Int> {
+        let descriptor = FetchDescriptor<CachedLedger>()
+        let ledgers = (try? context.fetch(descriptor)) ?? []
+        return Set(ledgers.map { $0.serverId })
     }
 
     // MARK: - Clear All Cache

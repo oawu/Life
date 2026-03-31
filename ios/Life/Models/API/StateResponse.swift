@@ -2,6 +2,19 @@ import Foundation
 
 struct StateResponse: Decodable {
     let ledgers: [StateLedger]
+
+    init(ledgers: [StateLedger]) {
+        self.ledgers = ledgers
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        ledgers = try container.decode([StateLedger].self, forKey: .ledgers)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case ledgers
+    }
 }
 
 struct StateLedger: Decodable {
@@ -9,6 +22,7 @@ struct StateLedger: Decodable {
     let name: String
     let type: String
     let currency: String
+    let version: Int
     let inviteCode: String?
     let members: [StateMember]
     let categories: [StateCategory]
@@ -17,7 +31,7 @@ struct StateLedger: Decodable {
     var settlements: [StateSettlement] = []
 
     enum CodingKeys: String, CodingKey {
-        case id, name, type, currency, inviteCode, members, categories
+        case id, name, type, currency, version, inviteCode, members, categories
         case expenses, recurringExpenses, settlements
     }
 
@@ -27,6 +41,7 @@ struct StateLedger: Decodable {
         name = try container.decode(String.self, forKey: .name)
         type = try container.decode(String.self, forKey: .type)
         currency = try container.decode(String.self, forKey: .currency)
+        version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 0
         inviteCode = try container.decodeIfPresent(String.self, forKey: .inviteCode)
         members = try container.decode([StateMember].self, forKey: .members)
         categories = try container.decode([StateCategory].self, forKey: .categories)
@@ -65,6 +80,28 @@ struct StateExpense: Decodable {
     let isSettled: Bool
     let paidByUserId: Int?
     let createdByUserId: Int
+    let version: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, categoryId, amount, memo, date, latitude, longitude, address
+        case isSettled, paidByUserId, createdByUserId, version
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        categoryId = try container.decodeIfPresent(Int.self, forKey: .categoryId)
+        amount = try container.decode(Int.self, forKey: .amount)
+        memo = try container.decode(String.self, forKey: .memo)
+        date = try container.decode(String.self, forKey: .date)
+        latitude = try container.decodeIfPresent(Double.self, forKey: .latitude)
+        longitude = try container.decodeIfPresent(Double.self, forKey: .longitude)
+        address = try container.decodeIfPresent(String.self, forKey: .address)
+        isSettled = try container.decode(Bool.self, forKey: .isSettled)
+        paidByUserId = try container.decodeIfPresent(Int.self, forKey: .paidByUserId)
+        createdByUserId = try container.decode(Int.self, forKey: .createdByUserId)
+        version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
+    }
 }
 
 struct StateRecurringExpense: Decodable {

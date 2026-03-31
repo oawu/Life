@@ -9,6 +9,7 @@ final class CachedLedger {
     var currencyCode: String
     var inviteCode: String?
     var sortOrder: Int
+    var version: Int
 
     @Relationship(deleteRule: .cascade, inverse: \CachedMember.ledger)
     var members: [CachedMember] = []
@@ -31,7 +32,8 @@ final class CachedLedger {
         type: String = "personal",
         currencyCode: String = "TWD",
         inviteCode: String? = nil,
-        sortOrder: Int = 0
+        sortOrder: Int = 0,
+        version: Int = 0
     ) {
         self.serverId = serverId
         self.name = name
@@ -39,6 +41,7 @@ final class CachedLedger {
         self.currencyCode = currencyCode
         self.inviteCode = inviteCode
         self.sortOrder = sortOrder
+        self.version = version
     }
 
     var isGroup: Bool {

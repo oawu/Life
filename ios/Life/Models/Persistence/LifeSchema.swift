@@ -1,8 +1,7 @@
 import Foundation
 import SwiftData
 
-enum SchemaV1: VersionedSchema {
-    static var versionIdentifier: Schema.Version = .init(1, 0, 0)
+enum LifeSchema {
     static var models: [any PersistentModel.Type] = [
         GuestExpense.self,
         CachedLedger.self,
@@ -12,9 +11,4 @@ enum SchemaV1: VersionedSchema {
         CachedRecurringExpense.self,
         CachedSettlement.self,
     ]
-}
-
-enum LifeMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] = [SchemaV1.self]
-    static var stages: [MigrationStage] = []
 }

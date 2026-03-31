@@ -16,6 +16,7 @@ final class CachedExpense {
     var paidByUserServerId: Int?
     var createdByUserServerId: Int?
     var isSynced: Bool
+    var version: Int
 
     var ledger: CachedLedger?
 
@@ -33,6 +34,7 @@ final class CachedExpense {
         paidByUserServerId: Int? = nil,
         createdByUserServerId: Int? = nil,
         isSynced: Bool = true,
+        version: Int = 0,
         ledger: CachedLedger? = nil
     ) {
         self.localId = localId
@@ -48,6 +50,7 @@ final class CachedExpense {
         self.paidByUserServerId = paidByUserServerId
         self.createdByUserServerId = createdByUserServerId
         self.isSynced = isSynced
+        self.version = version
         self.ledger = ledger
     }
 

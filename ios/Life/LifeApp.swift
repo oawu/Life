@@ -13,11 +13,11 @@ struct LifeApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        let schema = Schema(SchemaV1.models)
+        let schema = Schema(LifeSchema.models)
         let configuration = ModelConfiguration(schema: schema)
         let container: ModelContainer
         do {
-            container = try ModelContainer(for: schema, migrationPlan: LifeMigrationPlan.self, configurations: [configuration])
+            container = try ModelContainer(for: schema, configurations: [configuration])
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
@@ -103,6 +103,9 @@ struct LifeApp: App {
                 .keyboardShortcut(.defaultAction)
             } message: {
                 Text("你有 \(pendingGuestExpenses.count) 筆記帳紀錄尚未同步，要上傳到雲端嗎？")
+            }
+            .overlay {
+                SyncProgressOverlay(progress: expenseStore.syncProgress)
             }
             #if DEBUG
             .overlay {
