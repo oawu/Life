@@ -158,6 +158,28 @@ transaction(function () use ($param) {
 });
 ```
 
+## ORM 屬性不需要手動轉型
+
+ORM 的 `Column::initWith()` / `Column::updateWith()` 會根據資料庫欄位型別自動轉為正確的 PHP 型態（int / float / json / string），讀取和賦值時都不需要手動 `(int)` / `(float)` 轉型：
+
+```php
+// ✗ 錯誤：多餘的轉型
+'version'    => (int)$ledger->version,
+'amount'     => (int)$expense->amount,
+'sort'       => (int)$category->sort,
+'latitude'   => (float)$expense->latitude,
+$expense->version = (int)$expense->version + 1;
+
+// ✓ 正確：直接使用
+'version'    => $ledger->version,
+'amount'     => $expense->amount,
+'sort'       => $category->sort,
+'latitude'   => $expense->latitude,
+$expense->version = $expense->version + 1;
+```
+
+**注意**：此規則僅適用於 ORM Model 屬性。從 request data（`$data['amount']`）、Hashids decode、JSON decode 等非 ORM 來源取得的值，仍需視情況手動轉型。
+
 ## Nullable 型別宣告
 
 使用 `?type` 語法，不要用 `type = null`：
