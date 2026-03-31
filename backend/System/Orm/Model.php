@@ -249,7 +249,7 @@ abstract class Model {
         return null;
       }
 
-      if (count($page['pits']) > $limit) {
+      if (count($page['pits']) >= $limit) {
         $pages[] = $page;
         $page = ['pits' => [], 'vals' => []];
       }
@@ -263,7 +263,7 @@ abstract class Model {
           $tmps[] = Helper::attrsToStrings($column->getType(), $val);
         }
       }
-      $page['vals'] = [...$page['vals'], ...$tmps];
+      array_push($page['vals'], ...$tmps);
     }
 
     if ($page['pits']) {
@@ -361,6 +361,9 @@ abstract class Model {
   public static function between(string $key, $val1, $val2): Builder {
     return Builder::create(null, static::class)->whereBetween($key, $val1, $val2);
   }
+  public static function whereGroup(callable $callback): Builder {
+    return Builder::create(null, static::class)->whereGroup($callback);
+  }
   public function hasMany(string $class, ?string $fk = null, ?string $pk = Model::PRIMARY_ID): Builder {
     return static::_has('all', $this, $class, $fk, $pk);
   }
@@ -442,7 +445,6 @@ abstract class Model {
     $error = Connection::instance($db)->runQuery($sql, $vals, $stmt);
     if ($error instanceof \Exception) {
       throw new \Exception('新增資料錯誤，錯誤原因：' . $error->getMessage());
-      return;
     }
 
     if ($stmt->rowCount() != 1) {
@@ -585,8 +587,7 @@ abstract class Model {
     $stmt = null;
     $error = Connection::instance($this->getDb())->runQuery($sql, $vals, $stmt);
     if ($error instanceof \Exception) {
-      throw new \Exception('新增資料錯誤，錯誤原因：' . $error->getMessage());
-      return null;
+      throw new \Exception('更新資料錯誤，錯誤原因：' . $error->getMessage());
     }
 
     $count = $stmt->rowCount();
@@ -621,12 +622,12 @@ abstract class Model {
     $error = Connection::instance($this->getDb())->runQuery($sql, $vals, $stmt);
     if ($error instanceof \Exception) {
       throw new \Exception('移除資料庫錯誤，錯誤原因：' . $error->getMessage());
-      return null;
     }
 
     $count = $stmt->rowCount();
+    $this->_deleted = true;
 
-    // afterDeletes 不保證成功全跑完，失敗結束不影響新增
+    // afterDeletes 不保證成功全跑完，失敗結束不影響刪除
     $afterDeletes = static::$afterDeletes ?? [];
     if (!is_array($afterDeletes)) {
       $afterDeletes = [$afterDeletes];
@@ -638,7 +639,7 @@ abstract class Model {
         try {
           $return = $this->$afterDelete($return);
         } catch (\Throwable $e) {
-          Model::executeLog('Model「' . static::class . '」執行 after create「' . $afterDelete . '」失敗，錯誤原因：' . $e->getMessage());
+          Model::executeLog('Model「' . static::class . '」執行 after delete「' . $afterDelete . '」失敗，錯誤原因：' . $e->getMessage());
           break;
         }
       }
@@ -662,8 +663,8 @@ abstract class Model {
       return $this->_attrs;
     }
 
-    if (array_key_exists($key, $this->attrs)) {
-      return $this->attrs[$key];
+    if (array_key_exists($key, $this->_attrs)) {
+      return $this->_attrs[$key];
     }
 
     return $default;

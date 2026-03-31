@@ -60,26 +60,29 @@ final class Builder {
     return $this->where(...$args)->_reverseOrder()->limit(1)->_runSelect();
   }
   public function count(): ?int {
+    $savedSelect = $this->_getSelect();
+    $savedGroup = $this->_getGroup();
+    $savedType = $this->_type;
+
     $this->select('COUNT(*) as c')->group(null)->_setType(self::_TYPE_SELECT);
 
     $stmt = null;
     $error = Connection::instance($this->getDb())->runQuery($this->getSql(), $this->_getValues(), $stmt);
+
+    $this->_setSelect($savedSelect)->group($savedGroup);
+    $this->_type = $savedType;
+
     if ($error instanceof \Exception) {
       Model::executeLog('查詢資料庫錯誤，錯誤原因：' . $error->getMessage());
       return null;
     }
 
-    if (!$objs = array_map(fn($row) => $row, $stmt->fetchAll())) {
+    $row = $stmt->fetch();
+    if (!$row) {
       return 0;
     }
 
-    $obj = array_shift($objs);
-    if (!$obj) {
-      return 0;
-    }
-
-    $count = $obj['c'] ?? 0;
-    return (int) $count;
+    return (int)($row['c'] ?? 0);
   }
   public function getSql(): string {
     if ($this->_type == self::_TYPE_SELECT) {
@@ -286,6 +289,48 @@ final class Builder {
   }
   public function orBetween(string $key, $val1, $val2): self {
     return $this->orWhereBetween($key, $val1, $val2);
+  }
+  public function whereGroup(callable $callback): self {
+    $tmp = Builder::create($this->_db, $this->_class);
+    $callback($tmp);
+
+    $str = $tmp->_getWhere();
+    if ($str === null) {
+      return $this;
+    }
+
+    $vals = $tmp->_getValues();
+    $where = $this->_getWhere();
+
+    if ($where !== null) {
+      $this->_setWhere('(' . $where . ') AND (' . $str . ')');
+    } else {
+      $this->_setWhere($str);
+    }
+
+    $_vals = $this->_getValues();
+    return $this->_setValues([...$_vals, ...$vals]);
+  }
+  public function orWhereGroup(callable $callback): self {
+    $tmp = Builder::create($this->_db, $this->_class);
+    $callback($tmp);
+
+    $str = $tmp->_getWhere();
+    if ($str === null) {
+      return $this;
+    }
+
+    $vals = $tmp->_getValues();
+    $where = $this->_getWhere();
+
+    if ($where !== null) {
+      $this->_setWhere('(' . $where . ') OR (' . $str . ')');
+    } else {
+      $this->_setWhere($str);
+    }
+
+    $_vals = $this->_getValues();
+    return $this->_setValues([...$_vals, ...$vals]);
   }
   public function has(string $fk, string $pk, ?int $val): self {
     return $this->where($fk, $val)->_setRelation(['key1' => $fk, 'key2' => $pk, 'val' => $val]);
@@ -521,13 +566,15 @@ final class Builder {
     $groups = [];
     foreach ($objs as $obj) {
 
-      $key = '';
+      $parts = [];
 
       foreach ($byKeys as $_key) {
         if (isset($obj->$_key)) {
-          $key .= $obj->$_key;
+          $parts[] = $obj->$_key;
         }
       }
+
+      $key = implode("\x00", $parts);
 
       if (!isset($groups[$key])) {
         $groups[$key] = [];
@@ -545,14 +592,15 @@ final class Builder {
       $tmps = [];
       $parts = explode(',', $order);
       foreach ($parts as $part) {
-        $v = trim(strtolower($part));
+        $part = trim($part);
+        $lower = strtolower($part);
 
-        if (strpos($v, ' asc') !== false) {
-          $tmps[] = preg_replace('/asc/i', 'DESC', $v);
-        } else if (strpos($v, ' desc') !== false) {
-          $tmps[] = preg_replace('/desc/i', 'ASC', $v);
+        if (strpos($lower, ' asc') !== false) {
+          $tmps[] = preg_replace('/\s+asc\s*$/i', ' DESC', $part);
+        } else if (strpos($lower, ' desc') !== false) {
+          $tmps[] = preg_replace('/\s+desc\s*$/i', ' ASC', $part);
         } else {
-          $tmps[] = $v . ' DESC';
+          $tmps[] = $part . ' DESC';
         }
       }
 

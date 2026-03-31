@@ -7,7 +7,7 @@ use \Orm\Core\Connection;
 
 abstract class Helper {
   public static function version() {
-    return '9.0.1';
+    return '9.1.0';
   }
   public static function attrsToStrings(string $type, $val) {
     if ($type == 'json') {
@@ -149,10 +149,6 @@ abstract class Helper {
 
       return null;
     }
-
-    $errors = ['不明原因錯誤！'];
-
-    return null;
   }
   /**
    * 產生 SQL WHERE 條件語句
@@ -228,7 +224,7 @@ abstract class Helper {
         ];
       }
       if (is_array($val) && self::arrayIsList($val)) {
-        $val = array_unique($val);
+        $val = array_values(array_unique($val));
 
         if (!$val) {
           return [
@@ -269,7 +265,7 @@ abstract class Helper {
           }
 
           if (is_array($_val) && self::arrayIsList($_val)) {
-            $_val = array_unique($_val);
+            $_val = array_values(array_unique($_val));
 
             if (!$_val) {
               $_strs[] = '1=0';
@@ -322,7 +318,7 @@ abstract class Helper {
         ];
       }
       if (is_array($val) && self::arrayIsList($val)) {
-        $val = array_unique($val);
+        $val = array_values(array_unique($val));
 
         if (!$val) {
           return [
@@ -380,11 +376,11 @@ abstract class Helper {
       if ($cmp == 'BETWEEN') {
         return count($val) >= 2 ? [
           'str' => $tableName . '.' . $key . ' BETWEEN ? AND ?',
-          'vals' => $val
+          'vals' => array_slice($val, 0, 2)
         ] : null;
       }
 
-      $val = array_unique($val);
+      $val = array_values(array_unique($val));
 
       if (in_array($cmp, ['!=', '!==', 'NOT IN'])) {
         if (!$val) {
