@@ -119,6 +119,45 @@ if (isset($a)) {
 }
 ```
 
+## Closure 寫法優先順序：`fn` > `static function` > `function`
+
+閉包（closure）依以下優先順序選擇寫法，能用上層就不用下層：
+
+1. **`fn() =>`**（箭頭函式）：單一表達式、自動捕獲變數，最簡潔
+2. **`static function()`**：多語句、不需要 `$this`
+3. **`function()`**：多語句、需要 `$this`
+
+```php
+// ✓ 最優先：單一表達式用 fn
+->whereGroup(fn($query) => $query->where('status', null)->orWhere('status', '<', $today))
+
+$names = array_map(fn($user) => $user->name, $users);
+
+// ✓ 次優先：多語句且不需要 $this 用 static function
+transaction(static function () use ($param) {
+  $obj = Table::create($param) ?? error('建立失敗');
+  $obj->status = 'active';
+  return $obj->save();
+});
+
+// ✓ 最後：需要存取 $this 才用 function
+$this->items = array_filter($list, function ($item) {
+  return $this->isValid($item);
+});
+```
+
+```php
+// ✗ 錯誤：單一表達式卻用 static function
+->whereGroup(static function ($query) use ($today) {
+  $query->where('status', null)->orWhere('status', '<', $today);
+})
+
+// ✗ 錯誤：不需要 $this 卻用 function
+transaction(function () use ($param) {
+  return Table::create($param);
+});
+```
+
 ## Nullable 型別宣告
 
 使用 `?type` 語法，不要用 `type = null`：
