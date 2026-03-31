@@ -94,7 +94,7 @@ life/
   - 統計圖表（ExpenseChartView）：月/年切換，環形圖 + 分類進度條
 - 帳本管理（已串接後端 API）
   - 帳本設定頁 → 個人帳本（sheet 編輯）、群組帳本（push 詳情頁）
-  - 建立群組帳本（POST /api/ledgers）：自動生成 6 碼邀請碼 + 預設分類
+  - 建立群組帳本（POST /api/ledgers）：Hashids 從 ID 動態計算邀請碼（8 碼+）+ 預設分類
   - 掃碼加入（JoinLedgerView）：AVFoundation 掃 QR + 手動輸入邀請碼
   - 退出帳本：未結清攔截，已結清 → confirmationDialog → POST /api/ledgers/:id/leave
   - 帳本幣別：14 種預設幣別，已有開銷時不可變更
@@ -166,6 +166,7 @@ life/
 | Lib | 說明 |
 |-----|------|
 | Jwt | JWT 簽發與驗證（HS256 / RS256） |
+| Hashids | ID 混淆編碼（minLength / salt / alphabet） |
 | Worker | Worker 服務通訊（status / notify / cli） |
 
 ---
