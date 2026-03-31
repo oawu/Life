@@ -1,0 +1,95 @@
+{
+  "info": {
+    "name": "Life-Worker",
+    "_postman_id": "life-worker-collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Worker",
+      "item": [
+        {
+          "name": "01 | Worker 狀態",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{workerurl}}worker/status",
+              "host": ["{{workerurl}}worker"],
+              "path": ["status"]
+            }
+          }
+        },
+        {
+          "name": "02 | Worker 通知",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{workerurl}}worker/notify",
+              "host": ["{{workerurl}}worker"],
+              "path": ["notify"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Exec",
+      "item": [
+        {
+          "name": "01 | 🔐 CLI 執行",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--cli-token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"route\": \"recurring/trigger\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{workerurl}}exec/cli",
+              "host": ["{{workerurl}}exec"],
+              "path": ["cli"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

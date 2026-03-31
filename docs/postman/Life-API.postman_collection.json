@@ -1,0 +1,955 @@
+{
+  "info": {
+    "name": "Life-API",
+    "_postman_id": "life-api-collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "01 | Apple Sign In（isDev）",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = JSON.parse(responseBody)",
+                  "",
+                  "if (data && data.token)",
+                  "    postman.setEnvironmentVariable(\"--token\", data.token)",
+                  "else",
+                  "    throw Error('格式錯誤！')"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@test.com\",\n    \"isDev\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/auth/apple/callback",
+              "host": ["{{baseurl}}api"],
+              "path": ["auth", "apple", "callback"]
+            }
+          }
+        },
+        {
+          "name": "02 | 🔐 取得當前用戶",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/auth/me",
+              "host": ["{{baseurl}}api"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "03 | 🔐 更新個人資料",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"測試用戶\",\n    \"carrierNumber\": \"/ABC1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/auth/me",
+              "host": ["{{baseurl}}api"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "04 | 🔐 登入初始化",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"expenses\": [\n        {\n            \"categoryKey\": \"breakfast\",\n            \"amount\": 150,\n            \"memo\": \"早餐\",\n            \"date\": \"2026-03-31 08:00:00\"\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/auth/init",
+              "host": ["{{baseurl}}api"],
+              "path": ["auth", "init"]
+            }
+          }
+        },
+        {
+          "name": "05 | 🔐 登入初始化（無開銷）",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"expenses\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/auth/init",
+              "host": ["{{baseurl}}api"],
+              "path": ["auth", "init"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "State",
+      "item": [
+        {
+          "name": "01 | 🔐 取得完整狀態",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/state",
+              "host": ["{{baseurl}}api"],
+              "path": ["state"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manifest",
+      "item": [
+        {
+          "name": "01 | 🔐 取得 Manifest",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/manifest",
+              "host": ["{{baseurl}}api"],
+              "path": ["manifest"]
+            }
+          }
+        },
+        {
+          "name": "02 | 🔐 批次取得開銷",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"ids\": [1, 2, 3]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}/expenses/fetch",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}", "expenses", "fetch"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ledger",
+      "item": [
+        {
+          "name": "01 | 🔐 建立群組帳本",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = JSON.parse(responseBody)",
+                  "",
+                  "if (data && data.ledger && data.ledger.id)",
+                  "    postman.setEnvironmentVariable(\"--ledger-id\", data.ledger.id)",
+                  "else",
+                  "    throw Error('格式錯誤！')"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"測試群組帳本\",\n    \"currency\": \"TWD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers"]
+            }
+          }
+        },
+        {
+          "name": "02 | 🔐 取得帳本詳情",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}"]
+            }
+          }
+        },
+        {
+          "name": "03 | 🔐 更新帳本",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"更新後的帳本\",\n    \"currency\": \"JPY\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}"]
+            }
+          }
+        },
+        {
+          "name": "04 | 🔐 加入群組帳本",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"inviteCode\": \"K3XR7N\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/join",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "join"]
+            }
+          }
+        },
+        {
+          "name": "05 | 🔐 退出群組帳本",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}/leave",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}", "leave"]
+            }
+          }
+        },
+        {
+          "name": "06 | 🔐 取得成員列表",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}/members",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}", "members"]
+            }
+          }
+        },
+        {
+          "name": "07 | 🔐 結算拆帳",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"transfers\": [\n        {\n            \"fromUserId\": 2,\n            \"fromName\": \"小華\",\n            \"toUserId\": 1,\n            \"toName\": \"小明\",\n            \"amount\": 500\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}/settle",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}", "settle"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Category",
+      "item": [
+        {
+          "name": "01 | 🔐 建立分類",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = JSON.parse(responseBody)",
+                  "",
+                  "if (data && data.category && data.category.id)",
+                  "    postman.setEnvironmentVariable(\"--category-id\", data.category.id)",
+                  "else",
+                  "    throw Error('格式錯誤！')"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"咖啡\",\n    \"icon\": \"cup.and.saucer.fill\",\n    \"color\": \"#8B4513\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}/categories",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}", "categories"]
+            }
+          }
+        },
+        {
+          "name": "02 | 🔐 更新分類",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"下午茶\",\n    \"icon\": \"cup.and.saucer.fill\",\n    \"color\": \"#FF9500\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/categories/{{--category-id}}",
+              "host": ["{{baseurl}}api"],
+              "path": ["categories", "{{--category-id}}"]
+            }
+          }
+        },
+        {
+          "name": "03 | 🔐 刪除分類",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseurl}}api/categories/{{--category-id}}",
+              "host": ["{{baseurl}}api"],
+              "path": ["categories", "{{--category-id}}"]
+            }
+          }
+        },
+        {
+          "name": "04 | 🔐 排序分類",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"categoryIds\": [3, 1, 2]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}/categories/sort",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}", "categories", "sort"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Expense",
+      "item": [
+        {
+          "name": "01 | 🔐 建立開銷",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = JSON.parse(responseBody)",
+                  "",
+                  "if (data && data.expense && data.expense.id)",
+                  "    postman.setEnvironmentVariable(\"--expense-id\", data.expense.id)",
+                  "else",
+                  "    throw Error('格式錯誤！')"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"categoryId\": 1,\n    \"amount\": 150,\n    \"memo\": \"午餐\",\n    \"date\": \"2026-03-31 12:00:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}/expenses",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}", "expenses"]
+            }
+          }
+        },
+        {
+          "name": "02 | 🔐 批次建立開銷",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"expenses\": [\n        {\n            \"categoryId\": 1,\n            \"amount\": 100,\n            \"memo\": \"早餐\",\n            \"date\": \"2026-03-31 08:00:00\"\n        },\n        {\n            \"categoryId\": 2,\n            \"amount\": 200,\n            \"memo\": \"午餐\",\n            \"date\": \"2026-03-31 12:00:00\"\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}/expenses/batch",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}", "expenses", "batch"]
+            }
+          }
+        },
+        {
+          "name": "03 | 🔐 更新開銷",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"categoryId\": 2,\n    \"amount\": 250,\n    \"memo\": \"午餐（更新）\",\n    \"date\": \"2026-03-31 12:30:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/expenses/{{--expense-id}}",
+              "host": ["{{baseurl}}api"],
+              "path": ["expenses", "{{--expense-id}}"]
+            }
+          }
+        },
+        {
+          "name": "04 | 🔐 刪除開銷",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseurl}}api/expenses/{{--expense-id}}",
+              "host": ["{{baseurl}}api"],
+              "path": ["expenses", "{{--expense-id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RecurringExpense",
+      "item": [
+        {
+          "name": "01 | 🔐 建立固定開銷",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var data = JSON.parse(responseBody)",
+                  "",
+                  "if (data && data.recurringExpense && data.recurringExpense.id)",
+                  "    postman.setEnvironmentVariable(\"--recurring-expense-id\", data.recurringExpense.id)",
+                  "else",
+                  "    throw Error('格式錯誤！')"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"categoryId\": 1,\n    \"amount\": 300,\n    \"frequencyType\": \"monthly\",\n    \"frequencyValue\": {\"dayOfMonth\": 1},\n    \"memo\": \"月租\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/ledgers/{{--ledger-id}}/recurring-expenses",
+              "host": ["{{baseurl}}api"],
+              "path": ["ledgers", "{{--ledger-id}}", "recurring-expenses"]
+            }
+          }
+        },
+        {
+          "name": "02 | 🔐 更新固定開銷",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 500,\n    \"memo\": \"月租（調整）\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/recurring-expenses/{{--recurring-expense-id}}",
+              "host": ["{{baseurl}}api"],
+              "path": ["recurring-expenses", "{{--recurring-expense-id}}"]
+            }
+          }
+        },
+        {
+          "name": "03 | 🔐 刪除固定開銷",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{--token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseurl}}api/recurring-expenses/{{--recurring-expense-id}}",
+              "host": ["{{baseurl}}api"],
+              "path": ["recurring-expenses", "{{--recurring-expense-id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Test",
+      "item": [
+        {
+          "name": "01 | DB 重置",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/test/reset",
+              "host": ["{{baseurl}}api"],
+              "path": ["test", "reset"]
+            }
+          }
+        },
+        {
+          "name": "02 | DB 查詢",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sql\": \"SELECT * FROM User LIMIT 5\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseurl}}api/test/query",
+              "host": ["{{baseurl}}api"],
+              "path": ["test", "query"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
