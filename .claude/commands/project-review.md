@@ -78,14 +78,23 @@ find worker/src -name "*.js" | xargs wc -l 2>/dev/null | tail -1
 find worker/src -name "*.js" | wc -l
 
 # iOS 統計
-find ios/Life -name "*.swift" | xargs wc -l 2>/dev/null | tail -1
-find ios/Life -name "*.swift" | wc -l
+find ios -name "*.swift" | xargs wc -l 2>/dev/null | tail -1
+find ios -name "*.swift" | wc -l
+
+# iOS 各模組分類統計
+for dir in Life/Views Life/Models Life/Services Life/Utils Shared LifeWatch LifeWidget; do
+  echo "=== ios/$dir ==="
+  find "ios/$dir" -name "*.swift" 2>/dev/null | xargs wc -l 2>/dev/null | tail -1
+  find "ios/$dir" -name "*.swift" 2>/dev/null | wc -l
+done
 
 # 前後端最大檔案 Top 5（複雜度指標）
 echo "=== 前端 JS Top 5 ==="
 find frontend/src/js -name "*.js" | xargs wc -l 2>/dev/null | sort -rn | head -6
 echo "=== 後端 PHP Top 5 ==="
 find backend/App -name "*.php" | xargs wc -l 2>/dev/null | sort -rn | head -6
+echo "=== iOS Swift Top 5 ==="
+find ios -name "*.swift" | xargs wc -l 2>/dev/null | sort -rn | head -6
 
 # HTML 與 el3
 find frontend/src/html -name "*.html" | xargs wc -l 2>/dev/null | tail -1

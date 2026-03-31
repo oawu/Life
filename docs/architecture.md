@@ -53,7 +53,6 @@
 | type | enum(personal, group) | 類型 |
 | currency | varchar(3) DEFAULT 'TWD' | 幣別代碼 |
 | version | int unsigned DEFAULT 1 | 狀態版本號（metadata 變更時遞增） |
-| inviteCode | varchar(6), UNIQUE, nullable | 邀請碼（群組帳本） |
 | createdByUserId | int unsigned | 建立者 User ID |
 | updateAt | datetime | 更新時間 |
 | createAt | datetime | 新增時間 |
