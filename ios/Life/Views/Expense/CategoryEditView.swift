@@ -329,6 +329,8 @@ struct CategoryEditView: View {
                 onDelete?()
                 dismiss()
             }
+        } message: {
+            Text("屬於此分類的開銷與固定開銷都會被歸類為「其他」")
         }
     }
 
