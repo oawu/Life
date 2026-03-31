@@ -50,6 +50,15 @@ Group::create('api')
           ->controller(\App\Controller\Api\State::class . '@index')
           ->title('取得完整狀態');
 
+        // Manifest
+        Router::get('manifest')
+          ->controller(\App\Controller\Api\Manifest::class . '@index')
+          ->title('取得 Manifest');
+
+        Router::post('ledgers/{{ id: uint }}/expenses/fetch')
+          ->controller(\App\Controller\Api\Manifest::class . '@fetch')
+          ->title('批次取得開銷');
+
         // Ledger（群組帳本）
         Router::post('ledgers')
           ->controller(\App\Controller\Api\Ledger::class . '@create')

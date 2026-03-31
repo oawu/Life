@@ -250,21 +250,31 @@ class Auth {
           'address'         => isset($expenseData['address']) && is_string($expenseData['address']) ? mb_substr($expenseData['address'], 0, 200) : null,
           'isSettled'       => Expense::IS_SETTLED_NO,
           'createdByUserId' => $user->id,
+          'version'         => 1,
         ];
       }
 
       if (!empty($validatedItems)) {
-        transaction(static function () use ($validatedItems) {
+        $uploadedExpenses = transaction(static function () use ($validatedItems) {
+          $result = [];
+
           foreach ($validatedItems as $param) {
-            Expense::create($param) ?? error('建立開銷失敗');
+            $expense = Expense::create($param) ?? error('建立開銷失敗');
+            $result[] = $expense;
           }
 
-          return true;
+          return $result;
         });
       }
     }
 
-    return State::buildFullState();
+    $state = State::buildFullStateWithoutExpenses();
+    $state['uploadedExpenses'] = array_map(
+      fn($expense) => State::formatExpense($expense),
+      $uploadedExpenses ?? []
+    );
+
+    return $state;
   }
 
   private static function _devLogin(string $email): array {

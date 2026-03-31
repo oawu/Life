@@ -28,4 +28,8 @@ class Ledger extends \Orm\Model {
     $ids = self::_inviteHashids()->decode($code);
     return !empty($ids) ? (int)$ids[0] : null;
   }
+
+  public function incrementVersion(): void {
+    $this->version = $this->version + 1;
+  }
 }

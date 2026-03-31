@@ -92,6 +92,8 @@ class Ledger {
       $ledger->currency = $currency;
     }
 
+    $ledger->incrementVersion();
+
     transaction(fn() => $ledger->save());
 
     return ['ledger' => self::_buildLedgerResponse($ledger, $user)];
@@ -128,11 +130,16 @@ class Ledger {
       error('帳本尚未結清，無法加入新成員', 400);
     }
 
-    transaction(fn() => LedgerMember::create([
-      'ledgerId' => $ledger->id,
-      'userId'   => $user->id,
-      'role'     => LedgerMember::ROLE_MEMBER,
-    ]) ?? error('加入失敗'));
+    transaction(static function () use ($ledger, $user) {
+      LedgerMember::create([
+        'ledgerId' => $ledger->id,
+        'userId'   => $user->id,
+        'role'     => LedgerMember::ROLE_MEMBER,
+      ]) ?? error('加入失敗');
+
+      $ledger->incrementVersion();
+      return $ledger->save();
+    });
 
     return ['ledger' => self::_buildLedgerResponse($ledger, $user)];
   }
@@ -162,6 +169,13 @@ class Ledger {
 
       // 在 transaction 內檢查殘餘成員（避免 race condition）
       $remainingMembers = (int)LedgerMember::where('ledgerId', $id)->count();
+
+      if ($remainingMembers > 0) {
+        $ledger = LedgerModel::one('id', $id);
+        $ledger->incrementVersion();
+        $ledger->save() ?? error('更新帳本版本失敗');
+      }
+
       return ['shouldDelete' => $remainingMembers === 0];
     });
 
@@ -212,8 +226,12 @@ class Ledger {
       $unsettled = Expense::where('ledgerId', $id)->where('isSettled', Expense::IS_SETTLED_NO)->all();
       foreach ($unsettled as $expense) {
         $expense->isSettled = Expense::IS_SETTLED_YES;
+        $expense->version = $expense->version + 1;
         $expense->save() ?? error('更新開銷失敗');
       }
+
+      $ledger->incrementVersion();
+      $ledger->save() ?? error('更新帳本版本失敗');
 
       return Settlement::create([
         'ledgerId'        => $id,

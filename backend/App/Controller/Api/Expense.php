@@ -53,6 +53,7 @@ class Expense {
         'isSettled'       => ExpenseModel::IS_SETTLED_NO,
         'paidByUserId'    => isset($data['paidByUserId']) && is_numeric($data['paidByUserId']) ? (int)$data['paidByUserId'] : null,
         'createdByUserId' => $user->id,
+        'version'         => 1,
       ];
     }
 
@@ -126,6 +127,8 @@ class Expense {
       $expense->address = $address;
     }
 
+    $expense->version = $expense->version + 1;
+
     transaction(fn() => $expense->save());
 
     return ['expense' => State::formatExpense($expense)];
@@ -174,6 +177,7 @@ class Expense {
       'isSettled'       => ExpenseModel::IS_SETTLED_NO,
       'paidByUserId'    => $data['paidByUserId'],
       'createdByUserId' => $user->id,
+      'version'         => 1,
     ];
 
     return transaction(fn() => ExpenseModel::create($param) ?? error('建立開銷失敗'));

@@ -51,7 +51,14 @@ class RecurringExpense {
       'createdByUserId' => $user->id,
     ];
 
-    $recurring = transaction(fn() => RecurringExpenseModel::create($param) ?? error('建立固定開銷失敗'));
+    $recurring = transaction(static function () use ($param, $ledger) {
+      $recurring = RecurringExpenseModel::create($param) ?? error('建立固定開銷失敗');
+
+      $ledger->incrementVersion();
+      $ledger->save() ?? error('更新帳本版本失敗');
+
+      return $recurring;
+    });
 
     return ['recurringExpense' => State::formatRecurringExpense($recurring)];
   }
@@ -64,7 +71,7 @@ class RecurringExpense {
       notFound('固定開銷不存在');
     }
 
-    self::_findLedgerAsMember($recurring->ledgerId, $user->id);
+    $ledger = self::_findLedgerAsMember($recurring->ledgerId, $user->id);
 
     list(
       'categoryId'     => $categoryId,
@@ -132,7 +139,11 @@ class RecurringExpense {
       $recurring->paidByUserId = $paidByUserId;
     }
 
-    transaction(fn() => $recurring->save());
+    transaction(static function () use ($recurring, $ledger) {
+      $recurring->save() ?? error('更新固定開銷失敗');
+      $ledger->incrementVersion();
+      return $ledger->save();
+    });
 
     return ['recurringExpense' => State::formatRecurringExpense($recurring)];
   }
@@ -145,9 +156,13 @@ class RecurringExpense {
       notFound('固定開銷不存在');
     }
 
-    self::_findLedgerAsMember($recurring->ledgerId, $user->id);
+    $ledger = self::_findLedgerAsMember($recurring->ledgerId, $user->id);
 
-    transaction(fn() => $recurring->delete());
+    transaction(static function () use ($recurring, $ledger) {
+      $recurring->delete() ?? error('刪除固定開銷失敗');
+      $ledger->incrementVersion();
+      return $ledger->save();
+    });
 
     return ['success' => true];
   }

@@ -28,15 +28,22 @@ class Category {
 
     // sort = 目前最大 + 1
     $maxSort  = CategoryModel::where('ledgerId', $ledger->id)->order('sort DESC')->one();
-    $nextSort = $maxSort ? (int)$maxSort->sort + 1 : 0;
+    $nextSort = $maxSort ? $maxSort->sort + 1 : 0;
 
-    $category = transaction(fn() => CategoryModel::create([
-      'ledgerId' => $ledger->id,
-      'name'     => $name,
-      'icon'     => $icon,
-      'color'    => $color,
-      'sort'     => $nextSort,
-    ]) ?? error('建立分類失敗'));
+    $category = transaction(static function () use ($ledger, $name, $icon, $color, $nextSort) {
+      $category = CategoryModel::create([
+        'ledgerId' => $ledger->id,
+        'name'     => $name,
+        'icon'     => $icon,
+        'color'    => $color,
+        'sort'     => $nextSort,
+      ]) ?? error('建立分類失敗');
+
+      $ledger->incrementVersion();
+      $ledger->save() ?? error('更新帳本版本失敗');
+
+      return $category;
+    });
 
     return ['category' => State::formatCategory($category)];
   }
@@ -49,7 +56,7 @@ class Category {
       notFound('分類不存在');
     }
 
-    self::_findLedgerAsMember($category->ledgerId, $user->id);
+    $ledger = self::_findLedgerAsMember($category->ledgerId, $user->id);
 
     list(
       'name'  => $name,
@@ -77,7 +84,11 @@ class Category {
       $category->color = $color;
     }
 
-    transaction(fn() => $category->save());
+    transaction(static function () use ($category, $ledger) {
+      $category->save() ?? error('更新分類失敗');
+      $ledger->incrementVersion();
+      return $ledger->save();
+    });
 
     return ['category' => State::formatCategory($category)];
   }
@@ -90,13 +101,14 @@ class Category {
       notFound('分類不存在');
     }
 
-    self::_findLedgerAsMember($category->ledgerId, $user->id);
+    $ledger = self::_findLedgerAsMember($category->ledgerId, $user->id);
 
-    transaction(static function () use ($category) {
+    transaction(static function () use ($category, $ledger) {
       // 級聯：開銷和固定開銷的 categoryId 設為 null
       $expenses = Expense::where('categoryId', $category->id)->all();
       foreach ($expenses as $expense) {
         $expense->categoryId = null;
+        $expense->version = $expense->version + 1;
         $expense->save() ?? error('更新開銷分類失敗');
       }
 
@@ -107,6 +119,10 @@ class Category {
       }
 
       $category->delete() ?? error('刪除分類失敗');
+
+      $ledger->incrementVersion();
+      $ledger->save() ?? error('更新帳本版本失敗');
+
       return true;
     });
 
@@ -134,6 +150,9 @@ class Category {
         $category->sort = $index;
         $category->save() ?? error('更新排序失敗');
       }
+
+      $ledger->incrementVersion();
+      $ledger->save() ?? error('更新帳本版本失敗');
 
       return true;
     });

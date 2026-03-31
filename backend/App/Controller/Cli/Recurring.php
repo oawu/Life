@@ -49,6 +49,7 @@ class Recurring {
         'isSettled'       => Expense::IS_SETTLED_NO,
         'paidByUserId'    => $recurring->paidByUserId,
         'createdByUserId' => $recurring->createdByUserId,
+        'version'         => 1,
       ];
 
       transaction(static function () use ($param, $recurring, $today) {
