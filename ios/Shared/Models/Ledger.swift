@@ -48,7 +48,7 @@ struct Ledger: Identifiable, Equatable {
 
     static func generateInviteCode() -> String {
         let characters = Array("ACDEFGHJKMNPQRTUVWXY34679")
-        return String((0..<6).map { _ in characters.randomElement()! })
+        return String((0..<8).map { _ in characters.randomElement()! })
     }
 }
 

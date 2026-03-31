@@ -215,7 +215,7 @@ final class LedgerTests: XCTestCase {
         let codeField = app.textFields["field_invite_code"]
         XCTAssertTrue(codeField.waitForExistence(timeout: 5), "邀請碼輸入框未出現")
         codeField.tap()
-        codeField.typeText("ZZZZZZ")
+        codeField.typeText("ZZZZZZZZ")
 
         // tap「加入」
         let joinBtn = app.buttons["btn_join_submit"]

@@ -14,7 +14,7 @@ struct JoinLedgerView: View {
     @State private var isLoading = false
 
     private var canJoin: Bool {
-        inputCode.trimmingCharacters(in: .whitespaces).count == 6
+        inputCode.trimmingCharacters(in: .whitespaces).count >= 8
     }
 
     var body: some View {
@@ -105,16 +105,11 @@ struct JoinLedgerView: View {
                     .font(.system(size: 20, weight: .bold, design: .monospaced))
                     .foregroundStyle(.secondary)
 
-                TextField("XXXXXX", text: $inputCode)
+                TextField("XXXXXXXX", text: $inputCode)
                     .font(.system(size: 20, weight: .medium, design: .monospaced))
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .accessibilityIdentifier(AID.fieldInviteCode)
-                    .onChange(of: inputCode) { _, newValue in
-                        if newValue.count > 6 {
-                            inputCode = String(newValue.prefix(6))
-                        }
-                    }
 
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -197,12 +192,11 @@ struct JoinLedgerView: View {
             return
         }
 
-        let upperCode = code.uppercased()
         isLoading = true
 
         Task {
             do {
-                try await store.joinGroupLedger(inviteCode: upperCode)
+                try await store.joinGroupLedger(inviteCode: code)
 
                 await MainActor.run {
                     isLoading = false

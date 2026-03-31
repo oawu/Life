@@ -24,14 +24,11 @@ class Ledger {
       'currency' => Valid::string_('幣別')->max(3)->nullOrNoKey('TWD'),
     ]);
 
-    $inviteCode = LedgerModel::generateInviteCode();
-
-    $ledger = transaction(static function () use ($name, $currency, $inviteCode, $user) {
+    $ledger = transaction(static function () use ($name, $currency, $user) {
       $ledger = LedgerModel::create([
         'name'            => $name,
         'type'            => LedgerModel::TYPE_GROUP,
         'currency'        => $currency,
-        'inviteCode'      => $inviteCode,
         'createdByUserId' => $user->id,
       ]) ?? error('建立帳本失敗');
 
@@ -95,9 +92,7 @@ class Ledger {
       $ledger->currency = $currency;
     }
 
-    transaction(static function () use ($ledger) {
-      return $ledger->save();
-    });
+    transaction(fn() => $ledger->save());
 
     return ['ledger' => self::_buildLedgerResponse($ledger, $user)];
   }
@@ -108,13 +103,16 @@ class Ledger {
     list(
       'inviteCode' => $inviteCode,
     ) = Valid::check(Payload::getJson(), [
-      'inviteCode' => Valid::string('邀請碼')->min(1)->max(6),
+      'inviteCode' => Valid::string('邀請碼')->min(1)->max(20),
     ]);
 
-    $inviteCode = strtoupper($inviteCode);
+    $id = LedgerModel::decodeInviteCode($inviteCode);
+    if ($id === null) {
+      error('邀請碼無效', 404);
+    }
 
-    $ledger = LedgerModel::one('inviteCode', $inviteCode);
-    if (!$ledger) {
+    $ledger = LedgerModel::one('id', $id);
+    if (!$ledger || $ledger->type !== LedgerModel::TYPE_GROUP) {
       error('邀請碼無效', 404);
     }
 
@@ -130,13 +128,11 @@ class Ledger {
       error('帳本尚未結清，無法加入新成員', 400);
     }
 
-    transaction(static function () use ($ledger, $user) {
-      return LedgerMember::create([
-        'ledgerId' => $ledger->id,
-        'userId'   => $user->id,
-        'role'     => LedgerMember::ROLE_MEMBER,
-      ]) ?? error('加入失敗');
-    });
+    transaction(fn() => LedgerMember::create([
+      'ledgerId' => $ledger->id,
+      'userId'   => $user->id,
+      'role'     => LedgerMember::ROLE_MEMBER,
+    ]) ?? error('加入失敗'));
 
     return ['ledger' => self::_buildLedgerResponse($ledger, $user)];
   }
@@ -181,9 +177,7 @@ class Ledger {
     self::_findLedgerAsMember($id, $user->id);
 
     $members = LedgerMember::where('ledgerId', $id)->all();
-    $userIds = array_map(static function ($member) {
-      return $member->userId;
-    }, $members);
+    $userIds = array_map(fn($member) => $member->userId, $members);
 
     $users   = User::where('id', $userIds)->all();
     $userMap = [];
@@ -258,9 +252,7 @@ class Ledger {
     $members    = LedgerMember::where('ledgerId', $ledger->id)->all();
     $categories = Category::where('ledgerId', $ledger->id)->order('sort ASC')->all();
 
-    $userIds = array_map(static function ($member) {
-      return $member->userId;
-    }, $members);
+    $userIds = array_map(fn($member) => $member->userId, $members);
 
     $users   = User::where('id', $userIds)->all();
     $userMap = [];
@@ -273,7 +265,7 @@ class Ledger {
       'name'       => $ledger->name,
       'type'       => $ledger->type,
       'currency'   => $ledger->currency,
-      'inviteCode' => $ledger->inviteCode,
+      'inviteCode' => $ledger->type === LedgerModel::TYPE_GROUP ? $ledger->inviteCode() : null,
       'members'    => array_values(array_map(static function ($member) use ($user, $userMap) {
         $memberUser = $userMap[$member->userId] ?? null;
         return [
@@ -284,9 +276,7 @@ class Ledger {
           'isCurrentUser' => $member->userId == $user->id,
         ];
       }, $members)),
-      'categories' => array_map(static function ($category) {
-        return State::formatCategory($category);
-      }, $categories),
+      'categories' => array_map(fn($category) => State::formatCategory($category), $categories),
     ];
   }
 

@@ -10,16 +10,22 @@ class Ledger extends \Orm\Model {
     self::TYPE_GROUP    => '群組',
   ];
 
-  public static function generateInviteCode(): string {
-    $chars = 'ACDEFGHJKMNPQRTUVWXY34679';
+  private static $_inviteHashids = null;
 
-    do {
-      $code = '';
-      for ($i = 0; $i < 6; $i++) {
-        $code .= $chars[random_int(0, strlen($chars) - 1)];
-      }
-    } while (self::one('inviteCode', $code));
+  private static function _inviteHashids(): \App\Lib\Hashids {
+    if (self::$_inviteHashids !== null) {
+      return self::$_inviteHashids;
+    }
+    self::$_inviteHashids = new \App\Lib\Hashids(8, KEY . '-Ledger', 'ACDEFGHJKMNPQRTUVWXY34679');
+    return self::$_inviteHashids;
+  }
 
-    return $code;
+  public function inviteCode(): string {
+    return self::_inviteHashids()->encode($this->id);
+  }
+
+  public static function decodeInviteCode(string $code): ?int {
+    $ids = self::_inviteHashids()->decode($code);
+    return !empty($ids) ? (int)$ids[0] : null;
   }
 }

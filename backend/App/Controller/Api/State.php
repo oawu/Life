@@ -67,7 +67,7 @@ class State {
       'name'       => $ledger->name,
       'type'       => $ledger->type,
       'currency'   => $ledger->currency,
-      'inviteCode' => $ledger->inviteCode,
+      'inviteCode' => $ledger->type === Ledger::TYPE_GROUP ? $ledger->inviteCode() : null,
       'members'    => array_values(array_map(static function ($member) use ($user, $userMap) {
         $memberUser = $userMap[$member->userId] ?? null;
         return [
