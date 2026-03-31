@@ -7,12 +7,24 @@ use \App\Model\Expense;
 
 class Recurring {
   public function trigger() {
-    $today     = date('Y-m-d');
-    $dayOfWeek = (int)date('w') + 1;
-    $dayOfMonth = (int)date('j');
-    $month     = (int)date('n');
-    $daysInMonth = (int)date('t');
-    $isLeapYear  = (int)date('L');
+    $argvs = \Request::argvs();
+    $date  = $argvs[0] ?? null;
+
+    if ($date !== null) {
+      $timestamp = strtotime($date);
+      if ($timestamp === false) {
+        return '日期格式錯誤：' . $date;
+      }
+    } else {
+      $timestamp = time();
+    }
+
+    $today       = date('Y-m-d', $timestamp);
+    $dayOfWeek   = (int)date('w', $timestamp) + 1;
+    $dayOfMonth  = (int)date('j', $timestamp);
+    $month       = (int)date('n', $timestamp);
+    $daysInMonth = (int)date('t', $timestamp);
+    $isLeapYear  = (int)date('L', $timestamp);
 
     $recurrings = RecurringExpense::where('isEnabled', RecurringExpense::IS_ENABLED_YES)
       ->whereGroup(function ($query) use ($today) {
