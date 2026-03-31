@@ -41,7 +41,7 @@ class Recurring {
         'ledgerId'        => $recurring->ledgerId,
         'categoryId'      => $recurring->categoryId,
         'amount'          => $recurring->amount,
-        'memo'            => $recurring->memo,
+        'memo'            => $this->_buildRecurringMemo($recurring),
         'date'            => $today . ' 00:00:00',
         'latitude'        => $recurring->latitude,
         'longitude'       => $recurring->longitude,
@@ -76,15 +76,14 @@ class Recurring {
       if ($value === null) {
         return false;
       }
-      $targetDay = isset($value['dayOfWeek']) ? (int)$value['dayOfWeek'] : 0;
-      return $dayOfWeek === $targetDay;
+      return $dayOfWeek === $value;
     }
 
     if ($type === RecurringExpense::FREQUENCY_TYPE_MONTHLY) {
       if ($value === null) {
         return false;
       }
-      $targetDay = isset($value['dayOfMonth']) ? (int)$value['dayOfMonth'] : 0;
+      $targetDay = $value;
       if ($targetDay > $daysInMonth) {
         return false;
       }
@@ -95,8 +94,8 @@ class Recurring {
       if ($value === null) {
         return false;
       }
-      $targetMonth = isset($value['month']) ? (int)$value['month'] : 0;
-      $targetDay   = isset($value['day']) ? (int)$value['day'] : 0;
+      $targetMonth = $value['month'] ?? 0;
+      $targetDay   = $value['day'] ?? 0;
       if ($targetMonth === 2 && $targetDay === 29 && !$isLeapYear) {
         return false;
       }
@@ -104,5 +103,35 @@ class Recurring {
     }
 
     return false;
+  }
+
+  private function _buildRecurringMemo(RecurringExpense $recurring): string {
+    $type  = $recurring->frequencyType;
+    $value = $recurring->frequencyValue;
+
+    $weekDays = ['', '日', '一', '二', '三', '四', '五', '六'];
+
+    if ($type === RecurringExpense::FREQUENCY_TYPE_DAILY) {
+      $freq = '每日';
+    } elseif ($type === RecurringExpense::FREQUENCY_TYPE_WEEKLY) {
+      $freq = '每週' . ($weekDays[$value] ?? '');
+    } elseif ($type === RecurringExpense::FREQUENCY_TYPE_MONTHLY) {
+      $freq = '每月 ' . $value . ' 日';
+    } elseif ($type === RecurringExpense::FREQUENCY_TYPE_YEARLY) {
+      $m   = $value['month'] ?? 0;
+      $day = $value['day'] ?? 0;
+      $freq = '每年 ' . $m . '/' . $day;
+    } else {
+      $freq = '';
+    }
+
+    $tag          = '由' . $freq . '固定開銷自動建立';
+    $originalMemo = trim((string)$recurring->memo);
+
+    if ($originalMemo === '') {
+      return $tag;
+    }
+
+    return mb_substr($originalMemo . '（' . $tag . '）', 0, 200);
   }
 }
