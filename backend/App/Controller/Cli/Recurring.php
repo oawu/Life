@@ -27,10 +27,7 @@ class Recurring {
     $isLeapYear  = (int)date('L', $timestamp);
 
     $recurrings = RecurringExpense::where('isEnabled', RecurringExpense::IS_ENABLED_YES)
-      ->whereGroup(function ($query) use ($today) {
-        $query->where('lastTriggeredDate', null)
-          ->orWhere('lastTriggeredDate', '<', $today);
-      })
+      ->whereGroup(fn($query) => $query->where('lastTriggeredDate', null)->orWhere('lastTriggeredDate', '<', $today))
       ->all();
 
     $count = 0;
