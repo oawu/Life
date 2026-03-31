@@ -187,6 +187,11 @@ struct ExpenseListView: View {
         } message: {
             Text(deleteErrorMessage)
         }
+        .task {
+            if authManager.isAuthenticated {
+                await store.refreshState()
+            }
+        }
     }
 
     // MARK: - Toast
