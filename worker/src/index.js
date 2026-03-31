@@ -40,7 +40,8 @@ const start = async () => {
   console.log('[Worker] Starting... (env=' + env + ', rss=' + _rss() + 'MB, pid=' + process.pid + ')')
   _workerLog.info('Starting (env=' + env + ', rss=' + _rss() + 'MB, pid=' + process.pid + ')')
 
-  await dispatcher.start()
+  // dispatcher 暫停啟動（目前無 Job 類型，Job 表尚未建立）
+  // await dispatcher.start()
   scheduler.start()
 
   server.listen(PORT, '0.0.0.0', () => {
