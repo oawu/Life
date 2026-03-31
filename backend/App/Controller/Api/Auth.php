@@ -114,9 +114,7 @@ class Auth {
       if (!empty($param)) {
         $user->set($param);
 
-        transaction(static function () use ($user) {
-          return $user->save();
-        });
+        transaction(fn() => $user->save());
       }
     } else {
       $name = $fullName ?? '';
@@ -131,9 +129,7 @@ class Auth {
         'status'  => User::STATUS_ACTIVE,
       ];
 
-      $user = transaction(static function () use ($param) {
-        return User::create($param) ?? error('建立用戶失敗');
-      });
+      $user = transaction(fn() => User::create($param) ?? error('建立用戶失敗'));
     }
 
     return $user->issueToken();
@@ -168,9 +164,7 @@ class Auth {
       $user->carrierNumber = $carrierNumber;
     }
 
-    transaction(static function () use ($user) {
-      return $user->save();
-    });
+    transaction(fn() => $user->save());
 
     return ['user' => $user->toSafeArray()];
   }
@@ -291,9 +285,7 @@ class Auth {
       'status'  => User::STATUS_ACTIVE,
     ];
 
-    $user = transaction(static function () use ($param) {
-      return User::create($param) ?? error('建立用戶失敗');
-    });
+    $user = transaction(fn() => User::create($param) ?? error('建立用戶失敗'));
 
     return $user->issueToken();
   }

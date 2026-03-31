@@ -30,15 +30,13 @@ class Category {
     $maxSort  = CategoryModel::where('ledgerId', $ledger->id)->order('sort DESC')->one();
     $nextSort = $maxSort ? (int)$maxSort->sort + 1 : 0;
 
-    $category = transaction(static function () use ($ledger, $name, $icon, $color, $nextSort) {
-      return CategoryModel::create([
-        'ledgerId' => $ledger->id,
-        'name'     => $name,
-        'icon'     => $icon,
-        'color'    => $color,
-        'sort'     => $nextSort,
-      ]) ?? error('建立分類失敗');
-    });
+    $category = transaction(fn() => CategoryModel::create([
+      'ledgerId' => $ledger->id,
+      'name'     => $name,
+      'icon'     => $icon,
+      'color'    => $color,
+      'sort'     => $nextSort,
+    ]) ?? error('建立分類失敗'));
 
     return ['category' => State::formatCategory($category)];
   }
@@ -79,9 +77,7 @@ class Category {
       $category->color = $color;
     }
 
-    transaction(static function () use ($category) {
-      return $category->save();
-    });
+    transaction(fn() => $category->save());
 
     return ['category' => State::formatCategory($category)];
   }

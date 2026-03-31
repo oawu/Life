@@ -43,10 +43,7 @@ class User extends \Orm\Model {
 
     $this->token = $jwt;
 
-    $self = $this;
-    transaction(static function () use ($self) {
-      return $self->save() ?? error('儲存 token 失敗');
-    });
+    transaction(fn() => $this->save() ?? error('儲存 token 失敗'));
 
     return [
       'token' => $jwt,

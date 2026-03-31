@@ -67,9 +67,7 @@ class Expense {
       return $result;
     });
 
-    return ['expenses' => array_map(static function ($expense) {
-      return State::formatExpense($expense);
-    }, $expenses)];
+    return ['expenses' => array_map(fn($expense) => State::formatExpense($expense), $expenses)];
   }
 
   public function update(int $id) {
@@ -128,9 +126,7 @@ class Expense {
       $expense->address = $address;
     }
 
-    transaction(static function () use ($expense) {
-      return $expense->save();
-    });
+    transaction(fn() => $expense->save());
 
     return ['expense' => State::formatExpense($expense)];
   }
@@ -145,9 +141,7 @@ class Expense {
 
     self::_findLedgerAsMember($expense->ledgerId, $user->id);
 
-    transaction(static function () use ($expense) {
-      return $expense->delete();
-    });
+    transaction(fn() => $expense->delete());
 
     return ['success' => true];
   }
@@ -182,9 +176,7 @@ class Expense {
       'createdByUserId' => $user->id,
     ];
 
-    return transaction(static function () use ($param) {
-      return ExpenseModel::create($param) ?? error('建立開銷失敗');
-    });
+    return transaction(fn() => ExpenseModel::create($param) ?? error('建立開銷失敗'));
   }
 
   private static function _findLedgerAsMember(int $ledgerId, int $userId): Ledger {
