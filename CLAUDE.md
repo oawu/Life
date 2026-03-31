@@ -78,11 +78,16 @@ life/
   - Guest 模式：純本地 SwiftData（GuestExpense），靜態預設分類（不可編輯）
   - Authenticated 模式：API call → 成功 → 更新本地快取（Cached* models）
   - 離線：僅允許新增開銷（isSynced = false），其餘操作阻擋 → alert「無法連線」
-  - `GET /api/state`：App 回前景 / 網路恢復時重建全部快取
-  - `POST /api/auth/init`：登入時上傳 Guest 開銷（帶 categoryKey）→ 回傳完整 state
+  - Manifest Diff Sync：`GET /api/manifest` 回傳輕量版本清單，iOS 比對後只拉差異開銷
+  - `POST /api/ledgers/:id/expenses/fetch`：批次取得指定開銷（每批 200 筆）
+  - `GET /api/state`：Manifest 失敗時的 fallback 全量路徑
+  - `POST /api/auth/init`：登入時上傳 Guest 開銷 → 回傳 metadata + uploadedExpenses（不含全量 expenses）
   - 登入同步提示：有 Guest 開銷時彈 alert 詢問「上傳」或「捨棄」，無開銷時靜默初始化
-  - 登入轉換：initAfterLogin() → 清除 GuestExpense → rebuildFromState → 自動切到記帳 Tab
+  - 登入轉換：initAfterLogin() → rebuildFromState → mergeExpenses → 清除 GuestExpense → refreshViaManifest
   - 登出轉換：clearAllCache() → reload()
+  - 版本追蹤：`Ledger.version`（metadata 變更遞增）+ `Expense.version`（開銷更新遞增）
+  - 同步進度 UI：SyncProgressOverlay（fetch > 50 筆時顯示進度條）
+  - 離線同步：依帳本分組批次上傳，指數退避重試（1s → 2s，最多 3 次）
   - @MainActor 隔離：DataManager + ExpenseStore 標記 @MainActor 確保 SwiftData 線程安全
 - iOS 記帳功能（計算機、分類選擇、位置記錄、帳本切換）
   - Tab 1 直接進入 AddExpenseView，「明細」push 到開銷列表

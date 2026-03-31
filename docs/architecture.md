@@ -52,6 +52,7 @@
 | name | varchar(100) | 帳本名稱 |
 | type | enum(personal, group) | 類型 |
 | currency | varchar(3) DEFAULT 'TWD' | 幣別代碼 |
+| version | int unsigned DEFAULT 1 | 狀態版本號（metadata 變更時遞增） |
 | inviteCode | varchar(6), UNIQUE, nullable | 邀請碼（群組帳本） |
 | createdByUserId | int unsigned | 建立者 User ID |
 | updateAt | datetime | 更新時間 |
@@ -106,6 +107,7 @@
 | isSettled | tinyint unsigned DEFAULT 0 | 是否已結算（0=否, 1=是） |
 | paidByUserId | int unsigned, nullable | 付款人 User ID |
 | createdByUserId | int unsigned | 建立者 User ID |
+| version | int unsigned DEFAULT 1 | 版本號（更新時遞增） |
 | updateAt | datetime | 更新時間 |
 | createAt | datetime | 新增時間 |
 
@@ -166,27 +168,50 @@ Authenticated 模式（已登入）
 ├─ 所有資料來自 Server，本地為 SwiftData 快取（Cached* models）
 ├─ CRUD：API call → 成功 → 更新本地快取
 ├─ 離線：僅允許新增開銷（isSynced = false），其餘操作阻擋
-└─ 狀態重整：App 回前景、網路恢復時 GET /api/state 重建快取
+└─ 狀態重整：App 回前景、網路恢復時 Manifest Diff Sync（差異同步）
 ```
 
-### 狀態重整流程
+### 狀態重整流程（Manifest Diff Sync）
+
+採用 manifest-based 差異同步：Server 回傳輕量 manifest（開銷 `"id-version|..."` 清單 + metadata），App 比對本地快取後只拉取差異，大幅降低頻寬。
+
+**版本追蹤機制：**
+
+| 欄位 | 所在表 | 用途 | 遞增時機 |
+|------|--------|------|----------|
+| `Ledger.version` | Ledger | 帳本 metadata 版本 | 帳本名稱/幣別變更、成員加入/退出、分類 CRUD/排序、固定開銷 CRUD、結算 |
+| `Expense.version` | Expense | 開銷版本 | 開銷更新、結算標記 isSettled、分類刪除 cascade |
 
 ```
-Client（iOS App）                          Server
-    │                                        │
-    ├─── GET /api/state ──────────────────→  │
-    │                                        │
-    │←── 完整 State Response ────────────── │
-    │    · 所有帳本 + 成員 + 分類              │
-    │    · 所有開銷 + 固定開銷 + 結算紀錄       │
-    │                                        │
-    │    DataManager.rebuildFromState():      │
-    │    1. 暫存 unsynced expenses            │
-    │    2. 清除所有 Cached* 記錄             │
-    │    3. 從 Response 重建 Cached*          │
-    │    4. 恢復 unsynced expenses            │
-    └────────────────────────────────────────┘
+Client（iOS App）                                Server
+    │                                              │
+    │── 1. syncOfflineExpenses ─────────────────→  │  POST /api/ledgers/:id/expenses/batch
+    │←─ 上傳結果（id + version）────────────────  │
+    │                                              │
+    │── 2. GET /api/manifest ──────────────────→  │
+    │                                              │
+    │←─ Manifest Response ─────────────────────  │
+    │   · 每個帳本：version + metadata              │
+    │   · expenses: "100-1|101-2|102-1"           │
+    │                                              │
+    │   3. 比對：                                   │
+    │   ├─ 帳本 version 不同 → 重建 metadata        │
+    │   ├─ Server 有、本地沒有的帳本 → 建立          │
+    │   ├─ 本地有、Server 沒有的帳本 → 刪除          │
+    │   └─ 逐帳本 diff expenses：                   │
+    │       ├─ Server 有、本地沒有 → needFetch      │
+    │       ├─ version 不同 → needFetch            │
+    │       └─ 本地有、Server 沒有 → needDelete     │
+    │                                              │
+    │── 4. POST /ledgers/:id/expenses/fetch ──→  │  分批 200 筆
+    │←─ 完整開銷資料 ─────────────────────────  │
+    │                                              │
+    │   5. mergeExpenses（增量合併）                 │
+    │   6. reload()                                │
+    └──────────────────────────────────────────────┘
 ```
+
+**Fallback：** manifest 失敗時退回 `GET /api/state` 全量重建。
 
 ### CRUD 操作流程（已登入 + 有網路）
 
@@ -204,9 +229,10 @@ Client（iOS App）                          Server
 離線新增開銷：
 1. DataManager.addUnsyncedExpense() → isSynced = false
 2. 網路恢復時 → ExpenseStore.syncOfflineExpenses()
-3. POST /api/ledgers/:id/expenses/batch → 批次上傳
-4. 成功 → DataManager.markExpensesSynced()
-5. 接著 refreshState() 重整快取
+3. 依帳本分組 → POST /api/ledgers/:id/expenses/batch → 批次上傳
+4. 失敗時指數退避重試（1s → 2s，最多 3 次）
+5. 成功 → DataManager.markExpensesSynced(localId, serverId, version)
+6. 接著 refreshViaManifest() 差異拉取
 ```
 
 ### 登入轉換（Guest → Authenticated）
@@ -215,8 +241,9 @@ Client（iOS App）                          Server
 1. Apple Sign In → 取得 token
 2. POST /api/auth/init（上傳 guest 開銷，帶 categoryKey）
 3. Server：找到或建立個人帳本 + 預設分類 + 建立開銷
-4. Response：回傳完整 state
-5. 清除 GuestExpense → 從 response 建立 Cached* 快取
+4. Response：帳本 metadata（不含 expenses）+ uploadedExpenses
+5. rebuildFromState → mergeExpenses（上傳的開銷）→ 清除 GuestExpense
+6. refreshViaManifest()（差異拉取其餘開銷）
 ```
 
 ### 登出轉換（Authenticated → Guest）
@@ -228,6 +255,6 @@ Client（iOS App）                          Server
 ```
 
 **狀態重整時機：**
-1. `guest → authenticated`（登入成功）→ `initAfterLogin()`
-2. `scenePhase == .active`（App 回到前景）→ `refreshState()`
-3. `isOnline false → true`（網路恢復）→ `syncOfflineExpenses()` + `refreshState()`
+1. `guest → authenticated`（登入成功）→ `initAfterLogin()` → `refreshViaManifest()`
+2. `scenePhase == .active`（App 回到前景）→ `refreshState()`（manifest diff）
+3. `isOnline false → true`（網路恢復）→ `syncOfflineExpenses()` + `refreshState()`（manifest diff）

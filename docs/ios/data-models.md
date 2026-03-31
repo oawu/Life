@@ -8,7 +8,7 @@ iOS 端分為 **Guest**（純本地 SwiftData）和 **Authenticated**（API-firs
 
 ## SwiftData 持久化模型
 
-位於 `Life/Models/Persistence/`，由 `LifeSchema`（SchemaV1）定義。
+位於 `Life/Models/Persistence/`，由 `LifeSchema` 定義。
 
 ### GuestExpense（訪客開銷）
 
@@ -35,6 +35,7 @@ iOS 端分為 **Guest**（純本地 SwiftData）和 **Authenticated**（API-firs
     var name: String
     var type: String           // "personal" / "group"
     var currencyCode: String
+    var version: Int           // 帳本狀態版本號（用於 manifest diff 比對 metadata 變更）
     var inviteCode: String?
     var sortOrder: Int
     @Relationship(deleteRule: .cascade) var members: [CachedMember]
@@ -78,6 +79,7 @@ iOS 端分為 **Guest**（純本地 SwiftData）和 **Authenticated**（API-firs
     var paidByUserServerId: Int?
     var createdByUserServerId: Int?
     var isSynced: Bool          // false = 離線建立待同步
+    var version: Int            // 開銷版本號（用於 manifest diff 比對變更）
     var ledger: CachedLedger?
 }
 ```
@@ -289,18 +291,41 @@ struct StateRecurringExpense: Decodable { ... }
 struct StateSettlement: Decodable { ... }
 ```
 
+### ManifestResponse.swift
+
+```swift
+struct ManifestResponse: Decodable {
+    let ledgers: [String: ManifestLedger]  // key = 帳本 ID 字串
+}
+struct ManifestLedger: Decodable {
+    let version: Int              // 帳本狀態版本號
+    let expenses: String          // "100-1|101-2|102-1"（pipe 分隔 id-version）
+    let name, type, currency: String
+    let inviteCode: String?
+    let members: [StateMember]
+    let categories: [StateCategory]
+    var recurringExpenses: [StateRecurringExpense]  // decodeIfPresent 預設 []
+    var settlements: [StateSettlement]              // decodeIfPresent 預設 []
+}
+```
+
 ### CRUDResponses.swift
 
 ```swift
 struct CategoryResponse: Decodable { let category: StateCategory }
 struct ExpenseResponse: Decodable { let expense: StateExpense }
 struct ExpenseBatchResponse: Decodable { let expenses: [StateExpense] }
+struct ExpenseFetchResponse: Decodable { let expenses: [StateExpense] }
 struct RecurringExpenseResponse: Decodable { let recurringExpense: StateRecurringExpense }
 struct LedgerCreateResponse: Decodable { let ledger: StateLedger }
 struct LedgerJoinResponse: Decodable { let ledger: StateLedger }
 struct LedgerLeaveResponse: Decodable { let success: Bool }
 struct SettleResponse: Decodable { let settlement: StateSettlement }
 struct SuccessResponse: Decodable { let success: Bool }
+struct InitResponse: Decodable {
+    let ledgers: [StateLedger]           // 帳本 metadata（不含 expenses）
+    var uploadedExpenses: [StateExpense]  // 上傳的 guest 開銷（含 id + version）
+}
 ```
 
 ---
@@ -338,6 +363,18 @@ Repository 層，管理 SwiftData 的所有讀寫操作。
 | `cacheLedgerFromState(_:sortOrder:)` | 快取帳本（加入群組時） |
 | `deleteCachedLedger(serverId:)` | 刪除快取帳本 |
 | `clearAllCache()` | 清除所有 Cached* 資料 |
+
+**Manifest Diff 方法**：
+| 方法 | 說明 |
+|------|------|
+| `static parseManifest(_:)` | 解析 `"id-v\|id-v"` 字串 → `[(id: Int, version: Int)]` |
+| `diffWithManifest(ledgerServerId:manifest:)` | 比對本地 vs manifest → `(needFetchIds, needDeleteLocalIds)` |
+| `mergeExpenses(ledgerServerId:expenses:)` | 增量合併：有 serverId 就更新，沒有就新增 |
+| `deleteExpensesByLocalIds(_:)` | 批次刪除本地開銷 |
+| `getLedgerVersion(serverId:)` | 取得本地帳本 version |
+| `rebuildLedgerMetadata(serverId:from:)` | version 不同時重建 members/categories/recurringExpenses/settlements |
+| `createLedgerFromManifest(serverId:from:sortOrder:)` | Server 有、本地沒有的帳本 |
+| `fetchCachedLedgerServerIds()` | 取得所有本地帳本 serverId |
 
 ### ExpenseStore（@MainActor）
 
@@ -394,10 +431,19 @@ Repository 層，管理 SwiftData 的所有讀寫操作。
 **同步方法**：
 | 方法 | 說明 |
 |------|------|
-| `refreshState()` async | GET /api/state → rebuildFromState → reload |
-| `syncOfflineExpenses()` async | 批次上傳離線開銷 → markSynced |
-| `initAfterLogin(guestExpenses:)` async | POST /api/auth/init → rebuildFromState |
+| `refreshState()` async | syncOfflineExpenses → refreshViaManifest（失敗則 fallback refreshViaFullState） |
+| `refreshViaManifest()` async throws | GET /api/manifest → diff → 分批 fetch → mergeExpenses |
+| `refreshViaFullState()` async | GET /api/state → rebuildFromState → reload（fallback 路徑） |
+| `syncOfflineExpenses()` async | 依帳本分組批次上傳離線開銷 → markSynced（指數退避重試） |
+| `initAfterLogin(guestExpenses:)` async | POST /api/auth/init → rebuildFromState → mergeExpenses → refreshViaManifest |
 | `reload()` | 從 DataManager 重新載入 ledgers |
+
+**進度追蹤**：
+| 屬性 / 結構 | 說明 |
+|------|------|
+| `syncProgress: SyncProgress?` | 同步進度（nil = 無同步中） |
+| `SyncProgress { completed, total }` | 已同步筆數 / 總筆數 |
+| `syncProgressThreshold = 50` | fetch 超過此數量才顯示進度 UI |
 
 ---
 

@@ -28,6 +28,13 @@
 |------|------|-----------|------|
 | GET | state | Api\State@index | 取得完整 State（所有帳本 + 分類 + 開銷 + 固定開銷 + 結算紀錄） |
 
+### Manifest（差異同步）
+
+| 方法 | 路由 | Controller | 說明 |
+|------|------|-----------|------|
+| GET | manifest | Api\Manifest@index | 取得 Manifest（帳本 metadata + 開銷版本清單） |
+| POST | ledgers/:id/expenses/fetch | Api\Manifest@fetch | 批次取得指定開銷（最多 200 筆） |
+
 ### Ledger（帳本）
 
 | 方法 | 路由 | Controller | 說明 |
@@ -82,7 +89,7 @@
 
 ### GET /api/state
 
-回傳用戶所有帳本的完整資料。用於 App 回前景時重建本地快取。
+回傳用戶所有帳本的完整資料。作為 Manifest Diff Sync 的 fallback 路徑。
 
 **Response：**
 ```json
@@ -92,6 +99,7 @@
     "name": "個人",
     "type": "personal",
     "currency": "TWD",
+    "version": 5,
     "inviteCode": null,
     "members": [{
       "id": 1,
@@ -119,7 +127,8 @@
       "address": null,
       "isSettled": false,
       "paidByUserId": null,
-      "createdByUserId": 1
+      "createdByUserId": 1,
+      "version": 1
     }],
     "recurringExpenses": [{
       "id": 50,
@@ -146,12 +155,95 @@
 }
 ```
 
+- `version`（Ledger）：帳本狀態版本號，metadata 變更時遞增
+- `version`（Expense）：開銷版本號，更新時遞增
 - `categoryId = null` 表示「其他」分類
 - `paidByUserId = null` 表示個人帳本（無付款人概念）
 
+---
+
+## Manifest API 詳細說明
+
+### GET /api/manifest
+
+回傳用戶所有帳本的 metadata + 開銷版本清單。iOS 端比對本地快取後只拉取差異。
+
+**Response：**
+```json
+{
+  "ledgers": {
+    "1": {
+      "version": 5,
+      "expenses": "100-1|101-2|102-1",
+      "name": "個人",
+      "type": "personal",
+      "currency": "TWD",
+      "inviteCode": null,
+      "members": [{"id": 1, "userId": 1, "name": "小明", "role": "owner", "isCurrentUser": true}],
+      "categories": [{"id": 10, "key": "breakfast", "name": "早餐", "icon": "sunrise", "color": "#FF9500", "sort": 0}],
+      "recurringExpenses": [],
+      "settlements": []
+    }
+  }
+}
+```
+
+**關鍵欄位：**
+- `ledgers` 以帳本 ID（字串）為 key 的 object（非 array）
+- `version`：帳本狀態版本號，iOS 比對本地 version 判斷是否需要重建 metadata
+- `expenses`：pipe 分隔的 `{id}-{version}` 清單（如 `"100-1|101-2|102-1"`），空帳本為 `""`
+- metadata（members / categories / recurringExpenses / settlements）：資料量小，每次一併回傳省去額外 round-trip
+
+**iOS 比對邏輯：**
+1. 帳本 version 不同 → 重建 metadata（members / categories / recurringExpenses / settlements）
+2. 解析 expenses 字串 → 比對本地 serverId + version
+   - Server 有、本地沒有 → 需 fetch
+   - Server 有、本地 version 不同 → 需 fetch
+   - 本地有、Server 沒有 → 需刪除
+3. 收集所有 needFetchIds → 分批 `POST /api/ledgers/:id/expenses/fetch`
+
+### POST /api/ledgers/:id/expenses/fetch
+
+批次取得指定 ID 的開銷完整資料。
+
+**Request：**
+```json
+{
+  "ids": [100, 101, 102]
+}
+```
+
+**限制：** 單次最多 200 筆，超過回傳 400 錯誤。
+
+**Response：**
+```json
+{
+  "expenses": [
+    {
+      "id": 100,
+      "categoryId": 10,
+      "amount": 150,
+      "memo": "",
+      "date": "2026-03-24 08:00:00",
+      "latitude": null,
+      "longitude": null,
+      "address": null,
+      "isSettled": false,
+      "paidByUserId": null,
+      "createdByUserId": 1,
+      "version": 1
+    }
+  ]
+}
+```
+
+---
+
+## Auth Init API 詳細說明
+
 ### POST /api/auth/init
 
-登入後呼叫，上傳 guest 開銷，回傳完整 state。
+登入後呼叫，上傳 guest 開銷，回傳帳本 metadata（不含開銷）+ 上傳結果。
 
 **Request：**
 ```json
@@ -174,6 +266,36 @@
 1. 找用戶的個人帳本（`type = personal`）
 2. 不存在 → 建立個人帳本 + owner 成員 + 預設分類（`Category::defaultPersonalCategories()`，帶 key）
 3. 每筆 guest expense → 依 categoryKey 查找分類 → 找不到則 categoryId = null → 建立 Expense
-4. 回傳完整 state（複用 State controller 的邏輯）
+4. 回傳 `buildFullStateWithoutExpenses()`（不含 expenses 欄位）+ `uploadedExpenses`（剛建立的開銷）
 
-**Response：** 同 `GET /api/state` 格式。
+**Response：**
+```json
+{
+  "ledgers": [{
+    "id": 1,
+    "name": "個人",
+    "type": "personal",
+    "currency": "TWD",
+    "version": 5,
+    "inviteCode": null,
+    "members": [...],
+    "categories": [...],
+    "recurringExpenses": [],
+    "settlements": []
+  }],
+  "uploadedExpenses": [
+    {
+      "id": 100,
+      "categoryId": 10,
+      "amount": 150,
+      "memo": "",
+      "date": "2026-03-24 08:00:00",
+      "version": 1,
+      ...
+    }
+  ]
+}
+```
+
+- `ledgers` 不含 `expenses` 欄位（由後續 `refreshViaManifest` 差異拉取）
+- `uploadedExpenses` 包含剛上傳的 guest 開銷完整資料（含 id + version）
