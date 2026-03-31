@@ -74,7 +74,7 @@
 |------|-----------|------|
 | (default) | — | Hello! |
 | test/worker | Cli\Worker@test | 測試 Worker 連線 |
-| recurring/trigger | Cli\Recurring@trigger | 觸發固定開銷排程（Worker 每日 00:05 呼叫） |
+| recurring/trigger [date] | Cli\Recurring@trigger | 觸發固定開銷排程（Worker 每日 00:05 呼叫），可帶日期參數模擬指定日排程 |
 
 ---
 
