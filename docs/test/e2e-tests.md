@@ -1122,7 +1122,7 @@ curl -s $BASE/api/ledgers/$STL_LEDGER/members \
 
 ---
 
-### Suite I: 狀態重整（2 tests）
+### Suite I: 狀態重整（3 tests）
 
 ---
 
@@ -1178,6 +1178,39 @@ curl -s $BASE/api/ledgers/$STL_LEDGER/members \
 
 **驗證：UI**
 - [ ] → P5（明細列表），`snapshot_ui` 確認 $55,555 開銷仍存在
+
+---
+
+#### I-3: 下拉重新整理（含離線同步）
+
+**前置條件**：Auth=Authenticated, Network=Online
+**依賴**：I-2
+
+**步驟**
+1. → P3（模擬斷網 ON）
+2. `ui_tap` — Tab 1
+3. → P2（新增開銷：amount=77777, categoryIndex=0）
+4. → P3（模擬斷網 OFF）
+5. → P7 開始 log 擷取
+6. → P5（明細列表）
+7. `ui_swipe` — 列表頂部向下滑（觸發 pull-to-refresh）
+8. 等待 3 秒（syncOfflineExpenses + refreshState）
+
+**驗證：Log**
+```
+[ExpenseStore] syncOfflineExpenses: found 1 unsynced
+[ExpenseStore] refreshState: start
+[ExpenseStore] refreshState: received
+```
+
+**驗證：UI**
+- [ ] `snapshot_ui` 確認 $77,777 開銷仍存在
+
+**驗證：DB**
+```bash
+curl -s $BASE/api/state -H "Authorization: Bearer $TOKEN" | jq '.ledgers[0].expenses[] | select(.amount == 77777)'
+```
+- [ ] Server 端存在該筆開銷（確認 sync 成功）
 
 ---
 
@@ -1277,7 +1310,7 @@ Suite A: 認證流程（A-1 → A-6 依序）
     │
     ├─ 獨立（curl）──→ Suite H: 拆帳結算（H-1 → H-3）
     │
-    ├─ 獨立 ──→ Suite I: 狀態重整（I-1 → I-2）
+    ├─ 獨立 ──→ Suite I: 狀態重整（I-1 → I-3）
     │
     ▼
 [登出回 Guest]
@@ -1330,6 +1363,7 @@ Suite J: 邊界與權限（J-1 → J-4）
 | H | H-3 | 結算後可加入新成員 | | | |
 | I | I-1 | 前景重整（含 Server 端新資料） | | | |
 | I | I-2 | 重整保留未同步開銷 | | | |
+| I | I-3 | 下拉重新整理（含離線同步） | | | |
 | J | J-1 | 訪客累積 10 筆 → 備份提醒 | | | |
 | J | J-2 | 訪客不可編輯分類 | | | |
 | J | J-3 | 訪客不可建立群組帳本 | | | |

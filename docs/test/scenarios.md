@@ -472,6 +472,24 @@
 
 ---
 
+### SYNC-006：下拉重新整理 — 同步 + 拉取
+
+**環境** Auth: Authenticated / Network: Online
+**前置條件** 有 1 筆未同步開銷（離線時新增）
+**操作步驟**
+1. 恢復網路
+2. 在明細列表下拉重新整理
+
+**預期結果**
+- syncOfflineExpenses → 上傳未同步開銷
+- refreshState → 拉取 Server 最新狀態
+- 開銷出現在 Server 端
+- Log：`syncOfflineExpenses: found 1` → `refreshState: start` → `refreshState: received`
+
+**測試層** Layer 3（log）+ Layer 4（整合）
+
+---
+
 ## 4. 分類管理（CAT-001 ~ 008）
 
 ### CAT-001：Auth+Online 新增分類
@@ -603,7 +621,7 @@
 
 **預期結果**
 - POST /api/ledgers → 200
-- 回傳 inviteCode（6 碼）
+- 回傳 inviteCode（8 碼+，Hashids 動態計算）
 - 自動建立預設分類 + owner member
 - 帳本列表新增
 

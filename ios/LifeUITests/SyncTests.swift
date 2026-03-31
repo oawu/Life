@@ -1,6 +1,6 @@
 import XCTest
 
-/// 離線同步測試（SYNC-001 ~ SYNC-005）
+/// 離線同步測試（SYNC-001 ~ SYNC-006）
 final class SyncTests: XCTestCase {
     var app: XCUIApplication!
 
@@ -377,5 +377,56 @@ final class SyncTests: XCTestCase {
         // MySQL 驗證：共 3 筆
         let expCount = TestHelper.queryMySQL("SELECT COUNT(*) as count FROM Expense")
         XCTAssertEqual(expCount?["count"] as? String, "3", "Server 應有 3 筆開銷")
+    }
+
+    // MARK: - SYNC-006：下拉重新整理 — 同步 + 拉取
+
+    func test_SYNC006_pullToRefresh_syncAndFetch() {
+        devLogin()
+
+        // 離線新增 1 筆
+        toggleOffline()
+        addExpense(amount: 777, categoryKey: "breakfast")
+
+        // 確認本地有這筆
+        goToExpenseList()
+        XCTAssertTrue(app.staticTexts["777"].waitForExistence(timeout: 5), "應有 777 開銷")
+
+        // 上線
+        backToAddExpense()
+        toggleOnline()
+        sleep(1)
+
+        // 透過 API 在 Server 新增一筆（App 不知道）
+        guard let token = TestHelper.devLogin(email: "test@test.com") else {
+            XCTFail("API 登入失敗")
+            return
+        }
+        guard let ledgerRow = TestHelper.queryMySQL("SELECT id FROM Ledger WHERE type = 'personal' LIMIT 1"),
+              let ledgerIdStr = ledgerRow["id"] as? String,
+              let ledgerId = Int(ledgerIdStr) else {
+            XCTFail("無法取得個人帳本 ID")
+            return
+        }
+        let serverExpense = TestHelper.addExpenseViaAPI(token: token, ledgerId: ledgerId, amount: 888)
+        XCTAssertNotNil(serverExpense, "API 新增開銷應成功")
+
+        // 下拉重新整理
+        goToExpenseList()
+        let list = app.tables.firstMatch
+        XCTAssertTrue(list.waitForExistence(timeout: 5), "開銷列表未出現")
+
+        let start = list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+        let end = list.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9))
+        start.press(forDuration: 0.1, thenDragTo: end)
+        sleep(5)
+
+        // UI 驗證：離線開銷同步後仍在 + Server 新增的也拉下來
+        XCTAssertTrue(app.staticTexts["777"].waitForExistence(timeout: 5), "離線開銷 777 應仍存在")
+        XCTAssertTrue(app.staticTexts["888"].waitForExistence(timeout: 5), "Server 開銷 888 應拉取下來")
+
+        // DB 驗證：離線的 777 已同步到 Server
+        let exp777 = TestHelper.queryMySQL("SELECT COUNT(*) as count FROM Expense WHERE amount = 777")
+        XCTAssertEqual(exp777?["count"] as? String, "1", "Server 應有 777 開銷")
     }
 }
