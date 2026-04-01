@@ -45,11 +45,16 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
             }
             print("[手機連線] 同步帳本到手錶：送出 \(ledgers.count) 本帳本，isLoggedIn=\(isLoggedIn), isOnline=\(isOnline)")
 
-            let appContext: [String: Any] = [
+            var appContext: [String: Any] = [
                 "ledgers": context,
                 "isLoggedIn": isLoggedIn,
                 "isOnline": isOnline,
             ]
+
+            // 登入狀態下附帶 token，讓 Watch 可以獨立打 API
+            if isLoggedIn, let token = KeychainService.shared.getToken() {
+                appContext["token"] = token
+            }
 
             // 嘗試 updateApplicationContext（持久化，Watch 下次開啟時可用）
             do {

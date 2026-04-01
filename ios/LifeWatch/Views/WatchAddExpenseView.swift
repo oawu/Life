@@ -14,7 +14,6 @@ enum WatchStep: Hashable {
 struct WatchAddExpenseView: View {
     @Bindable var store: WatchExpenseStore
     let locationService: WatchLocationService
-    var sessionManager: WatchSessionManager?
 
     @State private var path: [WatchStep] = []
     @State private var amount: Int = 0
@@ -31,10 +30,9 @@ struct WatchAddExpenseView: View {
             WatchLedgerPickerView(
                 ledgers: store.availableLedgers,
                 isOnline: store.isOnline,
-                isReachable: sessionManager?.isReachable ?? false,
                 hasSynced: store.hasSyncedFromPhone,
-                isLoggedIn: store.isLoggedIn,
-                pendingCount: store.pendingCount,
+                isFetching: store.isFetching,
+                offlinePendingCount: store.offlinePendingCount,
                 selectedId: store.selectedLedgerId,
                 onSelect: { ledger in
                     store.selectedLedgerId = ledger.id
@@ -136,36 +134,46 @@ struct WatchAddExpenseView: View {
             return
         }
 
-        WKInterfaceDevice.current().play(.success)
+        let saveAmount = amount
+        let saveCurrency = store.currentCurrency
+        let saveLedgerId = store.selectedLedgerId
+        let saveCategoryId = category.id
+        let saveMemo = memo
+        let saveDate = date
+        let saveLat = locationService.latitude
+        let saveLng = locationService.longitude
+        let saveAddr = locationService.currentAddress
+        let savePayerId = store.isGroupLedger ? selectedPayer?.id : nil
 
-        // 建立 pending expense
-        let pending = WatchPendingExpense(
-            id: UUID().uuidString,
-            amount: Double(amount),
-            categoryId: category.id,
-            memo: memo,
-            date: date.timeIntervalSince1970,
-            latitude: locationService.latitude,
-            longitude: locationService.longitude,
-            address: locationService.currentAddress,
-            ledgerId: store.selectedLedgerId,
-            paidById: store.isGroupLedger ? selectedPayer?.id : nil,
-            paidByName: store.isGroupLedger ? selectedPayer?.name : nil
-        )
+        Task {
+            let result = await store.createExpense(
+                amount: saveAmount,
+                categoryId: saveCategoryId,
+                memo: saveMemo,
+                date: saveDate,
+                latitude: saveLat,
+                longitude: saveLng,
+                address: saveAddr,
+                paidByUserId: savePayerId,
+                ledgerId: saveLedgerId
+            )
 
-        // 存入本地佇列
-        store.addPendingExpense(pending)
+            switch result {
+            case .success:
+                WKInterfaceDevice.current().play(.success)
+                savedAmountText = "已儲存 \(saveCurrency.symbol)\(formatSaveAmount())"
+            case .queued:
+                WKInterfaceDevice.current().play(.success)
+                savedAmountText = "已排隊 \(saveCurrency.symbol)\(formatSaveAmount())"
+            }
 
-        // 嘗試透過 WatchConnectivity 送出
-        sessionManager?.sendExpense(pending)
+            showSuccess = true
+            path.removeAll()
+            resetForm()
 
-        savedAmountText = "已儲存 \(store.currentCurrency.symbol)\(formatSaveAmount())"
-        showSuccess = true
-        path.removeAll()
-        resetForm()
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            showSuccess = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                showSuccess = false
+            }
         }
     }
 

@@ -4,10 +4,9 @@ import WatchKit
 struct WatchLedgerPickerView: View {
     let ledgers: [Ledger]
     var isOnline: Bool = true
-    var isReachable: Bool = false
     var hasSynced: Bool = false
-    var isLoggedIn: Bool = false
-    var pendingCount: Int = 0
+    var isFetching: Bool = false
+    var offlinePendingCount: Int = 0
     let selectedId: String
     let onSelect: (Ledger) -> Void
 
@@ -36,11 +35,20 @@ struct WatchLedgerPickerView: View {
                 }
             }
 
-            if pendingCount > 0 {
+            if isFetching {
+                HStack {
+                    ProgressView()
+                    Text("載入中")
+                        .font(.caption2)
+                }
+                .listRowBackground(Color.clear)
+            }
+
+            if offlinePendingCount > 0 {
                 HStack {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.caption2)
-                    Text("待同步 \(pendingCount) 筆")
+                    Text("待上傳 \(offlinePendingCount) 筆")
                         .font(.caption2)
                 }
                 .foregroundStyle(.orange)
@@ -61,11 +69,9 @@ struct WatchLedgerPickerView: View {
             #if DEBUG
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    debugRow("iPhone", isReachable ? "connected" : "disconnected", isReachable ? .green : .red)
                     debugRow("Synced", hasSynced ? "yes" : "no", hasSynced ? .green : .orange)
-                    debugRow("Login", isLoggedIn ? "yes" : "no", isLoggedIn ? .green : .secondary)
                     debugRow("Ledgers", "\(ledgers.count)", .secondary)
-                    debugRow("Pending", "\(pendingCount)", pendingCount > 0 ? .orange : .secondary)
+                    debugRow("Offline", "\(offlinePendingCount)", offlinePendingCount > 0 ? .orange : .secondary)
                 }
             } header: {
                 Text("Debug")
