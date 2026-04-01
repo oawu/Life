@@ -30,8 +30,8 @@ class RecurringExpense {
       'frequencyType'  => Valid::enum('頻率類型', ['daily', 'weekly', 'monthly', 'yearly']),
       'frequencyValue' => Valid::any_('頻率參數')->nullOrNoKey(null),
       'memo'           => Valid::string_('備註')->max(200)->nullOrNoKey(''),
-      'latitude'       => Valid::string_('緯度')->nullOrNoKey(null),
-      'longitude'      => Valid::string_('經度')->nullOrNoKey(null),
+      'latitude'       => Valid::float_('緯度')->min(-90)->max(90)->nullOrNoKey(null),
+      'longitude'      => Valid::float_('經度')->min(-180)->max(180)->nullOrNoKey(null),
       'address'        => Valid::string_('地址')->max(200)->nullOrNoKey(null),
       'paidByUserId'   => Valid::uInt_('付款人')->nullOrNoKey(null),
     ]);
@@ -91,8 +91,8 @@ class RecurringExpense {
       'frequencyValue' => Valid::any_('頻率參數')->nullOrNoKey(false),
       'memo'           => Valid::string_('備註')->max(200)->nullOrNoKey(null),
       'isEnabled'      => Valid::bool_('是否啟用')->nullOrNoKey(null),
-      'latitude'       => Valid::string_('緯度')->nullOrNoKey(false),
-      'longitude'      => Valid::string_('經度')->nullOrNoKey(false),
+      'latitude'       => Valid::float_('緯度')->min(-90)->max(90)->nullOrNoKey(false),
+      'longitude'      => Valid::float_('經度')->min(-180)->max(180)->nullOrNoKey(false),
       'address'        => Valid::string_('地址')->max(200)->nullOrNoKey(false),
       'paidByUserId'   => Valid::uInt_('付款人')->nullOrNoKey(false),
     ]);

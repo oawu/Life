@@ -157,8 +157,8 @@ class Expense {
       'amount'        => Valid::uInt('金額'),
       'memo'          => Valid::string_('備註')->max(200)->nullOrNoKey(''),
       'date'          => Valid::string_('日期')->nullOrNoKey(date('Y-m-d H:i:s')),
-      'latitude'      => Valid::string_('緯度')->nullOrNoKey(null),
-      'longitude'     => Valid::string_('經度')->nullOrNoKey(null),
+      'latitude'      => Valid::float_('緯度')->min(-90)->max(90)->nullOrNoKey(null),
+      'longitude'     => Valid::float_('經度')->min(-180)->max(180)->nullOrNoKey(null),
       'address'       => Valid::string_('地址')->max(200)->nullOrNoKey(null),
       'paidByUserId'  => Valid::uInt_('付款人')->nullOrNoKey(null),
     ]);
