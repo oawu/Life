@@ -35,7 +35,7 @@ struct WatchLedgerPickerView: View {
                 }
             }
 
-            if isFetching {
+            if isFetching && ledgers.isEmpty {
                 HStack {
                     ProgressView()
                     Text("載入中")
