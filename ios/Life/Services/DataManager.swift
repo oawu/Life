@@ -69,7 +69,7 @@ final class DataManager {
             try context.delete(model: GuestExpense.self)
             save()
         } catch {
-            print("[DataManager] clearAllGuestData error: \(error)")
+            print("[資料管理] 清除訪客資料失敗：\(error)")
         }
     }
 
@@ -105,7 +105,7 @@ final class DataManager {
             let paidByUserServerId: Int?
         }
 
-        print("[DataManager] rebuildFromState: preserving \(unsyncedExpenses.count) unsynced expenses")
+        print("[資料管理] 重建狀態：保留 \(unsyncedExpenses.count) 筆未同步開銷")
         let unsyncedData = unsyncedExpenses.compactMap { expense -> UnsyncedExpenseData? in
             guard let ledgerServerId = expense.ledger?.serverId else {
                 return nil
@@ -221,7 +221,7 @@ final class DataManager {
             }
         }
 
-        print("[DataManager] rebuildFromState: created \(response.ledgers.count) ledgers")
+        print("[資料管理] 重建狀態：建立 \(response.ledgers.count) 本帳本")
 
         // 4. 恢復未同步的離線開銷（僅 ledger 仍存在者）
         for data in unsyncedData {
@@ -336,7 +336,7 @@ final class DataManager {
     }
 
     func markExpensesSynced(_ mappings: [(localId: UUID, serverId: Int, version: Int)]) {
-        print("[DataManager] markExpensesSynced: \(mappings.count) expenses")
+        print("[資料管理] 標記已同步：\(mappings.count) 筆開銷")
         for mapping in mappings {
             let localId = mapping.localId
             let descriptor = FetchDescriptor<CachedExpense>(
@@ -866,7 +866,7 @@ final class DataManager {
     // MARK: - Clear All Cache
 
     func clearAllCache() {
-        print("[DataManager] clearAllCache")
+        print("[資料管理] 清除所有快取")
         do {
             try context.delete(model: CachedLedger.self)
             try context.delete(model: CachedExpense.self)
@@ -876,7 +876,7 @@ final class DataManager {
             try context.delete(model: CachedSettlement.self)
             save()
         } catch {
-            print("[DataManager] clearAllCache error: \(error)")
+            print("[資料管理] 清除快取失敗：\(error)")
         }
     }
 
@@ -886,7 +886,7 @@ final class DataManager {
         do {
             try context.save()
         } catch {
-            print("[DataManager] save error: \(error)")
+            print("[資料管理] 儲存失敗：\(error)")
         }
     }
 

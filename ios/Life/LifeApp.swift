@@ -52,13 +52,14 @@ struct LifeApp: App {
             .environment(authManager)
             .environment(networkMonitor)
             .onChange(of: authManager.authState) { oldState, newState in
-                print("[LifeApp] authState changed: \(oldState) → \(newState)")
+                print("[App] 登入狀態變更：\(oldState) → \(newState)")
                 handleAuthStateChange(from: oldState, to: newState)
             }
             .onChange(of: networkMonitor.isOnline) {
-                print("[LifeApp] network changed: isOnline=\(networkMonitor.isOnline)")
+                print("[App] 網路狀態變更：isOnline=\(networkMonitor.isOnline)")
                 phoneSessionManager?.isOnline = networkMonitor.isOnline
                 phoneSessionManager?.syncLedgersToWatch()
+                
                 // 網路恢復時同步離線開銷 + 重整快取
                 if networkMonitor.isOnline && authManager.isAuthenticated {
                     Task {
@@ -69,16 +70,26 @@ struct LifeApp: App {
             }
             .onAppear {
                 if phoneSessionManager == nil {
-                    phoneSessionManager = PhoneSessionManager(expenseStore: expenseStore)
+                    let manager = PhoneSessionManager(expenseStore: expenseStore)
+                    manager.isLoggedIn = authManager.isAuthenticated
+                    manager.isOnline = networkMonitor.isOnline
+                    phoneSessionManager = manager
                 }
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active && authManager.isAuthenticated {
-                    print("[LifeApp] scenePhase: active, triggering sync + refresh")
+                    print("[App] 進入前景，觸發同步 + 重整")
+
+                    // 同步 Watch 傳來的開銷到後端
+                    phoneSessionManager?.syncWatchExpenses()
+
                     Task {
                         await expenseStore.syncOfflineExpenses()
                         await expenseStore.refreshState()
                     }
+
+                    // 前景時推送最新帳本結構給 Watch
+                    phoneSessionManager?.syncLedgersToWatch()
                 }
             }
             .onChange(of: expenseStore.ledgers) {
@@ -133,7 +144,7 @@ struct LifeApp: App {
             // 登入：上傳 guest 開銷 + 建立快取
             phoneSessionManager?.isLoggedIn = true
             let guestExpenses = dataManager.fetchGuestExpenses()
-            print("[LifeApp] initAfterLogin started, guestExpenses=\(guestExpenses.count)")
+            print("[App] 登入後初始化，訪客開銷=\(guestExpenses.count)")
 
             if guestExpenses.isEmpty {
                 Task {

@@ -14,7 +14,7 @@ enum WatchStep: Hashable {
 struct WatchAddExpenseView: View {
     @Bindable var store: WatchExpenseStore
     let locationService: WatchLocationService
-    let onSave: (Expense) -> Void
+    var sessionManager: WatchSessionManager?
 
     @State private var path: [WatchStep] = []
     @State private var amount: Int = 0
@@ -31,6 +31,10 @@ struct WatchAddExpenseView: View {
             WatchLedgerPickerView(
                 ledgers: store.availableLedgers,
                 isOnline: store.isOnline,
+                isReachable: sessionManager?.isReachable ?? false,
+                hasSynced: store.hasSyncedFromPhone,
+                isLoggedIn: store.isLoggedIn,
+                pendingCount: store.pendingCount,
                 selectedId: store.selectedLedgerId,
                 onSelect: { ledger in
                     store.selectedLedgerId = ledger.id
@@ -134,20 +138,26 @@ struct WatchAddExpenseView: View {
 
         WKInterfaceDevice.current().play(.success)
 
-        let expense = Expense(
-            id: UUID(),
+        // 建立 pending expense
+        let pending = WatchPendingExpense(
+            id: UUID().uuidString,
             amount: Double(amount),
-            category: category,
+            categoryId: category.id,
             memo: memo,
-            date: date,
+            date: date.timeIntervalSince1970,
             latitude: locationService.latitude,
             longitude: locationService.longitude,
             address: locationService.currentAddress,
             ledgerId: store.selectedLedgerId,
-            paidBy: store.isGroupLedger ? selectedPayer : nil
+            paidById: store.isGroupLedger ? selectedPayer?.id : nil,
+            paidByName: store.isGroupLedger ? selectedPayer?.name : nil
         )
 
-        onSave(expense)
+        // 存入本地佇列
+        store.addPendingExpense(pending)
+
+        // 嘗試透過 WatchConnectivity 送出
+        sessionManager?.sendExpense(pending)
 
         savedAmountText = "已儲存 \(store.currentCurrency.symbol)\(formatSaveAmount())"
         showSuccess = true

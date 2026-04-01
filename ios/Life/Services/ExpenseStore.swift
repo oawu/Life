@@ -115,7 +115,7 @@ final class ExpenseStore {
 
     func addExpense(amount: Double, category: ExpenseCategory, memo: String, date: Date, latitude: Double?, longitude: Double?, address: String?, paidBy: LedgerMember? = nil) async {
         if !authManager.isAuthenticated {
-            print("[ExpenseStore] addExpense: mode=guest")
+            print("[開銷管理] 新增開銷：模式=訪客")
             dataManager.addGuestExpense(
                 categoryKey: category.key ?? category.id,
                 amount: Int(amount),
@@ -134,7 +134,7 @@ final class ExpenseStore {
         }
 
         let categoryServerId = Int(category.id)
-        print("[ExpenseStore] addExpense: mode=auth, online=\(networkMonitor.isOnline)")
+        print("[開銷管理] 新增開銷：模式=已登入, 網路=\(networkMonitor.isOnline)")
 
         if networkMonitor.isOnline {
             var body: [String: Any] = [
@@ -169,7 +169,7 @@ final class ExpenseStore {
                 return
             } catch {
                 // API 失敗 → 降級為離線新增
-                print("[ExpenseStore] addExpense API failed, falling back to offline: \(error)")
+                print("[開銷管理] 新增開銷 API 失敗，降級為離線：\(error)")
             }
         }
 
@@ -662,13 +662,13 @@ final class ExpenseStore {
         do {
             try await refreshViaManifest()
         } catch {
-            print("[ExpenseStore] refreshViaManifest failed, falling back to full state: \(error)")
+            print("[開銷管理] manifest 同步失敗，降級為全量同步：\(error)")
             await refreshViaFullState()
         }
     }
 
     private func refreshViaManifest() async throws {
-        print("[ExpenseStore] refreshViaManifest: start")
+        print("[開銷管理] manifest 同步：開始")
         let response = try await APIClient.shared.get(
             path: "/api/manifest",
             responseType: ManifestResponse.self
@@ -680,7 +680,7 @@ final class ExpenseStore {
         // 刪除本地有但 Server 沒有的帳本
         for localId in localLedgerIds {
             if !serverLedgerIds.contains(localId) {
-                print("[ExpenseStore] manifest: deleting removed ledger \(localId)")
+                print("[開銷管理] manifest：刪除已移除帳本 \(localId)")
                 dataManager.deleteCachedLedger(serverId: localId)
             }
         }
@@ -692,7 +692,7 @@ final class ExpenseStore {
                 continue
             }
             if !localLedgerIds.contains(serverId) {
-                print("[ExpenseStore] manifest: creating new ledger \(serverId)")
+                print("[開銷管理] manifest：建立新帳本 \(serverId)")
                 dataManager.createLedgerFromManifest(serverId: serverId, from: manifest, sortOrder: nextSortOrder)
                 nextSortOrder += 1
             }
@@ -705,7 +705,7 @@ final class ExpenseStore {
             }
             let localVersion = dataManager.getLedgerVersion(serverId: serverId)
             if localVersion != manifest.version {
-                print("[ExpenseStore] manifest: rebuilding metadata for ledger \(serverId) (version \(localVersion) → \(manifest.version))")
+                print("[開銷管理] manifest：重建帳本 \(serverId) 的 metadata（版本 \(localVersion) → \(manifest.version)）")
                 dataManager.rebuildLedgerMetadata(serverId: serverId, from: manifest)
             }
         }
@@ -729,7 +729,7 @@ final class ExpenseStore {
 
         // 批次刪除本地已被 Server 刪除的開銷
         if !allNeedDeleteLocalIds.isEmpty {
-            print("[ExpenseStore] manifest: deleting \(allNeedDeleteLocalIds.count) removed expenses")
+            print("[開銷管理] manifest：刪除 \(allNeedDeleteLocalIds.count) 筆已移除開銷")
             dataManager.deleteExpensesByLocalIds(allNeedDeleteLocalIds)
         }
 
@@ -737,12 +737,12 @@ final class ExpenseStore {
         let totalFetchCount = allNeedFetchIds.reduce(0) { $0 + $1.ids.count }
 
         if totalFetchCount == 0 {
-            print("[ExpenseStore] refreshViaManifest: no changes")
+            print("[開銷管理] manifest 同步：無變更")
             reload()
             return
         }
 
-        print("[ExpenseStore] manifest: need to fetch \(totalFetchCount) expenses")
+        print("[開銷管理] manifest：需拉取 \(totalFetchCount) 筆開銷")
 
         if totalFetchCount > syncProgressThreshold {
             withAnimation { syncProgress = SyncProgress(completed: 0, total: totalFetchCount) }
@@ -769,21 +769,21 @@ final class ExpenseStore {
 
         withAnimation { syncProgress = nil }
         reload()
-        print("[ExpenseStore] refreshViaManifest: done, fetched \(totalFetchCount) expenses")
+        print("[開銷管理] manifest 同步：完成，拉取 \(totalFetchCount) 筆開銷")
     }
 
     private func refreshViaFullState() async {
-        print("[ExpenseStore] refreshViaFullState: start")
+        print("[開銷管理] 全量同步：開始")
         do {
             let response = try await APIClient.shared.get(
                 path: "/api/state",
                 responseType: StateResponse.self
             )
-            print("[ExpenseStore] refreshViaFullState: received \(response.ledgers.count) ledgers")
+            print("[開銷管理] 全量同步：收到 \(response.ledgers.count) 本帳本")
             dataManager.rebuildFromState(response)
             reload()
         } catch {
-            print("[ExpenseStore] refreshViaFullState error: \(error)")
+            print("[開銷管理] 全量同步失敗：\(error)")
         }
     }
 
@@ -800,7 +800,7 @@ final class ExpenseStore {
         }
 
         let unsynced = dataManager.fetchUnsyncedExpenses()
-        print("[ExpenseStore] syncOfflineExpenses: found \(unsynced.count) unsynced")
+        print("[開銷管理] 離線同步：找到 \(unsynced.count) 筆未同步")
         let payloads: [UnsyncedPayload] = unsynced.compactMap { expense -> UnsyncedPayload? in
             guard let ledgerServerId = expense.ledger?.serverId, ledgerServerId > 0 else {
                 return nil
@@ -849,15 +849,15 @@ final class ExpenseStore {
                     let mappings = zip(items, response.expenses).map { (local, remote) in
                         (localId: local.localId, serverId: remote.id, version: remote.version)
                     }
-                    print("[ExpenseStore] syncOfflineExpenses: batch uploaded \(items.count) to ledger \(ledgerServerId)")
+                    print("[開銷管理] 離線同步：批次上傳 \(items.count) 筆到帳本 \(ledgerServerId)")
                     dataManager.markExpensesSynced(mappings)
                     break
                 } catch {
                     if attempt < 3 {
-                        print("[ExpenseStore] syncOfflineExpenses: 帳本 \(ledgerServerId) 第 \(attempt) 次失敗，\(Int(pow(2, Double(attempt - 1))))s 後重試")
+                        print("[開銷管理] 離線同步：帳本 \(ledgerServerId) 第 \(attempt) 次失敗，\(Int(pow(2, Double(attempt - 1))))s 後重試")
                         try? await Task.sleep(for: .seconds(pow(2, Double(attempt - 1))))
                     } else {
-                        print("[ExpenseStore] syncOfflineExpenses: 放棄，帳本 \(ledgerServerId) 經 3 次嘗試仍失敗")
+                        print("[開銷管理] 離線同步：放棄，帳本 \(ledgerServerId) 經 3 次嘗試仍失敗")
                     }
                 }
             }
@@ -884,7 +884,7 @@ final class ExpenseStore {
             return data
         }
 
-        print("[ExpenseStore] initAfterLogin: uploading \(guestExpenses.count) guest expenses")
+        print("[開銷管理] 登入後初始化：上傳 \(guestExpenses.count) 筆訪客開銷")
         do {
             let response = try await APIClient.shared.post(
                 path: "/api/auth/init",
@@ -908,10 +908,10 @@ final class ExpenseStore {
             do {
                 try await refreshViaManifest()
             } catch {
-                print("[ExpenseStore] initAfterLogin manifest sync failed: \(error)")
+                print("[開銷管理] 登入後 manifest 同步失敗：\(error)")
             }
         } catch {
-            print("[ExpenseStore] initAfterLogin error: \(error)")
+            print("[開銷管理] 登入後初始化失敗：\(error)")
             await refreshState()
             dataManager.clearAllGuestData()
             reload()

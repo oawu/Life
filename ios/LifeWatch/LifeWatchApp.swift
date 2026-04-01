@@ -10,10 +10,9 @@ struct LifeWatchApp: App {
         WindowGroup {
             WatchAddExpenseView(
                 store: store,
-                locationService: locationService
-            ) { expense in
-                sessionManager?.sendExpense(expense)
-            }
+                locationService: locationService,
+                sessionManager: sessionManager
+            )
             .onAppear {
                 locationService.requestLocation()
                 if sessionManager == nil {
