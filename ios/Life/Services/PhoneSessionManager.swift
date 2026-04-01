@@ -7,6 +7,7 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     private let session: WCSession
     var isLoggedIn: Bool = false
     var isOnline: Bool = true
+    var isAuthResolved: Bool = false
 
     private static let pendingKey = "phone_watch_pending_expenses"
 
@@ -27,6 +28,10 @@ final class PhoneSessionManager: NSObject, WCSessionDelegate {
     // MARK: - Send Ledgers to Watch
 
     func syncLedgersToWatch() {
+        guard isAuthResolved else {
+            print("[手機連線] 同步帳本到手錶：跳過 — 驗證尚未完成")
+            return
+        }
         guard session.activationState == .activated else {
             print("[手機連線] 同步帳本到手錶：跳過 — session 未啟動")
             return

@@ -86,14 +86,14 @@ final class WatchSessionManager: NSObject, WCSessionDelegate {
             }
         }
 
-        if let isLoggedIn = isLoggedIn {
-            store.isLoggedIn = isLoggedIn
-            if !isLoggedIn {
-                store.token = nil
-            }
-        }
+        // 有 token → 設定；iPhone 確認未登入 → 清除
         if let token = token {
             store.token = token
+        } else if isLoggedIn == false {
+            store.token = nil
+        }
+        if let isLoggedIn = isLoggedIn {
+            store.isLoggedIn = isLoggedIn
         }
         if let isOnline = isOnline {
             store.isOnline = isOnline

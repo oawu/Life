@@ -53,6 +53,10 @@ struct LifeApp: App {
             .environment(networkMonitor)
             .onChange(of: authManager.authState) { oldState, newState in
                 print("[App] 登入狀態變更：\(oldState) → \(newState)")
+                // Auth 從 launching 轉換時，標記驗證已完成（允許向 Watch 同步）
+                if oldState == .launching {
+                    phoneSessionManager?.isAuthResolved = true
+                }
                 handleAuthStateChange(from: oldState, to: newState)
             }
             .onChange(of: networkMonitor.isOnline) {
@@ -137,6 +141,11 @@ struct LifeApp: App {
             dataManager.clearAllCache()
             expenseStore.reload()
             expenseStore.currentLedgerId = expenseStore.ledgers.first?.id ?? ""
+            phoneSessionManager?.isLoggedIn = false
+            phoneSessionManager?.syncLedgersToWatch()
+
+        case (.launching, .guest):
+            // 未登入（無 token 或 token 過期）：通知 Watch 清除登入狀態
             phoneSessionManager?.isLoggedIn = false
             phoneSessionManager?.syncLedgersToWatch()
 
