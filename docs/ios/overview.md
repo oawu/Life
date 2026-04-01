@@ -114,13 +114,14 @@ LifeApp
       │  └─ [登出] → alert 確認 → LifeApp onChange 重設資料
       └─ .guest → GuestProfileView（品牌展示 + Apple Sign In）
 
-LifeWatch（獨立 App）
-└─ WatchAddExpenseView（主表單，捲動 List）
-   ├─ 帳本 → push WatchLedgerPickerView
+LifeWatch（獨立 App，需登入）
+├─ token == nil → WatchLoginRequiredView（請在 iPhone 登入）
+└─ token != nil → WatchAddExpenseView（Wizard 導航）
+   ├─ 帳本 → WatchLedgerPickerView（Root）
    ├─ 金額 → push WatchCalculatorView
    ├─ 分類 → push WatchCategoryPickerView
    ├─ 付款人 → push WatchPayerPickerView（群組帳本）
-   ├─ 備註 → WatchMemoInputView（內嵌於主表單）
+   ├─ 備註 → push WatchMemoInputView
    └─ 時間 → push WatchDatePickerView
 ```
 
@@ -135,9 +136,10 @@ LifeWatch（獨立 App）
 | `CalculatorEngine` | @Observable | AddExpenseView 計算機運算邏輯 |
 | `LocationService` | @Observable | AddExpenseView 定位與反向地理編碼 |
 | `PhoneSessionManager` | class（非 MainActor） | WCSession iPhone 端，MainActor 隔離存取 ExpenseStore |
-| `WatchExpenseStore` | @Observable | Watch 端帳本 + 分類 + 開銷暫存 |
+| `WatchExpenseStore` | @MainActor @Observable | Watch 端帳本/分類/token 管理、API 呼叫（fetchLedgers/createExpense）、離線佇列、帳本快取 |
 | `WatchLocationService` | @Observable | Watch 端定位與反向地理編碼 |
-| `WatchSessionManager` | class | WCSession Watch 端（接收資料、回傳開銷） |
+| `WatchSessionManager` | @MainActor @Observable | WCSession Watch 端，接收 iPhone 推送（token + 帳本）、nonisolated delegate |
+| `WatchAPIClient` | final class（singleton） | Watch 專用輕量 API Client（15s timeout），GET/POST with Bearer token |
 
 ### 資料流（Guest 模式）
 

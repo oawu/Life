@@ -158,10 +158,11 @@ HomeView (TabView)
 
 | View | 檔案 | 參數 | 說明 |
 |------|------|------|------|
-| WatchAddExpenseView | WatchAddExpenseView.swift | store: WatchExpenseStore | Wizard 協調器，NavigationStack(path:) + WatchStep enum 控制逐步導航 |
+| WatchLoginRequiredView | WatchLoginRequiredView.swift | （無） | 未登入提示畫面（「請在 iPhone 登入」） |
+| WatchAddExpenseView | WatchAddExpenseView.swift | store, locationService | Wizard 協調器，NavigationStack(path:) + WatchStep enum 控制逐步導航 |
 | WatchCalculatorView | WatchCalculatorView.swift | amount: Binding\<Int\>, currency, onConfirm | 3×4 數字計算機（純整數），幣別 badge + 千分位 + 單位 |
 | WatchCategoryPickerView | WatchCategoryPickerView.swift | categories, onSelect | 分類列表選擇（圖示 + 名稱），點擊觸發 callback |
-| WatchLedgerPickerView | WatchLedgerPickerView.swift | ledgers, selectedId, onSelect | 帳本列表選擇，點擊觸發 callback |
+| WatchLedgerPickerView | WatchLedgerPickerView.swift | ledgers, isFetching, offlinePendingCount, selectedId, onSelect | 帳本列表，載入中 / 待上傳 / 離線狀態提示 |
 | WatchPayerPickerView | WatchPayerPickerView.swift | members, onSelect | 付款人列表選擇（群組帳本），點擊觸發 callback |
 | WatchMemoOrSaveView | WatchMemoOrSaveView.swift | onSave, onMemo | 備註或儲存二選一（List 按鈕） |
 | WatchMemoInputView | WatchMemoInputView.swift | memo: Binding\<String\>, onNext | 備註文字輸入 + 下一步按鈕 |

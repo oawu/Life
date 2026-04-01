@@ -119,11 +119,14 @@ life/
 - 個人頁面（已串接 PUT /api/auth/me）
   - 頭像更換、名稱 inline 編輯、載具號碼（Code 128 條碼預覽）、登出
 - Apple Watch 快速記帳（LifeWatch App）
+  - 需登入：Watch 無 token 時顯示「請在 iPhone 登入」（WatchLoginRequiredView）
   - Wizard 逐步導航：帳本 → 計算機 → 分類 → [付款人] → [備註] → [時間] → 儲存
-  - WatchConnectivity 雙通道：iPhone → Watch（`updateApplicationContext` 持久化 + `sendMessage` 即時推送）；Watch → iPhone（`sendMessage` / `transferUserInfo`）
-  - PhoneSessionManager 收到 Watch 開銷後呼叫 API 建立 + 更新快取
-  - 訪客模式：Watch 帳本列表只顯示個人帳本
-  - 離線提示：帳本列表底部 wifi.slash +「離線中」
+  - Watch 獨立 API：WatchAPIClient 直接 GET /api/state + POST expenses（不依賴 iPhone 轉發）
+  - Token 傳遞：iPhone 透過 applicationContext 推送 token，Watch 持久化至 UserDefaults
+  - 離線佇列：API 失敗時存入 OfflineExpense 佇列（上限 50 筆），下次啟動自動重送
+  - 帳本快取：CachedWatchLedger 存入 UserDefaults，API 失敗時 fallback
+  - WatchConnectivity：iPhone → Watch 單向推送（token + isLoggedIn + isOnline + 帳本資料）
+  - 離線提示：帳本列表底部顯示「待上傳 N 筆」+「離線中」
 - 本地持久化架構（SwiftData）
   - Guest：`GuestExpense`（categoryKey 識別分類）
   - Authenticated：`Cached*`（CachedLedger, CachedExpense, CachedCategory, CachedMember, CachedRecurringExpense, CachedSettlement）
