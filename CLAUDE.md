@@ -125,7 +125,7 @@ life/
   - Token 傳遞：iPhone 透過 applicationContext 推送 token，Watch 持久化至 UserDefaults
   - 離線佇列：API 失敗時存入 OfflineExpense 佇列（上限 50 筆），下次啟動自動重送
   - 帳本快取：CachedWatchLedger 存入 UserDefaults，API 失敗時 fallback
-  - WatchConnectivity：iPhone → Watch 單向推送（token + isLoggedIn + isOnline + 帳本資料）
+  - WatchConnectivity：iPhone → Watch 單向推送（token + isLoggedIn + isOnline + 帳本資料），`isAuthResolved` 門控確保 auth 確認後才同步
   - 離線提示：帳本列表底部顯示「待上傳 N 筆」+「離線中」
 - 本地持久化架構（SwiftData）
   - Guest：`GuestExpense`（categoryKey 識別分類）
