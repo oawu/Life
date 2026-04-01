@@ -5,6 +5,10 @@ options:
     iOS: "17.0"
     watchOS: "10.0"
 
+settings:
+  base:
+    DEVELOPMENT_TEAM: V6T9TGS4ET
+
 configs:
   Local: debug
   Beta: release
@@ -30,6 +34,13 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         NSLocationWhenInUseUsageDescription: "用於記錄開銷的發生地點"
         NSCameraUsageDescription: "用於掃描帳本邀請碼 QR Code 及拍攝大頭照"
         NSPhotoLibraryUsageDescription: "用於選擇大頭照"
@@ -44,8 +55,8 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: true
       configs:
         Local:
-          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta
-          PRODUCT_NAME: "Life β"
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.local
+          PRODUCT_NAME: "Life α"
         Beta:
           PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta
           PRODUCT_NAME: "Life β"
@@ -86,16 +97,16 @@ targets:
         CURRENT_PROJECT_VERSION: 1
       configs:
         Local:
-          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta.watch
-          PRODUCT_NAME: "Life β Watch"
-          INFOPLIST_KEY_WKCompanionAppBundleIdentifier: tw.iwi.life.beta
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.local.watch
+          INFOPLIST_KEY_CFBundleDisplayName: "Life α Watch"
+          INFOPLIST_KEY_WKCompanionAppBundleIdentifier: tw.iwi.life.local
         Beta:
           PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta.watch
-          PRODUCT_NAME: "Life β Watch"
+          INFOPLIST_KEY_CFBundleDisplayName: "Life β Watch"
           INFOPLIST_KEY_WKCompanionAppBundleIdentifier: tw.iwi.life.beta
         Prod:
           PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.watch
-          PRODUCT_NAME: Life Watch
+          INFOPLIST_KEY_CFBundleDisplayName: "Life Watch"
           INFOPLIST_KEY_WKCompanionAppBundleIdentifier: tw.iwi.life
 
   LifeUITests:
@@ -130,8 +141,8 @@ targets:
         CURRENT_PROJECT_VERSION: 1
       configs:
         Local:
-          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta.widget
-          INFOPLIST_KEY_CFBundleDisplayName: "Life β Widget"
+          PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.local.widget
+          INFOPLIST_KEY_CFBundleDisplayName: "Life α Widget"
         Beta:
           PRODUCT_BUNDLE_IDENTIFIER: tw.iwi.life.beta.widget
           INFOPLIST_KEY_CFBundleDisplayName: "Life β Widget"
@@ -140,7 +151,7 @@ targets:
           INFOPLIST_KEY_CFBundleDisplayName: Life Widget
 
 schemes:
-  Life Dev:
+  Life Local:
     build:
       targets:
         Life: all
@@ -166,7 +177,7 @@ schemes:
         LifeWatch: all
         LifeWidget: all
     run:
-      config: Local
+      config: Beta
     archive:
       config: Beta
 
@@ -177,13 +188,31 @@ schemes:
         LifeWatch: all
         LifeWidget: all
     run:
-      config: Local
+      config: Prod
     archive:
       config: Prod
 
-  LifeWatch Dev:
+  LifeWatch Local:
     build:
       targets:
         LifeWatch: all
     run:
       config: Local
+
+  LifeWatch Beta:
+    build:
+      targets:
+        LifeWatch: all
+    run:
+      config: Beta
+    archive:
+      config: Beta
+
+  LifeWatch Prod:
+    build:
+      targets:
+        LifeWatch: all
+    run:
+      config: Prod
+    archive:
+      config: Prod
