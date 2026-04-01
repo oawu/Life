@@ -120,7 +120,7 @@ life/
   - 頭像更換、名稱 inline 編輯、載具號碼（Code 128 條碼預覽）、登出
 - Apple Watch 快速記帳（LifeWatch App）
   - Wizard 逐步導航：帳本 → 計算機 → 分類 → [付款人] → [備註] → [時間] → 儲存
-  - WatchConnectivity：iPhone → Watch（帳本/分類/isLoggedIn/isOnline）；Watch → iPhone（開銷）
+  - WatchConnectivity 雙通道：iPhone → Watch（`updateApplicationContext` 持久化 + `sendMessage` 即時推送）；Watch → iPhone（`sendMessage` / `transferUserInfo`）
   - PhoneSessionManager 收到 Watch 開銷後呼叫 API 建立 + 更新快取
   - 訪客模式：Watch 帳本列表只顯示個人帳本
   - 離線提示：帳本列表底部 wifi.slash +「離線中」
