@@ -125,7 +125,7 @@ final class WatchExpenseStore {
         }
 
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
 
         var body: [String: Any] = [
@@ -169,7 +169,7 @@ final class WatchExpenseStore {
             queueOfflineExpense(body: body, ledgerServerId: ledgerServerId)
             return .queued
         } catch {
-            print("[手錶 API] createExpense 失敗：\(error.localizedDescription)")
+            print("[手錶 API] createExpense 失敗：\(error)")
             queueOfflineExpense(body: body, ledgerServerId: ledgerServerId)
             return .queued
         }
@@ -231,7 +231,8 @@ final class WatchExpenseStore {
                 remaining.append(contentsOf: queue.suffix(from: queue.firstIndex(where: { $0.id == expense.id })!))
                 break
             } catch {
-                print("[手錶離線] 佇列開銷上傳失敗：\(error.localizedDescription)")
+                print("[手錶離線] 佇列開銷上傳失敗：\(error)")
+                print("[手錶離線] 佇列內容：ledgerServerId=\(expense.ledgerServerId), body=\(expense.bodyAsDict)")
                 remaining.append(expense)
             }
         }
