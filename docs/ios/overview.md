@@ -17,25 +17,25 @@
 ```
 ios/
 ├── Shared/                  # 兩個 target 共用
+│   ├── Environment.swift    # 環境設定（AppEnvironment：API URL、isDev 判斷）
 │   ├── Models/              # Expense, Ledger, ExpenseCategory, Currency, RecurringExpense
+│   │   └── API/             # API Response 解碼模型
+│   │       ├── StateResponse.swift       # GET /api/state 回應
+│   │       └── CRUDResponses.swift       # CRUD API 回應
 │   └── Extensions/          # Color+Hex 等跨平台擴展
 ├── Life/                    # 主 App
 │   ├── LifeApp.swift        # App 入口（含 ModelContainer 初始化）
-│   ├── Environment.swift    # 環境設定（API URL、isDev 判斷）
 │   ├── Models/
 │   │   ├── CategoryIcon.swift     # 圖示群組（僅 Life 使用）
-│   │   ├── Persistence/           # SwiftData @Model 類別
-│   │   │   ├── LifeSchema.swift          # VersionedSchema + MigrationPlan
-│   │   │   ├── GuestExpense.swift        # 訪客開銷（純本地）
-│   │   │   ├── CachedLedger.swift        # 帳本快取
-│   │   │   ├── CachedCategory.swift      # 分類快取
-│   │   │   ├── CachedExpense.swift       # 開銷快取（含離線未同步）
-│   │   │   ├── CachedMember.swift        # 成員快取
-│   │   │   ├── CachedRecurringExpense.swift  # 固定開銷快取
-│   │   │   └── CachedSettlement.swift    # 結算紀錄快取
-│   │   └── API/                   # API Response 解碼模型
-│   │       ├── StateResponse.swift       # GET /api/state 回應
-│   │       └── CRUDResponses.swift       # CRUD API 回應
+│   │   └── Persistence/           # SwiftData @Model 類別
+│   │       ├── LifeSchema.swift          # VersionedSchema + MigrationPlan
+│   │       ├── GuestExpense.swift        # 訪客開銷（純本地）
+│   │       ├── CachedLedger.swift        # 帳本快取
+│   │       ├── CachedCategory.swift      # 分類快取
+│   │       ├── CachedExpense.swift       # 開銷快取（含離線未同步）
+│   │       ├── CachedMember.swift        # 成員快取
+│   │       ├── CachedRecurringExpense.swift  # 固定開銷快取
+│   │       └── CachedSettlement.swift    # 結算紀錄快取
 │   ├── Services/            # 狀態管理、API、工具服務
 │   └── Views/               # UI 畫面
 │       ├── LaunchView.swift
@@ -46,7 +46,7 @@ ios/
 │       ├── Profile/         # 個人頁面相關
 │       └── Expense/         # 記帳功能群組
 ├── LifeWatch/               # watchOS App（快速記帳）
-│   ├── Services/            # WatchExpenseStore, WatchLocationService, WatchSessionManager
+│   ├── Services/            # WatchExpenseStore, WatchLocationService, WatchSessionManager, WatchAPIClient
 │   └── Views/               # Watch UI 畫面
 ├── LifeWidget/              # Widget Extension（待開發）
 ├── Config/                  # 環境 xcconfig
@@ -115,6 +115,7 @@ LifeApp
       └─ .guest → GuestProfileView（品牌展示 + Apple Sign In）
 
 LifeWatch（獨立 App，需登入）
+├─ 啟動 → WatchLaunchView（品牌過場動畫）
 ├─ token == nil → WatchLoginRequiredView（請在 iPhone 登入）
 └─ token != nil → WatchAddExpenseView（Wizard 導航）
    ├─ 帳本 → WatchLedgerPickerView（Root）
@@ -179,7 +180,7 @@ ExpenseStore（對 View 層的 API）
 
 | 環境 | API URL | Bundle ID |
 |------|---------|-----------|
-| Local | `http://local-api-life.iwi.tw` | `tw.iwi.life.beta` |
+| Local | `http://local-api-life.iwi.tw` | `tw.iwi.life.local` |
 | Beta | `https://beta-api-life.iwi.tw` | `tw.iwi.life.beta` |
 | Prod | `https://api-life.iwi.tw` | `tw.iwi.life` |
 

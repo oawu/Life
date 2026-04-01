@@ -100,8 +100,8 @@
 | amount | int unsigned | 金額（整數） |
 | memo | varchar(200) DEFAULT '' | 備註 |
 | date | datetime | 消費日期時間 |
-| latitude | decimal(10,7), nullable | 緯度 |
-| longitude | decimal(10,7), nullable | 經度 |
+| latitude | decimal(11,7), nullable | 緯度 |
+| longitude | decimal(11,7), nullable | 經度 |
 | address | varchar(200), nullable | 地址 |
 | isSettled | tinyint unsigned DEFAULT 0 | 是否已結算（0=否, 1=是） |
 | paidByUserId | int unsigned, nullable | 付款人 User ID |

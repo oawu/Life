@@ -138,7 +138,7 @@ life/
   - 已登入離線攔截：群組帳本操作、分類管理、個人資料 → alert「無法連線」
   - 離線新增開銷不攔截（isSynced = false），網路恢復時自動批次同步
 - 後端 CRUD API（完整路由表見 docs/backend/api-routes.md）
-  - 資料表：User, Ledger, LedgerMember, Category, Expense, RecurringExpense, Settlement（Migration 001-010）
+  - 資料表：User, Ledger, LedgerMember, Category, Expense, RecurringExpense, Settlement（Migration 001-014）
   - State API（GET /api/state）：回傳用戶所有帳本完整資料
   - Auth Init API（POST /api/auth/init）：登入初始化 + 上傳 Guest 開銷
   - Category CRUD（POST/PUT/DELETE + sort）

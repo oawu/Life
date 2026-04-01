@@ -131,6 +131,8 @@ return [
 | 類別 | 說明 |
 |------|------|
 | `Jwt` | JWT 簽發與驗證（HS256 / RS256） |
+| `Hashids` | ID 混淆編碼（minLength / salt / alphabet） |
+| `Worker` | Worker 服務通訊（status / notify / cli） |
 
 ---
 

@@ -346,12 +346,12 @@
 | 區塊 | 說明 |
 |------|------|
 | 相機區 | AVFoundation 掃描 QR Code，處理權限狀態 |
-| 手動輸入 | `#` 前綴 + TextField（6 碼大寫）+ 「加入」按鈕 |
+| 手動輸入 | `#` 前綴 + TextField（大寫邀請碼）+ 「加入」按鈕 |
 | 成功 overlay | checkmark + 帳本名稱 + 「完成」按鈕 |
 
 ### 邀請碼規則
 
-- 6 碼，顯示時加 `#` 前綴（如 `#K3XR7N`）
+- 8 碼+（minLength=8），顯示時加 `#` 前綴（如 `#K3XR7NAC`）
 - 字元集（25 個）：`A C D E F G H J K M N P Q R T U V W X Y 3 4 6 7 9`
 - 排除相似字：`0 O 1 I L S 5 Z 2 B 8`
 - 建立群組帳本時自動生成
@@ -367,7 +367,7 @@
 
 掃碼加入（已登入 + 有網路）：
 1. 點「新增帳本」→ 選「掃碼加入」
-2. 掃 QR Code 或手動輸入 6 碼邀請碼
+2. 掃 QR Code 或手動輸入邀請碼
 3. POST /api/ledgers/join → cacheLedgerFromState
 4. 成功 → 顯示成功 overlay → 完成後加入帳本列表
 
