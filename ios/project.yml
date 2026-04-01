@@ -58,6 +58,7 @@ targets:
       Prod: Config/Prod.xcconfig
     dependencies:
       - target: LifeWidget
+      - target: LifeWatch
 
   LifeWatch:
     type: application
@@ -65,10 +66,22 @@ targets:
     sources:
       - LifeWatch
       - Shared
+    configFiles:
+      Local: Config/Local.xcconfig
+      Beta: Config/Beta.xcconfig
+      Prod: Config/Prod.xcconfig
+    info:
+      path: LifeWatch/Info.plist
+      properties:
+        WKApplication: true
+        NSLocationWhenInUseUsageDescription: "用於記錄開銷的發生地點"
+        NSAppTransportSecurity:
+          NSExceptionDomains:
+            local-api-life.iwi.tw:
+              NSExceptionAllowsInsecureHTTPLoads: true
     settings:
       base:
         GENERATE_INFOPLIST_FILE: true
-        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "用於記錄開銷的發生地點"
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: 1
       configs:
@@ -167,3 +180,10 @@ schemes:
       config: Local
     archive:
       config: Prod
+
+  LifeWatch Dev:
+    build:
+      targets:
+        LifeWatch: all
+    run:
+      config: Local
