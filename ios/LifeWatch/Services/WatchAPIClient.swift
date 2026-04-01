@@ -60,6 +60,68 @@ final class WatchAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        if let body = body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        }
+
+        // 請求 log
+        let bodyStr = body.flatMap { try? JSONSerialization.data(withJSONObject: $0) }.flatMap { String(data: $0, encoding: .utf8) } ?? "nil"
+        print("[WatchAPI] → \(method) \(urlString)")
+        print("[WatchAPI]   body: \(bodyStr)")
+        print("[WatchAPI]   token: \(String(token.prefix(20)))...")
+
+        let data: Data
+        let response: URLResponse
+
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            print("[WatchAPI] ✗ 網路錯誤：\(error)")
+            throw WatchAPIError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw WatchAPIError.invalidResponse
+        }
+
+        let responseStr = String(data: data, encoding: .utf8) ?? "nil"
+        print("[WatchAPI] ← \(httpResponse.statusCode) \(responseStr.prefix(500))")
+
+        if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
+            let message = Self.parseErrorMessage(from: data)
+            throw WatchAPIError.serverError(statusCode: httpResponse.statusCode, message: message)
+        }
+
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            print("[WatchAPI] ✗ decode 失敗，原始回應：\(responseStr)")
+            throw WatchAPIError.decodingError
+        }
+    }
+
+    func get<T: Decodable>(path: String, token: String, responseType: T.Type) async throws -> T {
+        return try await request(method: "GET", path: path, token: token, responseType: responseType)
+    }
+
+    func post<T: Decodable>(path: String, body: [String: Any]?, token: String, responseType: T.Type) async throws -> T {
+        return try await request(method: "POST", path: path, body: body, token: token, responseType: responseType)
+    }
+
+    func postIgnoringResponse(path: String, body: [String: Any]?, token: String) async throws {
+        let urlString = AppEnvironment.apiBaseURL + path
+
+        guard let url = URL(string: urlString) else {
+            throw WatchAPIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         if let body = body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -80,25 +142,25 @@ final class WatchAPIClient {
         }
 
         if httpResponse.statusCode < 200 || httpResponse.statusCode >= 300 {
-            if let errorBody = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let message = errorBody["message"] as? String {
-                throw WatchAPIError.serverError(statusCode: httpResponse.statusCode, message: message)
-            }
-            throw WatchAPIError.serverError(statusCode: httpResponse.statusCode, message: "Request failed")
-        }
-
-        do {
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            throw WatchAPIError.decodingError
+            let message = Self.parseErrorMessage(from: data)
+            throw WatchAPIError.serverError(statusCode: httpResponse.statusCode, message: message)
         }
     }
 
-    func get<T: Decodable>(path: String, token: String, responseType: T.Type) async throws -> T {
-        return try await request(method: "GET", path: path, token: token, responseType: responseType)
-    }
+    // MARK: - Error Parsing
 
-    func post<T: Decodable>(path: String, body: [String: Any]?, token: String, responseType: T.Type) async throws -> T {
-        return try await request(method: "POST", path: path, body: body, token: token, responseType: responseType)
+    private static func parseErrorMessage(from data: Data) -> String {
+        guard let errorBody = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return String(data: data, encoding: .utf8) ?? "Request failed"
+        }
+        // Maple 框架格式：{ "messages": ["..."] }
+        if let messages = errorBody["messages"] as? [String], let first = messages.first {
+            return first
+        }
+        // 一般格式：{ "message": "..." }
+        if let message = errorBody["message"] as? String {
+            return message
+        }
+        return "Request failed"
     }
 }
